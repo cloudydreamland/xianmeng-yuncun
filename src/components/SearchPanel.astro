@@ -35,7 +35,6 @@
     url: string;
     excerpt?: string;
     meta?: Record<string, string>;
-    sub_results?: Array<{ title: string; url: string; excerpt?: string; anchor?: unknown }>;
   }
 
   interface PagefindApi {
@@ -84,10 +83,10 @@
       return pagefindPromise;
     };
 
-    const createResult = (data: PagefindResultData, override?: { title: string; url: string; excerpt?: string }) => {
+    const createResult = (data: PagefindResultData) => {
       const link = document.createElement('a');
       link.className = 'search-result';
-      link.href = override?.url || data.url;
+      link.href = data.url;
       link.dataset.searchResult = '';
 
       const type = document.createElement('span');
@@ -95,10 +94,10 @@
       type.textContent = data.meta?.contentType || '云笺';
 
       const title = document.createElement('strong');
-      title.textContent = override?.title || data.meta?.title || '未题名云笺';
+      title.textContent = data.meta?.title || '未题名云笺';
 
       const excerpt = document.createElement('p');
-      excerpt.innerHTML = override?.excerpt || data.excerpt || data.meta?.description || '';
+      excerpt.innerHTML = data.excerpt || data.meta?.description || '';
 
       link.append(type, title, excerpt);
       return link;
@@ -112,16 +111,6 @@
       const fragment = document.createDocumentFragment();
       let rendered = 0;
       loaded.forEach((data) => {
-        if (data.meta?.contentType === '项目' && data.sub_results?.length) {
-          const projectSections = data.sub_results.filter((item) => item.anchor && item.url.includes('#'));
-          if (projectSections.length) {
-            projectSections.forEach((item) => {
-              fragment.append(createResult(data, item));
-              rendered += 1;
-            });
-            return;
-          }
-        }
         fragment.append(createResult(data));
         rendered += 1;
       });

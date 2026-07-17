@@ -38,7 +38,7 @@ const journeyLocations = [
       </div>
       <div class="note-list">
         {notes.map((note, index) => (
-          <a class="note-row" href={`/notes/${note.id}/`}>
+          <a class="note-row" href={`/notes/${note.data.slug}/`}>
             <span class="note-row__date">{formatDate(note.data.publishedAt)}</span>
             <div><small>{note.data.category}</small><h3>{note.data.title}</h3><p>{note.data.description}</p></div>
             <span class="note-row__index">0{index + 1}</span>
@@ -56,10 +56,12 @@ const journeyLocations = [
     <div class="featured-projects">
       {projects.map((project) => (
         <article class="project-preview">
+          {project.data.cover && <img class="project-preview__cover" src={project.data.cover} alt={project.data.coverAlt || project.data.title} width="720" height="405" loading="lazy" />}
           <div class="project-preview__top"><span>{project.data.period}</span><strong>{project.data.status}</strong></div>
-          <h3>{project.data.title}</h3>
+          <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
           <p>{project.data.description}</p>
           <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
+          <a class="text-link" href={`/projects/${project.data.slug}/`}>查看完整档案 →</a>
         </article>
       ))}
     </div>

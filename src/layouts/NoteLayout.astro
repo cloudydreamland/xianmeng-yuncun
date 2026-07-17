@@ -2,7 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
 
-const { title, description, publishedAt, updatedAt, tags = [], category, headings = [], prev, next, wordCount, readingMinutes } = Astro.props;
+const { title, description, publishedAt, updatedAt, tags = [], category, cover, coverAlt, headings = [], prev, next, wordCount, readingMinutes } = Astro.props;
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 const visibleHeadings = headings.filter((heading: { depth: number }) => heading.depth <= 3);
 ---
@@ -16,6 +16,7 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
   searchCategory={category}
   searchTags={tags}
   searchDate={publishedAt}
+  image={cover}
 >
   <div class="reading-progress" data-reading-progress aria-hidden="true"><span></span></div>
   <article class="note-article page-shell" data-note-article>
@@ -31,6 +32,11 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
       </div>
       <div class="tag-row">{tags.map((tag: string) => <a class="tag-link" href={`/notes?tag=${encodeURIComponent(tag)}`}><IslandTag label={tag} /></a>)}</div>
     </header>
+    {cover && (
+      <figure class="content-cover content-cover--note">
+        <img src={cover} alt={coverAlt || title} width="1200" height="675" loading="eager" />
+      </figure>
+    )}
     <div class="article-grid">
       <div class="prose" data-note-prose><slot /></div>
       {headings.length > 0 && (
@@ -43,8 +49,8 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
       )}
     </div>
     <nav class="article-nav" aria-label="相邻文章">
-      {prev ? <a href={`/notes/${prev.id}/`}><small>上一篇</small><strong>{prev.data.title}</strong></a> : <span></span>}
-      {next ? <a href={`/notes/${next.id}/`}><small>下一篇</small><strong>{next.data.title}</strong></a> : <span></span>}
+      {prev ? <a href={`/notes/${prev.data.slug}/`}><small>上一篇</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/notes/${next.data.slug}/`}><small>下一篇</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>
   </article>
   <p class="copy-announcer" data-copy-announcer aria-live="polite"></p>

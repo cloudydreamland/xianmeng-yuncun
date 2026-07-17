@@ -1,0 +1,63 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import IslandTag from '../components/IslandTag';
+
+const {
+  title,
+  description,
+  period,
+  status,
+  stack = [],
+  repoUrl,
+  demoUrl,
+  cover,
+  coverAlt,
+  prev,
+  next,
+} = Astro.props;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={cover}
+  searchable
+  searchType="项目"
+  searchTitle={title}
+  searchTags={stack}
+>
+  <article class="project-detail page-shell">
+    <header class="project-detail__header">
+      <a class="back-link" href="/projects">← 返回百工阁</a>
+      <p class="eyebrow">WORKSHOP ARCHIVE · {status}</p>
+      <h1>{title}</h1>
+      <p class="project-detail__lead">{description}</p>
+      <div class="project-detail__meta">
+        <span>{period}</span>
+        <strong>{status}</strong>
+      </div>
+      <div class="tag-row">
+        {stack.map((item: string) => <IslandTag label={item} tone="green" />)}
+      </div>
+      {(demoUrl || repoUrl) && (
+        <div class="project-detail__actions">
+          {demoUrl && <a class="button button--primary" href={demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}
+          {repoUrl && <a class="button button--ghost" href={repoUrl} target="_blank" rel="noreferrer">浏览源代码 ↗</a>}
+        </div>
+      )}
+    </header>
+
+    {cover && (
+      <figure class="content-cover content-cover--project">
+        <img src={cover} alt={coverAlt || title} width="1200" height="675" loading="eager" />
+      </figure>
+    )}
+
+    <div class="project-detail__body prose"><slot /></div>
+
+    <nav class="article-nav" aria-label="相邻项目">
+      {prev ? <a href={`/projects/${prev.data.slug}/`}><small>上一份档案</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/projects/${next.data.slug}/`}><small>下一份档案</small><strong>{next.data.title}</strong></a> : <span></span>}
+    </nav>
+  </article>
+</BaseLayout>
