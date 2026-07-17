@@ -1,0 +1,29 @@
+---
+const pathname = Astro.url.pathname;
+const links = [
+  { href: '/', label: '云渡' },
+  { href: '/notes', label: '山窗书屋' },
+  { href: '/projects', label: '百工阁' },
+  { href: '/about', label: '三山观' },
+];
+---
+
+<header class="site-header">
+  <a class="site-brand" href="/" aria-label="闲梦云村首页">
+    <span class="site-brand__mark" aria-hidden="true">闲</span>
+    <span><strong>闲梦</strong><small>云村</small></span>
+  </a>
+  <nav class="desktop-nav" aria-label="主导航">
+    {links.map((link) => (
+      <a href={link.href} class:list={[{ active: link.href === '/' ? pathname === '/' : pathname.startsWith(link.href) }]} aria-current={link.href === '/' ? pathname === '/' ? 'page' : undefined : pathname.startsWith(link.href) ? 'page' : undefined}>
+        {link.label}
+      </a>
+    ))}
+  </nav>
+  <details class="mobile-nav">
+    <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
+    <nav aria-label="移动端导航">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+  </details>
+</header>

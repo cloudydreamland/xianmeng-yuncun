@@ -1,0 +1,51 @@
+---
+import '@fontsource/noto-serif-sc/400.css';
+import '@fontsource/noto-serif-sc/700.css';
+import 'animal-island-ui/style';
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = '闲梦 · 云村',
+  description = '一座藏在云海深处的个人村落，收留笔记、项目与未完的梦。',
+  image = '/images/yuncun-cloudwall.webp',
+} = Astro.props;
+const pageTitle = title === '闲梦 · 云村' ? title : `${title}｜闲梦 · 云村`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const imageUrl = new URL(image, Astro.site);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f3e8" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="闲梦 · 云村 RSS" href="/rss.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>{pageTitle}</title>
+  </head>
+  <body class:list={[{ 'home-page': Astro.url.pathname === '/' }]}>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <div class="paper-noise" aria-hidden="true"></div>
+    <Header />
+    <main id="main-content"><slot /></main>
+    <Footer />
+    <div id="yunling-pet-root" aria-hidden="true"></div>
+  </body>
+</html>

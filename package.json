@@ -1,0 +1,32 @@
+{
+  "name": "xianmeng-yuncun",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "build": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check && cross-env ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^7.0.3",
+    "@astrojs/react": "^6.0.1",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.3",
+    "@fontsource/noto-serif-sc": "^5.2.9",
+    "animal-island-ui": "^1.2.3",
+    "astro": "^7.1.0",
+    "classnames": "^2.5.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "cross-env": "^10.1.0",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.14.0"
+}

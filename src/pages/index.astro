@@ -1,0 +1,100 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CloudEntrance from '../components/CloudEntrance';
+import IslandTag from '../components/IslandTag';
+
+const notes = (await getCollection('notes', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 3);
+const projects = (await getCollection('projects'))
+  .filter(({ data }) => data.featured)
+  .slice(0, 2);
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(date);
+---
+
+<BaseLayout>
+  <CloudEntrance client:only="react" />
+  <section class="hero" aria-labelledby="hero-title">
+    <img class="hero__image" src="/images/yuncun-cloudwall.webp" width="1824" height="864" alt="一位旅人乘着小舟穿过风雨与厚重云墙，望见晨光中宁静的青山、春水与茅屋" fetchpriority="high" />
+    <div class="hero__veil" aria-hidden="true"></div>
+    <div class="hero__content page-shell">
+      <p class="eyebrow hero__eyebrow">A QUIET VILLAGE ABOVE THE CLOUDS</p>
+      <h1 id="hero-title"><span>闲梦</span><strong>云村</strong></h1>
+      <p class="hero__lead">穿过喧嚣与风雨，在云深处，为思想留一间书屋，为创造留一座工坊。</p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="/notes">前往山窗书屋</a>
+        <a class="button button--quiet" href="/about">认识这座村落</a>
+      </div>
+    </div>
+    <a class="hero__scroll" href="#village" aria-label="继续向下浏览"><span></span>沿溪入村</a>
+  </section>
+
+  <section id="village" class="village-section page-shell">
+    <div class="section-heading section-heading--center">
+      <p class="eyebrow">THREE PLACES, ONE VILLAGE</p>
+      <h2>云村三处</h2>
+      <p>沿着水声走，村中的每一处地方，都收留一种不同的念想。</p>
+    </div>
+    <div class="place-grid">
+      <a class="place-card place-card--book" href="/notes">
+        <span class="place-card__number">壹</span>
+        <div><small>山窗书屋</small><h3>写下沿途所见</h3><p>生活札记、学习笔记，以及那些值得反复推敲的问题。</p></div>
+        <span class="place-card__link">入书屋 →</span>
+      </a>
+      <a class="place-card place-card--work" href="/projects">
+        <span class="place-card__number">贰</span>
+        <div><small>百工阁</small><h3>保存造物痕迹</h3><p>项目经历、技术选择、失败复盘与仍在生长的构想。</p></div>
+        <span class="place-card__link">访工坊 →</span>
+      </a>
+      <a class="place-card place-card--view" href="/about">
+        <span class="place-card__number">叁</span>
+        <div><small>三山观</small><h3>在高处看自己</h3><p>关于我、来路、正在学习的事，以及想去往的方向。</p></div>
+        <span class="place-card__link">登山去 →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="stream-section">
+    <div class="page-shell stream-grid">
+      <div class="section-heading">
+        <p class="eyebrow">RECENT CLOUD NOTES</p>
+        <h2>新到的云笺</h2>
+        <p>一些刚刚从山窗寄出的文字，带着未干的墨与清晨的风。</p>
+        <a class="text-link" href="/notes">查看全部笔记 →</a>
+      </div>
+      <div class="note-list">
+        {notes.map((note, index) => (
+          <a class="note-row" href={`/notes/${note.id}/`}>
+            <span class="note-row__date">{formatDate(note.data.publishedAt)}</span>
+            <div><small>{note.data.category}</small><h3>{note.data.title}</h3><p>{note.data.description}</p></div>
+            <span class="note-row__index">0{index + 1}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="work-section page-shell">
+    <div class="section-heading section-heading--split">
+      <div><p class="eyebrow">SELECTED WORKS</p><h2>工坊近作</h2></div>
+      <a class="text-link" href="/projects">全部行迹 →</a>
+    </div>
+    <div class="featured-projects">
+      {projects.map((project) => (
+        <article class="project-preview">
+          <div class="project-preview__top"><span>{project.data.period}</span><strong>{project.data.status}</strong></div>
+          <h3>{project.data.title}</h3>
+          <p>{project.data.description}</p>
+          <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="quote-section">
+    <div class="quote-section__cloud" aria-hidden="true"></div>
+    <blockquote>“人在，村在，梦在，魂在，足矣。”</blockquote>
+    <p>——《闲梦 · 云村》</p>
+  </section>
+</BaseLayout>

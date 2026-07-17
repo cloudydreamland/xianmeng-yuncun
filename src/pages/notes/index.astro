@@ -1,0 +1,66 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import IslandTag from '../../components/IslandTag';
+
+const notes = (await getCollection('notes', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+const categories = [...new Set(notes.map(({ data }) => data.category))];
+const tags = [...new Set(notes.flatMap(({ data }) => data.tags))];
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+---
+
+<BaseLayout title="山窗书屋" description="云村中的个人笔记与随笔，记录学习、生活和造物过程。">
+  <section class="page-hero page-hero--notes">
+    <div class="page-shell page-hero__inner">
+      <div><p class="eyebrow">THE WINDOW-SIDE STUDY</p><h1>山窗书屋</h1><p>云影落在纸上，风从字句之间经过。这里收留思考，也保存尚未成熟的问题。</p></div>
+      <span class="page-hero__seal" aria-hidden="true">书</span>
+    </div>
+  </section>
+  <section class="page-shell notes-browser" data-notes-browser>
+    <div class="filter-panel" aria-label="筛选笔记">
+      <div class="filter-group"><strong>按卷分类</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category}>{category}</button>)}</div>
+      <div class="filter-group"><strong>云笺标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag}>#{tag}</button>)}</div>
+      <p class="filter-count" aria-live="polite">共 {notes.length} 篇</p>
+    </div>
+    <div class="cloud-note-grid">
+      {notes.map((note) => (
+        <article class="cloud-note" data-note-card data-category={note.data.category} data-tags={JSON.stringify(note.data.tags)}>
+          <div class="cloud-note__meta"><span>{note.data.category}</span><time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time></div>
+          <h2><a href={`/notes/${note.id}/`}>{note.data.title}</a></h2>
+          <p>{note.data.description}</p>
+          <div class="tag-row">{note.data.tags.map((tag) => <IslandTag label={tag} />)}</div>
+          <a class="cloud-note__more" href={`/notes/${note.id}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
+        </article>
+      ))}
+    </div>
+    <div class="empty-state" data-empty-state hidden><strong>这片云上还没有找到对应的文字。</strong><p>换一个分类，或让风把筛选吹散吧。</p></div>
+  </section>
+  <script>
+    const browser = document.querySelector('[data-notes-browser]');
+    if (browser) {
+      const state = { category: 'all', tag: 'all' };
+      const cards = [...browser.querySelectorAll<HTMLElement>('[data-note-card]')];
+      const count = browser.querySelector<HTMLElement>('.filter-count');
+      const empty = browser.querySelector<HTMLElement>('[data-empty-state]');
+      browser.querySelectorAll<HTMLButtonElement>('[data-filter-type]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const type = button.dataset.filterType as 'category' | 'tag';
+          state[type] = button.dataset.filterValue || 'all';
+          browser.querySelectorAll(`[data-filter-type="${type}"]`).forEach((item) => item.classList.remove('active'));
+          button.classList.add('active');
+          let visible = 0;
+          cards.forEach((card) => {
+            const cardTags = JSON.parse(card.dataset.tags || '[]');
+            const matchesCategory = state.category === 'all' || card.dataset.category === state.category;
+            const matchesTag = state.tag === 'all' || cardTags.includes(state.tag);
+            card.hidden = !(matchesCategory && matchesTag);
+            if (!card.hidden) visible += 1;
+          });
+          if (count) count.textContent = `共 ${visible} 篇`;
+          if (empty) empty.hidden = visible !== 0;
+        });
+      });
+    }
+  </script>
+</BaseLayout>

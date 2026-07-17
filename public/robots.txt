@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xianmeng-yuncun.pages.dev/sitemap-index.xml
