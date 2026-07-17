@@ -1,0 +1,232 @@
+<dialog class="search-dialog" data-search-dialog aria-labelledby="search-dialog-title">
+  <div class="search-dialog__cloud" aria-hidden="true"></div>
+  <div class="search-dialog__inner">
+    <header class="search-dialog__header">
+      <div>
+        <p class="eyebrow">SEARCH THE CLOUD ARCHIVE</p>
+        <h2 id="search-dialog-title">寻访云笺</h2>
+      </div>
+      <form method="dialog">
+        <button class="search-dialog__close" value="close" aria-label="关闭搜索">×</button>
+      </form>
+    </header>
+
+    <label class="search-field">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="搜索笔记、项目与山中旧事……" autocomplete="off" spellcheck="false" />
+      <kbd>⌘ K</kbd>
+    </label>
+
+    <div class="search-filters" aria-label="筛选搜索结果">
+      <button type="button" class="active" data-search-type="all" aria-pressed="true">全部</button>
+      <button type="button" data-search-type="笔记" aria-pressed="false">笔记</button>
+      <button type="button" data-search-type="项目" aria-pressed="false">项目</button>
+      <button type="button" data-search-type="关于" aria-pressed="false">关于</button>
+    </div>
+
+    <p class="search-status" data-search-status aria-live="polite">输入关键词，风会替你翻开对应的云笺。</p>
+    <div class="search-results" data-search-results></div>
+    <button class="search-load-more" type="button" data-search-more hidden>再展开八枚云笺</button>
+  </div>
+</dialog>
+
+<script>
+  interface PagefindResultData {
+    url: string;
+    excerpt?: string;
+    meta?: Record<string, string>;
+    sub_results?: Array<{ title: string; url: string; excerpt?: string; anchor?: unknown }>;
+  }
+
+  interface PagefindApi {
+    init: () => Promise<void> | void;
+    search: (term: string, options?: { filters?: Record<string, string> }) => Promise<{
+      results: Array<{ data: () => Promise<PagefindResultData> }>;
+    }>;
+  }
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
+  const input = dialog?.querySelector<HTMLInputElement>('[data-search-input]');
+  const resultsRoot = dialog?.querySelector<HTMLElement>('[data-search-results]');
+  const status = dialog?.querySelector<HTMLElement>('[data-search-status]');
+  const moreButton = dialog?.querySelector<HTMLButtonElement>('[data-search-more]');
+
+  if (dialog && input && resultsRoot && status && moreButton) {
+    let pagefind: PagefindApi | null = null;
+    let pagefindPromise: Promise<PagefindApi> | null = null;
+    let activeType = 'all';
+    let resultHandles: Array<{ data: () => Promise<PagefindResultData> }> = [];
+    let visibleCount = 8;
+    let timer = 0;
+    let requestId = 0;
+    let lastOpener: HTMLElement | null = null;
+
+    const setStatus = (message: string) => {
+      status.textContent = message;
+    };
+
+    const loadPagefind = async () => {
+      if (pagefind) return pagefind;
+      if (!pagefindPromise) {
+        const bundlePath = '/pagefind/pagefind.js';
+        pagefindPromise = import(/* @vite-ignore */ bundlePath)
+          .then(async (module) => {
+            const api = module as unknown as PagefindApi;
+            await api.init();
+            pagefind = api;
+            return api;
+          })
+          .catch((error) => {
+            pagefindPromise = null;
+            throw error;
+          });
+      }
+      return pagefindPromise;
+    };
+
+    const createResult = (data: PagefindResultData, override?: { title: string; url: string; excerpt?: string }) => {
+      const link = document.createElement('a');
+      link.className = 'search-result';
+      link.href = override?.url || data.url;
+      link.dataset.searchResult = '';
+
+      const type = document.createElement('span');
+      type.className = 'search-result__type';
+      type.textContent = data.meta?.contentType || '云笺';
+
+      const title = document.createElement('strong');
+      title.textContent = override?.title || data.meta?.title || '未题名云笺';
+
+      const excerpt = document.createElement('p');
+      excerpt.innerHTML = override?.excerpt || data.excerpt || data.meta?.description || '';
+
+      link.append(type, title, excerpt);
+      return link;
+    };
+
+    const renderResults = async (currentRequest = requestId) => {
+      const handles = resultHandles.slice(0, visibleCount);
+      const loaded = await Promise.all(handles.map((result) => result.data()));
+      if (currentRequest !== requestId) return;
+
+      const fragment = document.createDocumentFragment();
+      let rendered = 0;
+      loaded.forEach((data) => {
+        if (data.meta?.contentType === '项目' && data.sub_results?.length) {
+          const projectSections = data.sub_results.filter((item) => item.anchor && item.url.includes('#'));
+          if (projectSections.length) {
+            projectSections.forEach((item) => {
+              fragment.append(createResult(data, item));
+              rendered += 1;
+            });
+            return;
+          }
+        }
+        fragment.append(createResult(data));
+        rendered += 1;
+      });
+
+      resultsRoot.replaceChildren(fragment);
+      moreButton.hidden = visibleCount >= resultHandles.length;
+      setStatus(rendered ? `找到 ${rendered} 处相关内容` : '这片云中暂时没有找到对应的文字。');
+    };
+
+    const performSearch = async () => {
+      const term = input.value.trim();
+      const currentRequest = ++requestId;
+      visibleCount = 8;
+      resultHandles = [];
+      moreButton.hidden = true;
+
+      if (!term) {
+        resultsRoot.replaceChildren();
+        setStatus('输入关键词，风会替你翻开对应的云笺。');
+        return;
+      }
+
+      setStatus('正在云海中寻访……');
+      try {
+        const api = await loadPagefind();
+        const options = activeType === 'all' ? undefined : { filters: { contentType: activeType } };
+        const search = await api.search(term, options);
+        if (currentRequest !== requestId) return;
+        resultHandles = search.results;
+        await renderResults(currentRequest);
+      } catch {
+        if (currentRequest !== requestId) return;
+        resultsRoot.replaceChildren();
+        setStatus(location.hostname === 'localhost'
+          ? '开发模式还没有生成搜索索引，请运行 pnpm build 后使用 pnpm preview 验证。'
+          : '云海暂时起雾，搜索索引加载失败，请稍后再试。');
+      }
+    };
+
+    const scheduleSearch = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(performSearch, 250);
+    };
+
+    const openDialog = (opener?: HTMLElement | null) => {
+      if (!dialog.open) {
+        lastOpener = opener || document.activeElement as HTMLElement;
+        dialog.showModal();
+      }
+      window.setTimeout(() => input.focus(), 0);
+      loadPagefind().catch(() => undefined);
+    };
+
+    document.querySelectorAll<HTMLElement>('[data-search-open]').forEach((button) => {
+      button.addEventListener('click', () => openDialog(button));
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        openDialog();
+      }
+    });
+
+    input.addEventListener('input', scheduleSearch);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        const first = resultsRoot.querySelector<HTMLAnchorElement>('[data-search-result]');
+        if (first) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    resultsRoot.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+      const links = [...resultsRoot.querySelectorAll<HTMLAnchorElement>('[data-search-result]')];
+      const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+      const nextIndex = event.key === 'ArrowDown' ? Math.min(index + 1, links.length - 1) : index - 1;
+      event.preventDefault();
+      if (nextIndex < 0) input.focus();
+      else links[nextIndex]?.focus();
+    });
+
+    dialog.querySelectorAll<HTMLButtonElement>('[data-search-type]').forEach((button) => {
+      button.addEventListener('click', () => {
+        activeType = button.dataset.searchType || 'all';
+        dialog.querySelectorAll<HTMLButtonElement>('[data-search-type]').forEach((item) => {
+          const selected = item === button;
+          item.classList.toggle('active', selected);
+          item.setAttribute('aria-pressed', String(selected));
+        });
+        performSearch();
+      });
+    });
+
+    moreButton.addEventListener('click', async () => {
+      visibleCount += 8;
+      await renderResults();
+    });
+
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('close', () => lastOpener?.focus());
+  }
+</script>

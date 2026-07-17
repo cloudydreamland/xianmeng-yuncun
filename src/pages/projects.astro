@@ -6,7 +6,7 @@ import IslandTag from '../components/IslandTag';
 const projects = (await getCollection('projects')).sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
 ---
 
-<BaseLayout title="百工阁" description="云村中的个人项目、技术选择、复盘与仍在生长的构想。">
+<BaseLayout title="百工阁" description="云村中的个人项目、技术选择、复盘与仍在生长的构想。" searchable searchType="项目" searchTitle="百工阁">
   <section class="page-hero page-hero--projects">
     <div class="page-shell page-hero__inner">
       <div><p class="eyebrow">THE VILLAGE WORKSHOP</p><h1>百工阁</h1><p>好的造物不只留下结果，也留下选择、弯路与下一次出发时可以带走的经验。</p></div>
@@ -20,7 +20,7 @@ const projects = (await getCollection('projects')).sort((a, b) => Number(b.data.
         <article class:list={['project-card', { featured: project.data.featured }]}>
           <div class="project-card__header"><span>NO. {(index + 1).toString().padStart(2, '0')}</span><strong>{project.data.status}</strong></div>
           <p class="project-card__period">{project.data.period}</p>
-          <h2>{project.data.title}</h2>
+          <h2 id={project.id}>{project.data.title}</h2>
           <p>{project.data.description}</p>
           <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone={project.data.featured ? 'green' : 'brown'} />)}</div>
           {(project.data.demoUrl || project.data.repoUrl) && <div class="project-card__links">{project.data.demoUrl && <a href={project.data.demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">源代码 ↗</a>}</div>}

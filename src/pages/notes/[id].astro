@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import NoteLayout from '../../layouts/NoteLayout.astro';
+import { getReadingStats } from '../../utils/readingStats';
 
 export async function getStaticPaths() {
   const notes = (await getCollection('notes', ({ data }) => !data.draft))
@@ -17,8 +18,9 @@ export async function getStaticPaths() {
 
 const { note, prev, next } = Astro.props;
 const { Content, headings } = await render(note);
+const readingStats = getReadingStats(note.body ?? '');
 ---
 
-<NoteLayout {...note.data} headings={headings} prev={prev} next={next}>
+<NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next}>
   <Content />
 </NoteLayout>

@@ -5,17 +5,30 @@ import 'animal-island-ui/style';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import SearchPanel from '../components/SearchPanel.astro';
 
 interface Props {
   title?: string;
   description?: string;
   image?: string;
+  searchable?: boolean;
+  searchType?: '笔记' | '项目' | '关于';
+  searchTitle?: string;
+  searchCategory?: string;
+  searchTags?: string[];
+  searchDate?: Date;
 }
 
 const {
   title = '闲梦 · 云村',
   description = '一座藏在云海深处的个人村落，收留笔记、项目与未完的梦。',
   image = '/images/yuncun-cloudwall.webp',
+  searchable = false,
+  searchType,
+  searchTitle,
+  searchCategory,
+  searchTags = [],
+  searchDate,
 } = Astro.props;
 const pageTitle = title === '闲梦 · 云村' ? title : `${title}｜闲梦 · 云村`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -38,6 +51,13 @@ const imageUrl = new URL(image, Astro.site);
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={imageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
+    {searchable && searchType && <meta data-pagefind-filter={`contentType:${searchType}`} />}
+    {searchable && searchType && <meta data-pagefind-meta="contentType[content]" content={searchType} />}
+    {searchable && searchTitle && <meta data-pagefind-meta="title[content]" content={searchTitle} />}
+    {searchable && <meta data-pagefind-meta="description[content]" content={description} />}
+    {searchable && searchCategory && <meta data-pagefind-filter="category[content]" content={searchCategory} />}
+    {searchable && searchTags.map((tag) => <meta data-pagefind-filter="tag[content]" content={tag} />)}
+    {searchable && searchDate && <meta data-pagefind-sort="date[content]" content={searchDate.toISOString()} />}
     <title>{pageTitle}</title>
     <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
@@ -45,7 +65,8 @@ const imageUrl = new URL(image, Astro.site);
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <div class="paper-noise" aria-hidden="true"></div>
     <Header />
-    <main id="main-content"><slot /></main>
+    <SearchPanel />
+    <main id="main-content" data-pagefind-body={searchable ? true : undefined}><slot /></main>
     <Footer />
     <div id="yunling-pet-root" aria-hidden="true"></div>
   </body>

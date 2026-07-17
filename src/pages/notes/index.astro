@@ -19,9 +19,9 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
   </section>
   <section class="page-shell notes-browser" data-notes-browser>
     <div class="filter-panel" aria-label="筛选笔记">
-      <div class="filter-group"><strong>按卷分类</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category}>{category}</button>)}</div>
-      <div class="filter-group"><strong>云笺标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag}>#{tag}</button>)}</div>
-      <p class="filter-count" aria-live="polite">共 {notes.length} 篇</p>
+      <div class="filter-group"><strong>按卷分类</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
+      <div class="filter-group"><strong>云笺标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
+      <div class="filter-summary"><p class="filter-count" aria-live="polite">共 {notes.length} 篇</p><button type="button" class="filter-reset" data-reset-filters hidden>清除筛选</button></div>
     </div>
     <div class="cloud-note-grid">
       {notes.map((note) => (
@@ -29,7 +29,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
           <div class="cloud-note__meta"><span>{note.data.category}</span><time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time></div>
           <h2><a href={`/notes/${note.id}/`}>{note.data.title}</a></h2>
           <p>{note.data.description}</p>
-          <div class="tag-row">{note.data.tags.map((tag) => <IslandTag label={tag} />)}</div>
+          <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/notes?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
           <a class="cloud-note__more" href={`/notes/${note.id}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
         </article>
       ))}
@@ -43,24 +43,66 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
       const cards = [...browser.querySelectorAll<HTMLElement>('[data-note-card]')];
       const count = browser.querySelector<HTMLElement>('.filter-count');
       const empty = browser.querySelector<HTMLElement>('[data-empty-state]');
+      const reset = browser.querySelector<HTMLButtonElement>('[data-reset-filters]');
+      const categoryValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="category"]')].map((button) => button.dataset.filterValue || 'all'));
+      const tagValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="tag"]')].map((button) => button.dataset.filterValue || 'all'));
+
+      const syncButtons = () => {
+        browser.querySelectorAll<HTMLButtonElement>('[data-filter-type]').forEach((button) => {
+          const type = button.dataset.filterType as 'category' | 'tag';
+          const active = state[type] === (button.dataset.filterValue || 'all');
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+      };
+
+      const applyFilters = (updateUrl = false) => {
+        let visible = 0;
+        cards.forEach((card) => {
+          const cardTags = JSON.parse(card.dataset.tags || '[]');
+          const matchesCategory = state.category === 'all' || card.dataset.category === state.category;
+          const matchesTag = state.tag === 'all' || cardTags.includes(state.tag);
+          card.hidden = !(matchesCategory && matchesTag);
+          if (!card.hidden) visible += 1;
+        });
+        syncButtons();
+        if (count) count.textContent = `共 ${visible} 篇`;
+        if (empty) empty.hidden = visible !== 0;
+        if (reset) reset.hidden = state.category === 'all' && state.tag === 'all';
+
+        if (updateUrl) {
+          const url = new URL(window.location.href);
+          if (state.category === 'all') url.searchParams.delete('category');
+          else url.searchParams.set('category', state.category);
+          if (state.tag === 'all') url.searchParams.delete('tag');
+          else url.searchParams.set('tag', state.tag);
+          history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+        }
+      };
+
+      const readUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        const category = params.get('category') || 'all';
+        const tag = params.get('tag') || 'all';
+        state.category = categoryValues.has(category) ? category : 'all';
+        state.tag = tagValues.has(tag) ? tag : 'all';
+        applyFilters(false);
+      };
+
       browser.querySelectorAll<HTMLButtonElement>('[data-filter-type]').forEach((button) => {
         button.addEventListener('click', () => {
           const type = button.dataset.filterType as 'category' | 'tag';
           state[type] = button.dataset.filterValue || 'all';
-          browser.querySelectorAll(`[data-filter-type="${type}"]`).forEach((item) => item.classList.remove('active'));
-          button.classList.add('active');
-          let visible = 0;
-          cards.forEach((card) => {
-            const cardTags = JSON.parse(card.dataset.tags || '[]');
-            const matchesCategory = state.category === 'all' || card.dataset.category === state.category;
-            const matchesTag = state.tag === 'all' || cardTags.includes(state.tag);
-            card.hidden = !(matchesCategory && matchesTag);
-            if (!card.hidden) visible += 1;
-          });
-          if (count) count.textContent = `共 ${visible} 篇`;
-          if (empty) empty.hidden = visible !== 0;
+          applyFilters(true);
         });
       });
+      reset?.addEventListener('click', () => {
+        state.category = 'all';
+        state.tag = 'all';
+        applyFilters(true);
+      });
+      window.addEventListener('popstate', readUrl);
+      readUrl();
     }
   </script>
 </BaseLayout>

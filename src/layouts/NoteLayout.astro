@@ -2,13 +2,23 @@
 import BaseLayout from './BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
 
-const { title, description, publishedAt, updatedAt, tags = [], category, headings = [], prev, next } = Astro.props;
+const { title, description, publishedAt, updatedAt, tags = [], category, headings = [], prev, next, wordCount, readingMinutes } = Astro.props;
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 const visibleHeadings = headings.filter((heading: { depth: number }) => heading.depth <= 3);
 ---
 
-<BaseLayout title={title} description={description}>
-  <article class="note-article page-shell">
+<BaseLayout
+  title={title}
+  description={description}
+  searchable
+  searchType="笔记"
+  searchTitle={title}
+  searchCategory={category}
+  searchTags={tags}
+  searchDate={publishedAt}
+>
+  <div class="reading-progress" data-reading-progress aria-hidden="true"><span></span></div>
+  <article class="note-article page-shell" data-note-article>
     <header class="note-header">
       <a class="back-link" href="/notes">← 返回山窗书屋</a>
       <p class="eyebrow">{category} · CLOUD NOTE</p>
@@ -17,11 +27,12 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
       <div class="note-meta">
         <time datetime={publishedAt.toISOString()}>{formatDate(publishedAt)}</time>
         {updatedAt && <span>修订于 {formatDate(updatedAt)}</span>}
+        <span>约 {wordCount} 字 · {readingMinutes} 分钟阅读</span>
       </div>
-      <div class="tag-row">{tags.map((tag: string) => <IslandTag label={tag} />)}</div>
+      <div class="tag-row">{tags.map((tag: string) => <a class="tag-link" href={`/notes?tag=${encodeURIComponent(tag)}`}><IslandTag label={tag} /></a>)}</div>
     </header>
     <div class="article-grid">
-      <div class="prose"><slot /></div>
+      <div class="prose" data-note-prose><slot /></div>
       {headings.length > 0 && (
         <aside class="note-toc" aria-label="文章目录">
           <span>卷中目录</span>
@@ -36,4 +47,106 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
       {next ? <a href={`/notes/${next.id}/`}><small>下一篇</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>
   </article>
+  <p class="copy-announcer" data-copy-announcer aria-live="polite"></p>
+  <script>
+    const article = document.querySelector<HTMLElement>('[data-note-article]');
+    const prose = document.querySelector<HTMLElement>('[data-note-prose]');
+    const progress = document.querySelector<HTMLElement>('[data-reading-progress] span');
+    const announcer = document.querySelector<HTMLElement>('[data-copy-announcer]');
+
+    if (article && prose && progress) {
+      let ticking = false;
+      const updateProgress = () => {
+        const start = prose.offsetTop;
+        const distance = Math.max(1, prose.offsetHeight - window.innerHeight);
+        const value = Math.min(1, Math.max(0, (window.scrollY - start) / distance));
+        progress.style.setProperty('--reading-progress', String(value));
+        ticking = false;
+      };
+      const requestProgress = () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(updateProgress);
+        }
+      };
+      window.addEventListener('scroll', requestProgress, { passive: true });
+      window.addEventListener('resize', requestProgress, { passive: true });
+      updateProgress();
+
+      const tocLinks = [...document.querySelectorAll<HTMLAnchorElement>('.note-toc a[href^="#"]')];
+      const headingMap = new Map(tocLinks.map((link) => [decodeURIComponent(link.hash.slice(1)), link]));
+      const headings = [...prose.querySelectorAll<HTMLElement>('h2[id], h3[id]')];
+      const setActiveHeading = (id: string) => {
+        tocLinks.forEach((link) => {
+          const active = decodeURIComponent(link.hash.slice(1)) === id;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      };
+      if (headings.length && 'IntersectionObserver' in window) {
+        const visible = new Map<string, number>();
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+            else visible.delete(entry.target.id);
+          });
+          const nearest = [...visible.entries()].sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]))[0];
+          if (nearest && headingMap.has(nearest[0])) setActiveHeading(nearest[0]);
+        }, { rootMargin: '-15% 0px -70% 0px', threshold: [0, 1] });
+        headings.forEach((heading) => observer.observe(heading));
+        setActiveHeading(headings[0].id);
+      }
+
+      prose.querySelectorAll<HTMLPreElement>('pre').forEach((pre) => {
+        const code = pre.querySelector('code');
+        if (!code) return;
+        const toolbar = document.createElement('div');
+        toolbar.className = 'code-toolbar';
+        const language = [...code.classList].find((name) => name.startsWith('language-'))?.replace('language-', '') || 'code';
+        const label = document.createElement('span');
+        label.textContent = language;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = '复制';
+        button.setAttribute('aria-label', `复制 ${language} 代码`);
+        const fallbackCopy = (text: string) => {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.setAttribute('readonly', '');
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.append(textarea);
+          textarea.select();
+          const copyCommand = Reflect.get(document, 'execCommand') as (commandId: string) => boolean;
+          const copied = copyCommand.call(document, 'copy');
+          textarea.remove();
+          if (!copied) throw new Error('Copy command failed');
+        };
+        button.addEventListener('click', async () => {
+          try {
+            const text = code.textContent || '';
+            if (navigator.clipboard?.writeText) {
+              try {
+                await navigator.clipboard.writeText(text);
+              } catch {
+                fallbackCopy(text);
+              }
+            } else {
+              fallbackCopy(text);
+            }
+            button.textContent = '已复制';
+            if (announcer) announcer.textContent = '代码已复制到剪贴板';
+            window.setTimeout(() => { button.textContent = '复制'; }, 1600);
+          } catch {
+            button.textContent = '复制失败';
+            if (announcer) announcer.textContent = '复制失败，请手动选择代码';
+            window.setTimeout(() => { button.textContent = '复制'; }, 1800);
+          }
+        });
+        toolbar.append(label, button);
+        pre.before(toolbar);
+      });
+    }
+  </script>
 </BaseLayout>
