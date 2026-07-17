@@ -39,6 +39,7 @@ const imageUrl = new URL(image, Astro.site);
     <meta property="og:image" content={imageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
     <title>{pageTitle}</title>
+    <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
   <body class:list={[{ 'home-page': Astro.url.pathname === '/' }]}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
