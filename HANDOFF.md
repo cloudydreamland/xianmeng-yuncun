@@ -1,18 +1,69 @@
-# “闲梦 · 云村”项目交接说明
+# “闲梦 · 云村”交接总览
 
-> 更新：2026-07-19  
-> 接手分支：`main`  
-> 像素绘本重构来源分支：`codex/pixel-storybook-redesign`
+> 最后核对：2026-07-19
+> 正式分支：`main`
+> 正式站：<https://xianmeng-yuncun.pages.dev/>
+> 仓库：<https://github.com/cloudydreamland/xianmeng-yuncun>
 
-这份文件是下一位开发者或 AI 的项目入口。请先读完再改代码。
+## 一眼看懂
 
-## 当前真实状态
+| 项目 | 状态 | 说明 |
+| --- | --- | --- |
+| 正式网站 | ✅ 已上线 | Cloudflare Pages 从 `main` 自动部署，新版像素绘本地图已生效 |
+| 本地与生产构建 | ✅ 通过 | Astro/TypeScript 0 错误，11 个页面，Pagefind 索引正常 |
+| 首页四时地图 | ✅ 完成 | 清晨、白昼、黄昏、夜晚使用不同图片，支持三个地点热点 |
+| 笔记与阅读工具 | ✅ 完成 | 分类／标签 URL、搜索、目录、进度、代码复制、阅读时间 |
+| 项目系统 | ✅ 完成 | 项目列表、项目详情、slug、封面、外部链接和搜索直达 |
+| Sveltia 后台页面 | 🟡 代码完成 | `/admin/` 可访问，但 GitHub OAuth 尚未配置，暂时不能登录保存 |
+| 真实个人内容 | 🟡 待替换 | 简介、联系方式、部分笔记和项目仍是示例 |
+| 云灵等扩展 | ⚪ 未开始 | 桌宠、天气、真实环境音、评论和完整地图属于后续功能 |
 
-- 生产站 <https://xianmeng-yuncun.pages.dev/> 由 `main` 自动发布；`main` 已包含第四、第五阶段，推送后的实际部署状态以 Cloudflare 为准。
-- 历史继承关系是：旧 `main` → `feature/cms-authoring` → `codex/pixel-storybook-redesign` → 当前 `main`。
-- 搜索、筛选、阅读工具、Sveltia 后台代码、项目详情、四时地图和像素绘本视觉都已合入 `main`。
-- 最新完整生产构建通过：Astro/TypeScript 无错误，Pagefind 成功生成索引。
-- 后续功能应从最新 `main` 新建分支开发，通过构建和预览验收后再合并。
+下一位 AI 应从最新 `main` 开始，不要再以 `feature/cms-authoring` 或 `codex/pixel-storybook-redesign` 作为开发基线。
+
+## 下一步做什么
+
+### P0：先把网站变成真正的个人主页
+
+1. 向用户收集真实个人简介、联系方式、项目经历和首批文章。
+2. 替换示例内容，保留现有 MDX 字段、slug 和路由结构。
+3. 检查手机与桌面四时背景、热点位置和文字可读性。
+4. 新改动必须从 `main` 新建分支，执行 `pnpm build`，预览验收后再合并。
+
+### P1：用户需要可视化后台时再做
+
+1. 部署官方 `sveltia/sveltia-cms-auth` Cloudflare Worker。
+2. 创建 GitHub OAuth App：
+   - Homepage：`https://xianmeng-yuncun.pages.dev/admin/`
+   - Callback：`https://<真实-worker-域名>/callback`
+3. 只在 Worker 加密变量中保存 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`ALLOWED_DOMAINS`。
+4. 将真实 Worker 地址写入 `public/admin/config.yml` 的 `backend.base_url`。
+5. 将 Worker 源站加入 `public/_headers` 中 `/admin/*` 的 CSP `connect-src`。
+6. 验证登录、创建内容、图片上传、预览和发布。
+
+不要伪造 Worker 地址，也不要把任何 Client Secret、Token、Cookie 或账号信息提交到仓库。
+
+Sveltia CMS 固定为 `0.171.1`。该版本的 editorial workflow 支持必须重新核对；真实验收前不能宣称 Pull Request 审阅流程已经可用。
+
+### P2：后续体验扩展
+
+- 根据用户反馈继续精修四时插画和像素组件。
+- 云灵桌宠应作为独立 React 模块，不改变现有内容路由。
+- 天气、环境音、评论、用户系统和完整地图应分别设计，不要一次性堆进首页。
+
+## 外部服务与账户关系
+
+这里仅记录项目依赖关系，不记录账号、邮箱、密钥或 Cloudflare Account ID。
+
+| 服务 | 当前关系 | 能否解除 |
+| --- | --- | --- |
+| GitHub 仓库 | `cloudydreamland/xianmeng-yuncun`，公开仓库，保存源代码 | 不建议删除；这是项目源代码 |
+| Cloudflare Pages | 项目 `xianmeng-yuncun`，连接 GitHub `main` 自动部署 | 不建议断开；断开后推送不会自动上线 |
+| Codex/ChatGPT GitHub 应用 | 2026-07-19 核对为“未安装” | 已无连接器访问权限，无需再解绑 |
+| 本机 Git SSH | 交接完成后已移除项目专用密钥引用 | 下一位维护者应使用自己的 GitHub 身份重新认证，不要复用前任密钥 |
+| Sveltia OAuth Worker | 尚未部署，仓库中没有 OAuth 密钥 | 当前无可撤销的后台 OAuth 绑定 |
+| 浏览器登录会话 | 2026-07-19 已退出 GitHub 全部账户和 Cloudflare | 与代码仓库无关；以后登录后仍应在交接前再次退出 |
+
+安全原则：为了防止其他 Codex 使用者接触外部账号，可以退出浏览器登录、卸载 ChatGPT/Codex 应用连接；不要为此断开 Cloudflare Pages 与 GitHub 的项目级部署连接，否则会损坏自动发布流程。
 
 ## 本地启动
 
@@ -22,78 +73,47 @@
 git clone https://github.com/cloudydreamland/xianmeng-yuncun.git
 cd xianmeng-yuncun
 git switch main
+git pull
 pnpm install
 pnpm dev
 ```
 
 浏览器打开终端显示的地址，通常是 `http://localhost:4321`。
 
+生产验证：
+
 ```powershell
 pnpm build
 pnpm preview
 ```
 
-`pnpm build` 会生成 Astro 静态站及 `dist/pagefind` 搜索索引。开发模式没有完整 Pagefind 索引是正常现象。
+`pnpm build` 会生成 Astro 静态站，并在 `dist/pagefind` 生成搜索索引。开发模式没有完整 Pagefind 索引属于正常现象。
 
-## 主要文件
+## 主要代码位置
 
-- `src/components/VillageMap.tsx`：首页地图、地点窗口、时间切换与键盘交互。
-- `src/data/villageCopy.ts`：地点和四时固定文案。
-- `src/styles/global.css`：像素绘本设计系统和全站布局。
+- `src/components/VillageMap.tsx`：首页地图、地点窗口、时间切换和键盘交互。
+- `src/data/villageCopy.ts`：地点与四时固定文案。
+- `src/styles/global.css`：像素绘本设计系统及内页布局。
 - `src/content/notes/`、`src/content/projects/`：MDX 内容。
-- `public/images/village/`：四时桌面／移动背景与精灵。
-- `public/admin/`：Sveltia CMS 配置和预览样式。
 - `src/content.config.ts`：内容字段定义。
+- `public/images/village/`：四时桌面／移动背景和精灵。
+- `public/admin/`：Sveltia CMS 配置与预览样式。
 
-替换四时图片时必须保持建筑、河流和三个热点位置一致，并同时更新桌面与移动素材。
+替换四时图片时，必须保持建筑、河流和三个热点位置一致，并同时更新桌面与移动素材。正文内容不要被 AI 自动改写。
 
-## 已完成
+## 已知技术取舍
 
-- 首页单屏探索地图，支持 `#study`、`#workshop`、`#mountain` 分享与恢复。
-- 清晨、白昼、黄昏、夜晚切换不同背景文件，并记忆手动选择。
-- 地点入口支持鼠标、触摸、键盘、`Esc` 和焦点恢复。
-- 笔记筛选、全站搜索、阅读进度、目录定位、代码复制、阅读时间。
-- 项目详情、显式 slug、封面、Open Graph 回退及项目搜索直达。
-- `/admin/` 页面、中文内容字段和仓库媒体规则。
-- RSS、Sitemap、robots、404、草稿过滤和 Cloudflare Pages 构建链路。
+- Animal Island UI 目前只加载全局样式。其 React 组件在 Astro 7 服务端构建时出现过 CSS Module 兼容问题，重新导入前必须验证生产构建。
+- 夜间只改变外围环境，文章正文保持浅色纸张以保证阅读对比度。
+- 首屏只优先加载当前时段背景，其他时段空闲预载；不要改成一次加载全部大图。
+- `/admin/` 不应进入公开导航、Sitemap、RSS、Pagefind 或搜索引擎索引。
 
-## 唯一实质性基础设施尾项：Sveltia OAuth
+## 每次交付检查
 
-后台页面可以打开，但登录保存尚不能使用。下一位 AI 不得编造 Worker 地址或密钥。
-
-需要用户配合完成：
-
-1. 部署官方 `sveltia/sveltia-cms-auth` Cloudflare Worker，建议名 `xianmeng-yuncun-cms-auth`。
-2. 创建 GitHub OAuth App：Homepage 为 `https://xianmeng-yuncun.pages.dev/admin/`，Callback 为 `https://<真实-worker-域名>/callback`。
-3. 只在 Worker 加密变量中保存 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`ALLOWED_DOMAINS`，绝不能提交仓库。
-4. 在 `public/admin/config.yml` 的 `backend` 下加入真实 `base_url`。
-5. 在 `public/_headers` 的 `/admin/*` CSP `connect-src` 中加入真实 Worker 源站。
-6. 重新构建并验证登录、创建、预览和发布。
-
-固定版本 Sveltia CMS `0.171.1` 对 editorial workflow 的实际支持需要复核。当前虽然保留 `publish_mode: editorial_workflow`，但真实验收前不能宣称 Pull Request 审阅流程可用；如版本不支持，应升级到经过验证的固定版本，或明确使用直接提交流程。
-
-## 其他未上线内容
-
-- 个人简介、联系方式、部分笔记和项目仍是演示内容。
-- 云灵桌宠、天气、真实环境音、评论、用户系统和完整地图是明确延期项，不是代码遗漏。
-- Animal Island UI 目前只加载全局样式。其 React 组件在 Astro 7 服务端构建时出现过 CSS Module 兼容问题，恢复组件导入前必须先验证 `pnpm build`。
-
-## 接手顺序
-
-1. 切换当前分支，执行 `pnpm build`。
-2. 本地检查四时、三个地点、搜索、笔记和项目详情。
-3. 新改动先让用户验收 Cloudflare 分支预览。
-4. 用户要启用后台时，再完成 OAuth Worker。
-5. 得到明确上线许可后，创建功能分支到 `main` 的 Pull Request。
-6. 合并后检查生产站、RSS、Sitemap、Pagefind、404 与 `/admin/`。
-
-## 上线检查
-
-- [ ] 桌面和手机四时背景正确，热点没有偏位。
-- [ ] 地点哈希刷新、前进后退、键盘和减少动态模式正常。
-- [ ] 搜索、筛选、阅读工具和项目详情正常。
+- [ ] 从最新 `main` 新建功能分支，没有直接覆盖无关用户修改。
+- [ ] `pnpm build` 为 0 错误。
+- [ ] 桌面和手机的四时背景、热点和文字正常。
+- [ ] 搜索、筛选、阅读工具、项目详情和 404 正常。
 - [ ] 草稿不进入页面、RSS、Sitemap 与 Pagefind。
-- [ ] `/admin/` 不进入公开导航、Sitemap 或搜索引擎索引。
-- [ ] OAuth 密钥未进入 Git、前端资源或 Pages 环境变量。
-- [ ] `pnpm build` 零错误。
-- [ ] 用户明确同意后才合并 `main`。
+- [ ] 仓库和构建产物中没有密钥、Token、Cookie 或私人账号信息。
+- [ ] 预览验收并得到明确上线许可后才合并 `main`。
