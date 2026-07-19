@@ -2,9 +2,11 @@
 
 一座藏在云墙后的个人数字村落，用于发布笔记、项目经历与个人介绍。站点以 Astro 静态生成，Markdown/MDX 管理内容，React 只负责首次入村云幕、云村地图与时间切换。
 
+如果要把项目交给另一位开发者或 AI，请先阅读 [HANDOFF.md](./HANDOFF.md)，其中记录了当前分支、已完成范围、未上线内容与 OAuth 尾项。
+
 ## 本地运行
 
-环境要求：Node.js 20.11 或更高版本，推荐使用 pnpm。
+环境要求：Node.js 22，推荐使用 pnpm。
 
 ```bash
 pnpm install

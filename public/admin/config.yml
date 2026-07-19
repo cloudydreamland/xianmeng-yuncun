@@ -9,10 +9,11 @@ backend:
   # OAuth Worker 部署后补充 base_url，不在此文件保存任何密钥。
 
 publish_mode: editorial_workflow
+# Sveltia 0.171.1 may not implement editorial workflow. Verify before relying on PR-based publishing.
 site_url: https://xianmeng-yuncun.pages.dev
 display_url: https://xianmeng-yuncun.pages.dev
 logo:
-  src: /images/yuncun-cloudwall.webp
+  src: /images/village/day/village-mobile.webp
   show_in_header: true
 app_title: 云村内容后台
 
