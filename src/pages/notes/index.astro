@@ -13,13 +13,13 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
 <BaseLayout title="山窗书屋" description="云村中的个人笔记与随笔，记录学习、生活和造物过程。">
   <section class="page-hero page-hero--notes">
     <div class="page-shell page-hero__inner">
-      <div><p class="eyebrow">THE WINDOW-SIDE STUDY</p><h1>山窗书屋</h1><p>云影落在纸上，风从字句之间经过。这里收留思考，也保存尚未成熟的问题。</p></div>
+      <div><p class="pixel-kicker">THE WINDOW-SIDE STUDY</p><h1>山窗书屋</h1><p>檀香贴着窗棂缓缓散开，云影停在纸上。尚未想透的问题与不肯遗忘的片刻，都在山风翻页之前暂栖于此。</p></div>
       <span class="page-hero__seal" aria-hidden="true">书</span>
     </div>
   </section>
   <section class="page-shell notes-browser" data-notes-browser>
     <div class="filter-panel" aria-label="筛选笔记">
-      <div class="filter-group"><strong>按卷分类</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
+      <div class="filter-group"><strong>竹签分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
       <div class="filter-group"><strong>云笺标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
       <div class="filter-summary"><p class="filter-count" aria-live="polite">共 {notes.length} 篇</p><button type="button" class="filter-reset" data-reset-filters hidden>清除筛选</button></div>
     </div>

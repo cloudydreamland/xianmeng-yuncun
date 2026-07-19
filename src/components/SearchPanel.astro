@@ -3,8 +3,8 @@
   <div class="search-dialog__inner">
     <header class="search-dialog__header">
       <div>
-        <p class="eyebrow">SEARCH THE CLOUD ARCHIVE</p>
-        <h2 id="search-dialog-title">寻访云笺</h2>
+        <p class="pixel-kicker">THE CLOUD MIRROR</p>
+        <h2 id="search-dialog-title">云镜检索</h2>
       </div>
       <form method="dialog">
         <button class="search-dialog__close" value="close" aria-label="关闭搜索">×</button>
@@ -13,7 +13,7 @@
 
     <label class="search-field">
       <span aria-hidden="true">⌕</span>
-      <input type="search" data-search-input placeholder="搜索笔记、项目与山中旧事……" autocomplete="off" spellcheck="false" />
+      <input type="search" data-search-input placeholder="让云镜照见一段文字……" autocomplete="off" spellcheck="false" />
       <kbd>⌘ K</kbd>
     </label>
 
@@ -24,7 +24,7 @@
       <button type="button" data-search-type="关于" aria-pressed="false">关于</button>
     </div>
 
-    <p class="search-status" data-search-status aria-live="polite">输入关键词，风会替你翻开对应的云笺。</p>
+    <p class="search-status" data-search-status aria-live="polite">投下一枚词语，散落村中的笔墨便会显影。</p>
     <div class="search-results" data-search-results></div>
     <button class="search-load-more" type="button" data-search-more hidden>再展开八枚云笺</button>
   </div>
@@ -129,7 +129,7 @@
 
       if (!term) {
         resultsRoot.replaceChildren();
-        setStatus('输入关键词，风会替你翻开对应的云笺。');
+        setStatus('投下一枚词语，散落村中的笔墨便会显影。');
         return;
       }
 

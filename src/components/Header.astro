@@ -1,7 +1,7 @@
 ---
 const pathname = Astro.url.pathname;
 const links = [
-  { href: '/', label: '云渡' },
+  { href: '/', label: '云村地图' },
   { href: '/notes', label: '山窗书屋' },
   { href: '/projects', label: '百工阁' },
   { href: '/about', label: '三山观' },
@@ -13,21 +13,21 @@ const links = [
     <span class="site-brand__mark" aria-hidden="true">闲</span>
     <span><strong>闲梦</strong><small>云村</small></span>
   </a>
-  <nav class="desktop-nav" aria-label="主导航">
+  <nav class="desktop-nav pixel-hud" aria-label="主导航">
     {links.map((link) => (
       <a href={link.href} class:list={[{ active: link.href === '/' ? pathname === '/' : pathname.startsWith(link.href) }]} aria-current={link.href === '/' ? pathname === '/' ? 'page' : undefined : pathname.startsWith(link.href) ? 'page' : undefined}>
         {link.label}
       </a>
     ))}
     <button type="button" class="nav-search" data-search-open aria-label="搜索云村内容">
-      <span aria-hidden="true">⌕</span><kbd>⌘K</kbd>
+      <span aria-hidden="true">⌕</span><span>云镜</span><kbd>⌘K</kbd>
     </button>
   </nav>
   <details class="mobile-nav">
     <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
     <nav aria-label="移动端导航">
       {links.map((link) => <a href={link.href}>{link.label}</a>)}
-      <button type="button" class="mobile-search" data-search-open><span aria-hidden="true">⌕</span> 搜索云村</button>
+      <button type="button" class="mobile-search" data-search-open><span aria-hidden="true">⌕</span> 打开云镜</button>
     </nav>
   </details>
 </header>

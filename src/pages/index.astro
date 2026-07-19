@@ -3,73 +3,98 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CloudEntrance from '../components/CloudEntrance';
 import IslandTag from '../components/IslandTag';
-import VillageJourney from '../components/VillageJourney';
+import VillageMap from '../components/VillageMap';
+import { villageCopy } from '../data/villageCopy';
 
 const notes = (await getCollection('notes', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
-  .slice(0, 3);
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
 const projects = (await getCollection('projects'))
-  .filter(({ data }) => data.featured)
-  .slice(0, 2);
+  .sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+const featuredProjects = projects.filter(({ data }) => data.featured).slice(0, 2);
+const recentNotes = notes.slice(0, 3);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(date);
-const journeyLocations = [
-  { href: '/notes', kind: 'study' as const, eyebrow: '山窗书屋', title: '翻阅云笺', description: '生活札记、学习笔记，以及值得反复推敲的问题。' },
-  { href: '/projects', kind: 'workshop' as const, eyebrow: '百工阁', title: '查看造物', description: '项目经历、技术选择与仍在生长的构想。' },
-  { href: '/about', kind: 'mountain' as const, eyebrow: '三山观', title: '登山远望', description: '来路、此刻，以及想要前往的方向。' },
+
+const backgrounds = Object.fromEntries(['dawn', 'day', 'dusk', 'night'].map((time) => [time, {
+  avif: `/images/village/${time}/village-desktop.avif`,
+  webp: `/images/village/${time}/village-desktop.webp`,
+  mobileAvif: `/images/village/${time}/village-mobile.avif`,
+  mobileWebp: `/images/village/${time}/village-mobile.webp`,
+}])) as Record<'dawn' | 'day' | 'dusk' | 'night', { avif: string; webp: string; mobileAvif: string; mobileWebp: string }>;
+
+const locations = [
+  {
+    id: 'study' as const,
+    href: '/notes',
+    ...villageCopy.places.study,
+    items: recentNotes.slice(0, 3).map((note) => ({ href: `/notes/${note.data.slug}/`, label: note.data.title, meta: note.data.category })),
+  },
+  {
+    id: 'workshop' as const,
+    href: '/projects',
+    ...villageCopy.places.workshop,
+    items: projects.slice(0, 3).map((project) => ({ href: `/projects/${project.data.slug}/`, label: project.data.title, meta: project.data.status })),
+  },
+  {
+    id: 'mountain' as const,
+    href: '/about',
+    ...villageCopy.places.mountain,
+    items: [
+      { href: '/about#stone-path', label: '青石旧路', meta: '经历' },
+      { href: '/about#skills', label: '云上行囊', meta: '技能' },
+      { href: '/about#future', label: '山外来风', meta: '未来' },
+    ],
+  },
 ];
 ---
 
-<BaseLayout>
+<BaseLayout image="/images/village/day/village-desktop.webp">
   <CloudEntrance client:only="react" />
-  <VillageJourney
+  <VillageMap
     client:load
-    imageSrc="/images/yuncun-cloudwall.webp"
-    imageAlt="一位旅人乘着小舟穿过风雨与厚重云墙，望见晨光中宁静的青山、春水与茅屋"
-    locations={journeyLocations}
+    backgrounds={backgrounds}
+    locations={locations}
+    title={villageCopy.gateway.title}
+    eyebrow={villageCopy.gateway.eyebrow}
+    lead={villageCopy.gateway.lead}
+    timeCopy={villageCopy.times}
+    imageAlt="云海围绕的东方山水村落，云门、春水、山窗书屋、百工阁与三山观沿石径相连"
   />
 
-  <section id="village-content" class="stream-section">
-    <div class="page-shell stream-grid">
-      <div class="section-heading">
-        <p class="eyebrow">RECENT CLOUD NOTES</p>
-        <h2>新到的云笺</h2>
-        <p>一些刚刚从山窗寄出的文字，带着未干的墨与清晨的风。</p>
-        <a class="text-link" href="/notes">查看全部笔记 →</a>
-      </div>
-      <div class="note-list">
-        {notes.map((note, index) => (
-          <a class="note-row" href={`/notes/${note.data.slug}/`}>
-            <span class="note-row__date">{formatDate(note.data.publishedAt)}</span>
-            <div><small>{note.data.category}</small><h3>{note.data.title}</h3><p>{note.data.description}</p></div>
-            <span class="note-row__index">0{index + 1}</span>
+  <section id="village-content" class="village-bulletin">
+    <div class="page-shell bulletin-layout">
+      <header class="bulletin-heading cloud-sign">
+        <p class="pixel-kicker">{villageCopy.bulletin.eyebrow}</p>
+        <h2>{villageCopy.bulletin.title}</h2>
+        <p>{villageCopy.bulletin.lead}</p>
+      </header>
+
+      <div class="bulletin-notes">
+        <span class="bulletin-label">山窗新笺</span>
+        {recentNotes.map((note, index) => (
+          <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
+            <span class="bulletin-note__pin" aria-hidden="true"></span>
+            <time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time>
+            <small>{note.data.category}</small>
+            <h3>{note.data.title}</h3>
+            <p>{note.data.description}</p>
+            <span class="bulletin-note__action">展笺阅读 →</span>
           </a>
         ))}
       </div>
-    </div>
-  </section>
 
-  <section class="work-section page-shell">
-    <div class="section-heading section-heading--split">
-      <div><p class="eyebrow">SELECTED WORKS</p><h2>工坊近作</h2></div>
-      <a class="text-link" href="/projects">全部行迹 →</a>
+      <div class="bulletin-projects">
+        <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
+        <span class="bulletin-label">工坊近作</span>
+        {featuredProjects.map((project, index) => (
+          <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
+            <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
+            <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
+            <p>{project.data.description}</p>
+            <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
+            <a class="text-link" href={`/projects/${project.data.slug}/`}>查看工坊档案 →</a>
+          </article>
+        ))}
+      </div>
     </div>
-    <div class="featured-projects">
-      {projects.map((project) => (
-        <article class="project-preview">
-          {project.data.cover && <img class="project-preview__cover" src={project.data.cover} alt={project.data.coverAlt || project.data.title} width="720" height="405" loading="lazy" />}
-          <div class="project-preview__top"><span>{project.data.period}</span><strong>{project.data.status}</strong></div>
-          <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
-          <p>{project.data.description}</p>
-          <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
-          <a class="text-link" href={`/projects/${project.data.slug}/`}>查看完整档案 →</a>
-        </article>
-      ))}
-    </div>
-  </section>
-
-  <section class="quote-section">
-    <div class="quote-section__cloud" aria-hidden="true"></div>
-    <blockquote>“人在，村在，梦在，魂在，足矣。”</blockquote>
-    <p>——《闲梦 · 云村》</p>
   </section>
 </BaseLayout>

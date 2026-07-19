@@ -22,7 +22,7 @@ interface Props {
 const {
   title = '闲梦 · 云村',
   description = '一座藏在云海深处的个人村落，收留笔记、项目与未完的梦。',
-  image = '/images/yuncun-cloudwall.webp',
+  image = '/images/village/day/village-desktop.webp',
   searchable = false,
   searchType,
   searchTitle,
@@ -42,7 +42,7 @@ const imageUrl = new URL(image, Astro.site);
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f7f3e8" />
+    <meta name="theme-color" content="#edf4e6" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title="闲梦 · 云村 RSS" href="/rss.xml" />
     <meta property="og:type" content="website" />
@@ -59,7 +59,21 @@ const imageUrl = new URL(image, Astro.site);
     {searchable && searchTags.map((tag) => <meta data-pagefind-filter="tag[content]" content={tag} />)}
     {searchable && searchDate && <meta data-pagefind-sort="date[content]" content={searchDate.toISOString()} />}
     <title>{pageTitle}</title>
-    <script is:inline>document.documentElement.classList.add('js');</script>
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        root.classList.add('js');
+        let mode = 'auto';
+        try {
+          const stored = localStorage.getItem('yuncun-time-mode');
+          if (['auto', 'dawn', 'day', 'dusk', 'night'].includes(stored || '')) mode = stored;
+        } catch {}
+        const hour = new Date().getHours();
+        const resolved = mode !== 'auto' ? mode : hour >= 5 && hour < 8 ? 'dawn' : hour >= 8 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night';
+        root.dataset.time = resolved;
+        root.dataset.timeMode = mode;
+      })();
+    </script>
   </head>
   <body class:list={[{ 'home-page': Astro.url.pathname === '/' }]}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
