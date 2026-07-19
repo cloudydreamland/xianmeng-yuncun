@@ -3,34 +3,48 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
 ---
 
-<BaseLayout title="三山观" description="关于云村的主人、来路、正在学习的事和想去往的方向。" searchable searchType="关于" searchTitle="三山观">
+<BaseLayout title="王选默｜关于我" description="王选默，软件工程本科生，关注 Python、传统机器学习、自然语言处理与工程实践。" searchable searchType="关于" searchTitle="王选默">
   <section class="page-hero page-hero--about">
     <div class="page-shell page-hero__inner">
-      <div><p class="pixel-kicker">LOOKING BACK FROM THE HILL</p><h1>三山观</h1><p>山路穿过松影，直到云与天不再分明。回望来处，散落的脚印已被清风连成一条温柔的线。</p></div>
-      <span class="page-hero__seal" aria-hidden="true">观</span>
+      <div><p class="pixel-kicker">ABOUT WANG XUANMO</p><h1>王选默</h1><p>软件工程本科生，喜欢钻研技术，正在持续学习机器学习、自然语言处理与工程实践。</p></div>
+      <span class="page-hero__seal" aria-hidden="true">王</span>
     </div>
   </section>
   <div class="page-shell about-grid">
     <section class="about-letter" id="skills">
-      <p class="pixel-kicker">ABOUT THE VILLAGER</p>
-      <h2>云墙之内，留有一席清醒。</h2>
-      <p>复杂的问题在这里被逐层拆开，实用的造物也被允许保留一点想象。学习、项目与生活不必追赶喧嚣，只需像山泉一样，沿着自己的石隙缓慢生长。</p>
-      <p>“闲梦”并非逃离人间，而是一场短暂的精神归乡。风雨止于云墙，思绪在山窗下重新变得澄明，随后再循着春水，回到万家灯火之中。</p>
-      <div class="about-sign">一枚旧印，落在云村</div>
+      <p class="pixel-kicker">SKILLS &amp; INTERESTS</p>
+      <h2>把问题拆开，把技术做实。</h2>
+      <p>我叫王选默，是软件工程专业本科生。当前绩点为 3.8659，排名约前 15%。我愿意在课后投入时间参与实验室科研与技术实践，也乐于快速学习新的工具和方法。</p>
+      <div class="resume-skill-list">
+        <div>
+          <h3>编程与机器学习</h3>
+          <p>熟悉 Python 和传统机器学习框架，了解 Java、C++ 等编程语言。</p>
+        </div>
+        <div>
+          <h3>开发与实验环境</h3>
+          <p>能够在 Linux 环境中完成基础开发、实验配置与常用命令操作，并能使用 LaTeX 整理技术文档。</p>
+        </div>
+        <div>
+          <h3>研究兴趣</h3>
+          <p>熟悉自然语言处理相关基础知识，希望继续参与科研或项目实践。</p>
+        </div>
+      </div>
+      <div class="about-sign">保持好奇，持续学习</div>
     </section>
-    <aside class="about-profile">
-      <div class="profile-orbit" aria-hidden="true"><span>山</span><span>水</span><span>云</span></div>
-      <dl><div><dt>常驻</dt><dd>云村 · 山窗侧</dd></div><div><dt>正在做</dt><dd>构建个人数字花园</dd></div><div><dt>相信</dt><dd>安静地长期创造</dd></div></dl>
-      <div class="tag-row"><IslandTag label="设计" tone="green" /><IslandTag label="开发" tone="teal" /><IslandTag label="写作" tone="brown" /></div>
+    <aside class="about-profile" id="education">
+      <div class="profile-orbit" aria-hidden="true"><span>软</span><span>机</span><span>研</span></div>
+      <dl><div><dt>学历</dt><dd>本科 · 大二</dd></div><div><dt>专业</dt><dd>软件工程</dd></div><div><dt>绩点</dt><dd>3.8659 · 约前 15%</dd></div></dl>
+      <div class="tag-row"><IslandTag label="Python" tone="green" /><IslandTag label="机器学习" tone="teal" /><IslandTag label="自然语言处理" tone="brown" /><IslandTag label="Linux" tone="green" /><IslandTag label="LaTeX" tone="teal" /></div>
     </aside>
   </div>
-  <section class="timeline-section" id="stone-path">
+  <section class="timeline-section" id="honors">
     <div class="page-shell">
-      <div class="section-heading"><p class="pixel-kicker">THE OLD STONE PATH</p><h2>青石旧路</h2><p>晨露藏住旧日脚印，松风却仍记得每一次停驻与转身。</p></div>
+      <div class="section-heading"><p class="pixel-kicker">HONORS &amp; AWARDS</p><h2>获奖经历</h2><p>每一次积累都有迹可循，也成为继续前行的路标。</p></div>
       <ol class="timeline">
-        <li><time>2026</time><div><h3>云村开工</h3><p>开始搭建一个真正属于自己的内容空间，把笔记、项目和叙事放进同一个世界。</p></div></li>
-        <li><time>现在</time><div><h3>持续学习与造物</h3><p>关注清晰的产品体验、可靠的工程实现，以及技术如何帮助表达更完整的想法。</p></div></li>
-        <li id="future"><time>未来</time><div><h3>让村落继续生长</h3><p>新的角色、天气与小径会在往后的时节出现，但每一处风景仍以值得留下的内容为根。</p></div></li>
+        <li><time>2025</time><div><h3>软件学院二等奖学金</h3><p>凭借阶段性学习表现获得学院奖学金。</p></div></li>
+        <li><time>2025</time><div><h3>班级优秀学生干部</h3><p>在班级工作与学习中获得认可。</p></div></li>
+        <li><time>竞赛</time><div><h3>蓝桥杯软件赛省二等奖</h3><p>在软件赛省级赛事中获得二等奖。</p></div></li>
+        <li><time>竞赛</time><div><h3>全国大学生数学竞赛省一等奖</h3><p>在全国大学生数学竞赛省级赛事中获得一等奖。</p></div></li>
       </ol>
     </div>
   </section>

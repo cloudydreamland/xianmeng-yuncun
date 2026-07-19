@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
 
 Sitemap: https://xianmeng-yuncun.pages.dev/sitemap-index.xml

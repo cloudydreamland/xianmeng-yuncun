@@ -2,9 +2,9 @@ export type VillagePlaceId = 'study' | 'workshop' | 'mountain';
 
 export const villageCopy = {
   gateway: {
-    eyebrow: 'A QUIET VILLAGE ABOVE THE CLOUDS',
-    title: '闲梦 · 云村',
-    lead: '云海无岸，山影在雾后轻轻浮起。风雨停在云墙之外，一叶小舟循着春水，泊向灯火未醒的村落。',
+    eyebrow: 'WANG XUANMO · SOFTWARE ENGINEERING',
+    title: '王选默 · 云村',
+    lead: '一名软件工程本科生的个人数字村落，记录机器学习、自然语言处理与编程实践，也收纳持续学习中的笔记与作品。',
   },
   bulletin: {
     eyebrow: 'TODAY IN THE VILLAGE',
@@ -31,10 +31,10 @@ export const villageCopy = {
       description: '木屑与星火落在青石上，未完成的器物仍带着手心的温度。每一道榫卯，都记着一次笨拙而诚实的抵达。',
     },
     mountain: {
-      eyebrow: 'THE THREE MOUNTAINS',
-      name: '三山观',
-      action: '登上三山',
-      description: '山路穿过松影，直到云与天不再分明。回望来处，旧日脚印已被清风连成一条温柔的线。',
+      eyebrow: 'ABOUT WANG XUANMO',
+      name: '关于王选默',
+      action: '查看个人履历',
+      description: '软件工程本科大二学生，绩点 3.8659、排名约前 15%，关注 Python、机器学习与自然语言处理。',
     },
   },
 } as const;
