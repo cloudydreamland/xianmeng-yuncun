@@ -1,18 +1,18 @@
 # “闲梦 · 云村”项目交接说明
 
 > 更新：2026-07-19  
-> 接手分支：`codex/pixel-storybook-redesign`  
-> 已推送提交：`6f91443`
+> 接手分支：`main`  
+> 像素绘本重构来源分支：`codex/pixel-storybook-redesign`
 
 这份文件是下一位开发者或 AI 的项目入口。请先读完再改代码。
 
 ## 当前真实状态
 
-- 生产站 <https://xianmeng-yuncun.pages.dev/> 仍由 `main` 发布，尚未包含第四、第五阶段。
-- 当前完整分支为 `codex/pixel-storybook-redesign`，继承关系是：`main` → `feature/cms-authoring` → 当前分支。
-- 搜索、筛选、阅读工具、Sveltia 后台代码、项目详情、四时地图和像素绘本视觉都已包含在当前分支。
+- 生产站 <https://xianmeng-yuncun.pages.dev/> 由 `main` 自动发布；`main` 已包含第四、第五阶段，推送后的实际部署状态以 Cloudflare 为准。
+- 历史继承关系是：旧 `main` → `feature/cms-authoring` → `codex/pixel-storybook-redesign` → 当前 `main`。
+- 搜索、筛选、阅读工具、Sveltia 后台代码、项目详情、四时地图和像素绘本视觉都已合入 `main`。
 - 最新完整生产构建通过：Astro/TypeScript 无错误，Pagefind 成功生成索引。
-- 当前没有 Pull Request，也没有合并 `main`。用户视觉验收前不要直接上线。
+- 后续功能应从最新 `main` 新建分支开发，通过构建和预览验收后再合并。
 
 ## 本地启动
 
@@ -21,7 +21,7 @@
 ```powershell
 git clone https://github.com/cloudydreamland/xianmeng-yuncun.git
 cd xianmeng-yuncun
-git switch codex/pixel-storybook-redesign
+git switch main
 pnpm install
 pnpm dev
 ```
@@ -82,9 +82,9 @@ pnpm preview
 
 1. 切换当前分支，执行 `pnpm build`。
 2. 本地检查四时、三个地点、搜索、笔记和项目详情。
-3. 让用户验收 Cloudflare 分支预览。
+3. 新改动先让用户验收 Cloudflare 分支预览。
 4. 用户要启用后台时，再完成 OAuth Worker。
-5. 得到明确上线许可后，创建当前分支到 `main` 的 Pull Request。
+5. 得到明确上线许可后，创建功能分支到 `main` 的 Pull Request。
 6. 合并后检查生产站、RSS、Sitemap、Pagefind、404 与 `/admin/`。
 
 ## 上线检查
