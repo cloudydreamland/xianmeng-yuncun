@@ -568,6 +568,10 @@ img { max-width: 100%; display: block; }
 .about-letter, .about-profile { padding: 42px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: rgba(255,253,246,.82); box-shadow: var(--shadow-soft); }
 .about-letter h2 { margin: 0 0 25px; color: var(--wood-dark); font-family: var(--serif); font-size: 2rem; }
 .about-letter > p:not(.eyebrow) { color: var(--ink-soft); font-family: var(--serif); line-height: 2.1; }
+.resume-skill-list { display: grid; gap: 14px; margin-top: 30px; }
+.resume-skill-list > div { padding: 18px 20px; border-left: 3px solid var(--leaf); background: rgba(223, 236, 203, .42); }
+.resume-skill-list h3 { margin: 0 0 7px; color: var(--wood-dark); font-family: var(--serif); font-size: 1.08rem; }
+.resume-skill-list p { margin: 0; color: var(--ink-soft); line-height: 1.8; }
 .about-sign { margin-top: 36px; color: var(--leaf-dark); font-family: var(--serif); text-align: right; }
 .profile-orbit { display: flex; justify-content: center; align-items: center; height: 165px; }
 .profile-orbit span { display: grid; place-items: center; width: 74px; height: 74px; margin: -7px; border-radius: 48%; color: var(--wood-dark); background: #dfeccb; font-family: var(--serif); font-size: 1.4rem; box-shadow: 0 6px 16px rgba(73,58,45,.08); }
