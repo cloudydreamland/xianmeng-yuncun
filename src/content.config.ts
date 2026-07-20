@@ -56,4 +56,38 @@ const regions = defineCollection({
   }),
 });
 
-export const collections = { notes, projects, regions };
+const works = defineCollection({
+  loader: glob({ base: './src/content/works', pattern: '**/*.{md,mdx}' }),
+  schema: ({ image }) => z.object({
+    title: z.string(),
+    slug,
+    summary: z.string(),
+    createdAt: z.coerce.date(),
+    publishedAt: z.coerce.date(),
+    category: z.enum(['摄影', '插画', '生成艺术', '设计实验']),
+    tags: z.array(z.string()).default([]),
+    cover: image(),
+    coverAlt: z.string().min(1),
+    images: z.array(z.object({
+      src: image(),
+      alt: z.string().min(1),
+      caption: z.string().optional(),
+    })).min(1),
+    creationMode: z.enum(['原创拍摄', '手工创作', 'AI辅助', '混合创作']),
+    tools: z.array(z.string()).default([]),
+    processNote: z.string().min(1),
+    license: z.enum(['all-rights-reserved', 'cc-by-nc-4.0']).default('all-rights-reserved'),
+    featured: z.boolean().default(false),
+    draft: z.boolean().default(true),
+  }).superRefine((work, context) => {
+    if ((work.creationMode === 'AI辅助' || work.creationMode === '混合创作') && work.tools.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['tools'],
+        message: 'AI辅助或混合创作必须填写 tools',
+      });
+    }
+  }),
+});
+
+export const collections = { notes, projects, regions, works };
