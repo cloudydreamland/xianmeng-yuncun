@@ -1,0 +1,50 @@
+---
+import { getCollection, render } from 'astro:content';
+import CloudSearch from '../../components/CloudSearch';
+import GrowthConstellation from '../../components/GrowthConstellation.astro';
+import RegionLayout from '../../layouts/RegionLayout.astro';
+import { cloudVillageDestinations, worldMapPoints } from '../../data/worldMap';
+
+export async function getStaticPaths() {
+  const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
+  return regions.map((region, index) => ({
+    params: { slug: region.data.slug },
+    props: {
+      region,
+      regions,
+      prev: regions[index - 1],
+      next: regions[index + 1],
+    },
+  }));
+}
+
+const { region, regions, prev, next } = Astro.props;
+const { Content } = await render(region);
+const point = worldMapPoints.find(({ id }) => id === region.data.slug);
+if (!point) throw new Error(`缺少区域视觉焦点：${region.data.slug}`);
+---
+
+<RegionLayout {...region.data} focus={point.cropPosition} prev={prev} next={next}>
+  <Fragment slot="story"><Content /></Fragment>
+
+  {region.data.slug === 'cloud-village' && (
+    <section class="village-gates" aria-labelledby="village-gates-title">
+      <header class="section-heading"><p class="pixel-kicker">THREE PLACES IN THE VILLAGE</p><h2 id="village-gates-title">从村中继续前行</h2><p>三个入口保持简短直接，让世界观不会遮住真实内容。</p></header>
+      <div>{cloudVillageDestinations.map((item, index) => <a href={item.href}><span>0{index + 1}</span><h3>{item.label}</h3><p>{item.meta}</p><strong>进入 →</strong></a>)}</div>
+    </section>
+  )}
+
+  {region.data.slug === 'rain-bridge' && (
+    <>
+      <section class="rain-search" aria-labelledby="rain-search-title">
+        <CloudSearch client:load variant="embedded" heading="在雨桥上展开云镜" description="检索笔记、项目、世界设定与公开履历。" />
+      </section>
+      <section class="world-directory" aria-labelledby="world-directory-title">
+        <header class="section-heading"><p class="pixel-kicker">GAZETTEER OF SEVEN REALMS</p><h2 id="world-directory-title">七境地名册</h2><p>开放状态只表示网站功能是否完成，所有区域设定均可阅读。</p></header>
+        <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '已开放' : '酝酿中'}</strong></a>)}</div>
+      </section>
+    </>
+  )}
+
+  {region.data.slug === 'star-abyss' && <GrowthConstellation />}
+</RegionLayout>

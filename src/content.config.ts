@@ -40,4 +40,20 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { notes, projects };
+const regions = defineCollection({
+  loader: glob({ base: './src/content/regions', pattern: '**/*.{md,mdx}' }),
+  schema: z.object({
+    title: z.string(),
+    slug,
+    realm: z.enum(['闲梦', '浮屿']),
+    summary: z.string(),
+    quote: z.string(),
+    functionTitle: z.string(),
+    functionDescription: z.string(),
+    status: z.enum(['active', 'planned']),
+    order: z.number().int().min(1),
+    theme: z.enum(['village', 'wind', 'star', 'moon', 'rain', 'snow', 'lantern']),
+  }),
+});
+
+export const collections = { notes, projects, regions };

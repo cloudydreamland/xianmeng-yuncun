@@ -13,6 +13,9 @@ export default defineConfig({
     },
   },
   vite: {
+    resolve: {
+      noExternal: ['animal-island-ui'],
+    },
     build: {
       cssMinify: true,
     },
