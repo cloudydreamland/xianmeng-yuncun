@@ -4,6 +4,23 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
 });
 
+test('首页只加载当前时段的一张响应式地图', async ({ page }) => {
+  await page.goto('/');
+
+  const avifSource = page.locator('.world-map__picture source[type="image/avif"]');
+  await expect(avifSource).toHaveAttribute('srcset', /world-restored-v1-960\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-restored-v1-1920\.avif/);
+  await expect(page.locator('.world-map__picture img')).not.toHaveAttribute('src', /4k|mobile-hd/);
+
+  await page.waitForTimeout(2_000);
+  const loadedWorldImages = await page.evaluate(() => performance
+    .getEntriesByType('resource')
+    .map((entry) => entry.name)
+    .filter((url) => url.includes('/images/world/')));
+
+  expect([...new Set(loadedWorldImages)]).toHaveLength(1);
+});
+
 test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复', async ({ page }) => {
   await page.goto('/');
 

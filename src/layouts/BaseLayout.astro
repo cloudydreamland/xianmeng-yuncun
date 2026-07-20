@@ -6,6 +6,8 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import SearchPanel from '../components/SearchPanel.astro';
+import { worldBackgrounds } from '../data/worldMap';
+import { villageBackgrounds } from '../data/villageBackgrounds';
 
 interface Props {
   title?: string;
@@ -22,7 +24,7 @@ interface Props {
 const {
   title = '雲梦世界',
   description = '以云村为中心、六境环绕的个人数字世界，收纳学习笔记、开源项目与持续生长的想法。',
-  image = '/images/world/day/world-desktop-4k.webp',
+  image = worldBackgrounds.day.fallback,
   searchable = false,
   searchType,
   searchTitle,
@@ -33,10 +35,16 @@ const {
 const pageTitle = title === '雲梦世界' ? title : `${title}｜雲梦世界`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
+const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
+  .flatMap((time) => [
+    `--village-bg-${time}:${villageBackgrounds[time].desktop}`,
+    `--village-bg-${time}-mobile:${villageBackgrounds[time].mobile}`,
+  ])
+  .join(';');
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" style={villageBackgroundStyle}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />

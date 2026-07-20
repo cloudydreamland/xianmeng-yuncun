@@ -136,27 +136,6 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
     }
   }, [selectedRegion]);
 
-  useEffect(() => {
-    if (!resolvedTime) return;
-    const order: ResolvedTimeMode[] = ['dawn', 'day', 'dusk', 'night'];
-    const index = order.indexOf(resolvedTime);
-    const candidates = [order[(index + 1) % order.length], order[(index + order.length - 1) % order.length]];
-    const preload = () => {
-      const compact = window.matchMedia('(max-width: 760px)').matches;
-      candidates.forEach((candidate) => {
-        const image = new Image();
-        image.src = compact ? backgrounds[candidate].mobileWebp : backgrounds[candidate].webp;
-      });
-    };
-    const requestIdle = Reflect.get(window, 'requestIdleCallback') as ((callback: () => void) => number) | undefined;
-    const cancelIdle = Reflect.get(window, 'cancelIdleCallback') as ((id: number) => void) | undefined;
-    const id = requestIdle ? requestIdle(preload) : window.setTimeout(preload, 1600);
-    return () => {
-      if (requestIdle && cancelIdle) cancelIdle(id);
-      else window.clearTimeout(id);
-    };
-  }, [backgrounds, resolvedTime]);
-
   const selectTime = (mode: TimeMode) => {
     const resolved = resolveTimeMode(mode);
     setTimeMode(mode);
@@ -193,10 +172,17 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
           <div className="world-map__canvas">
             {image && (
               <picture className="world-map__picture" key={resolvedTime}>
-                <source media="(max-width: 760px)" type="image/avif" srcSet={image.mobileAvif} />
-                <source media="(max-width: 760px)" type="image/webp" srcSet={image.mobileWebp} />
-                <source type="image/avif" srcSet={image.avif} />
-                <img src={image.webp} alt={imageAlt} width={3840} height={2160} fetchPriority="high" />
+                <source type="image/avif" srcSet={image.avifSrcSet} sizes={image.sizes} />
+                <source type="image/webp" srcSet={image.webpSrcSet} sizes={image.sizes} />
+                <img
+                  src={image.fallback}
+                  alt={imageAlt}
+                  width={1920}
+                  height={1080}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
               </picture>
             )}
             <div className="world-map__vignette" aria-hidden="true" />
@@ -220,7 +206,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             </nav>
 
             <noscript>
-              <img className="world-map__noscript" src={backgrounds.day.webp} alt={imageAlt} width="3840" height="2160" />
+              <img className="world-map__noscript" src={backgrounds.day.fallback} alt={imageAlt} width="1920" height="1080" />
               <nav className="world-map__noscript-links" aria-label="雲梦世界地点">
                 {regions.map((region) => <a href={region.href}>{region.title}</a>)}
               </nav>

@@ -1,3 +1,5 @@
+import { deliveryImageUrl, imageSrcSet, type ImageDeliveryFormat } from '../lib/imageDelivery';
+
 export type RegionId =
   | 'cloud-village'
   | 'rain-bridge'
@@ -20,10 +22,10 @@ export interface WorldMapPoint {
 }
 
 export interface ResponsiveWorldImage {
-  avif: string;
-  webp: string;
-  mobileAvif: string;
-  mobileWebp: string;
+  avifSrcSet: string;
+  webpSrcSet: string;
+  fallback: string;
+  sizes: string;
 }
 
 export const worldMapPoints: WorldMapPoint[] = [
@@ -36,12 +38,25 @@ export const worldMapPoints: WorldMapPoint[] = [
   { id: 'lantern-lane', x: 82, y: 69, labelSide: 'left', cropPosition: '84% 72%' },
 ];
 
+const worldWidths = [960, 1440, 1920] as const;
+const worldSizes = '(max-width: 760px) 960px, (max-width: 1920px) 100vw, 1920px';
+
+function worldCandidate(time: ResolvedTimeMode, width: number, format: ImageDeliveryFormat): string {
+  return deliveryImageUrl({
+    localPath: `/images/world/${time}/world-restored-v1-${width}.${format}`,
+    storageKey: `world/${time}/world-4k.webp`,
+    width,
+    format,
+    quality: format === 'avif' ? 68 : 76,
+  });
+}
+
 export const worldBackgrounds: Record<ResolvedTimeMode, ResponsiveWorldImage> = Object.fromEntries(
   (['dawn', 'day', 'dusk', 'night'] as const).map((time) => [time, {
-    avif: `/images/world/${time}/world-desktop-4k.avif`,
-    webp: `/images/world/${time}/world-desktop-4k.webp`,
-    mobileAvif: `/images/world/${time}/world-mobile-hd.avif`,
-    mobileWebp: `/images/world/${time}/world-mobile-hd.webp`,
+    avifSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'avif'), width }))),
+    webpSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'webp'), width }))),
+    fallback: worldCandidate(time, 1920, 'webp'),
+    sizes: worldSizes,
   }]),
 ) as Record<ResolvedTimeMode, ResponsiveWorldImage>;
 

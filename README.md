@@ -106,12 +106,25 @@ draft: true
 首页地图使用 `public/images/world/<time>/` 下的四组同构图，`time` 为 `dawn`、`day`、`dusk`、`night`。每组包含桌面和移动端的 AVIF/WebP：
 
 - 四幅图必须保持完全相同的机位、河流、建筑与路径位置，否则地图热点会偏离。
-- 桌面资源使用 `*-desktop-4k.avif/webp`，尺寸为 3840×2160；移动资源使用 `*-mobile-hd.avif/webp`，尺寸为 1440×810。首选 AVIF 均控制在 400KB 内，WebP 仅作为兼容回退。
-- 当前四时图由原始同构构图进行 AI 细节修复后再统一输出，不得单独重绘或改变七境坐标。
+- 4K 修复图只存放在 `media-originals/` 作为母图，不进入网页首屏或静态部署产物。
+- 线上资源使用带版本号的 `*-restored-v1-{960,1440,1920}.avif/webp`；浏览器通过 `srcset` 按视口选择，不再预载相邻时段。
+- 运行 `pnpm media:prepare` 可从母图重新生成所有响应式衍生图；升级画面时必须使用新的版本号，避免破坏长期缓存。
+- 当前四时图由原始同构构图进行 AI 细节修复后统一输出，不得单独重绘或改变七境坐标。
 - 七境坐标集中在 `src/data/worldMap.ts`，不要把坐标散落到组件或样式表中。
 - 默认分享图由 `src/layouts/BaseLayout.astro` 设置，替换主视觉后需要同步更新替代文本。
 
-`public/images/village/` 是笔记、项目和关于页仍在使用的内页背景，现同样提供 3840×2160 的 `*-desktop-4k` 与 1440×810 的 `*-mobile-hd` 版本；它不是首页地图资源，迁移内页视觉前不要删除。
+`public/images/village/` 是笔记、项目和关于页使用的响应式内页背景；桌面最多加载 1920px，手机加载 960px。4K 母图不在 `public/` 中。
+
+## 图片存储与 CDN
+
+默认开发环境直接使用 `public/images/` 下的响应式衍生图。生产环境可将 `media-originals/` 上传到 Cloudflare R2，并设置：
+
+- `PUBLIC_MEDIA_ORIGIN`：R2 自定义图片域名，例如 `https://img.example.com`。
+- `PUBLIC_IMAGE_TRANSFORM_ORIGIN`：启用 Cloudflare Images 转换的站点域名。
+
+配置后，`src/lib/imageDelivery.ts` 会把相同的图片请求切换为 Cloudflare Images 转换 URL；R2 保存 4K 原图，CDN 只向浏览器发送 960／1440／1920 的 AVIF/WebP。未配置时自动回退到本地衍生图，不影响构建。
+
+列表页只加载缩略图，详情页按容器尺寸加载，4K 只用于母图、下载或主动放大。不要在 React 中用 `new Image()` 批量预载非当前时段图片。
 
 ## 全境地图与环境状态
 

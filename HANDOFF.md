@@ -80,15 +80,16 @@ pnpm preview
 - `src/styles/global.css`：像素绘本设计系统及内页布局。
 - `src/content/notes/`、`src/content/projects/`、`src/content/regions/`、`src/content/works/`：MDX 内容。
 - `src/content.config.ts`：内容字段定义。
-- `public/images/world/`：首页四时 4K 桌面／HD 移动地图；`public/images/village/` 提供同规格的内页背景。
+- `media-originals/`：不参与静态部署的 4K 母图，未来同步到 R2。
+- `public/images/world/`：首页四时 960／1440／1920 响应式地图；`public/images/village/` 提供同规格的内页背景。
 
-替换四时图片时，必须保持七境位置一致，并同时更新 `*-desktop-4k` 与 `*-mobile-hd` 的 AVIF/WebP。正文内容不要被 AI 自动改写。
+替换四时图片时，必须保持七境位置一致，在 `media-originals/` 更新母图后运行 `pnpm media:prepare`，并使用新的文件版本号。正文内容不要被 AI 自动改写。
 
 ## 已知技术取舍
 
 - Animal Island UI 的 `Title` 组件用于地图地名；Vite 8 通过 `resolve.noExternal` 处理其 CSS Module，升级依赖后必须重新验证生产构建。
 - 夜间只改变外围环境，文章正文保持浅色纸张以保证阅读对比度。
-- 首屏只优先加载当前时段背景，其他时段空闲预载；不要改成一次加载全部大图。
+- 首屏只加载当前时段与当前视口所需尺寸，禁止空闲预载其他时段的大图。
 
 ## 每次交付检查
 
