@@ -16,7 +16,7 @@
     "@astrojs/sitemap": "^3.7.3",
     "@fontsource/noto-serif-sc": "^5.2.9",
     "animal-island-ui": "^1.2.3",
-    "astro": "^7.1.0",
+    "astro": "^7.1.1",
     "classnames": "^2.5.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

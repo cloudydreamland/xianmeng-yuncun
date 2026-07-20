@@ -1,11 +1,29 @@
 ---
-title: 青石旧路
-slug: mountain-path
-description: 一个把个人学习经历呈现为山路节点的交互时间线实验。
-period: 2026.08 — 计划中
-status: 构想中
-stack: [React, Motion, Illustration]
-featured: false
+title: 智慧云脑诊疗平台
+slug: smart-cloud-brain
+description: 面向患者、医生与管理员的前后端分离智慧诊疗微服务平台，覆盖分诊、挂号、病历、处方与通知流程。
+period: 2026.07 — 至今
+status: 持续维护
+stack: [Java, Spring Boot, Vue 3, RabbitMQ, Docker, KingbaseES]
+featured: true
+repoUrl: https://github.com/cloudydreamland/smart_cloud_brain
 ---
 
-未来会成为云村中连接书屋、工坊与三山观的小路。首期只保留内容结构，不加入复杂地图交互。
+## 项目结构
+
+后端采用 JDK 17、Spring Boot 3、Spring Cloud Gateway 与 OpenFeign 构建多模块微服务；前端是 Vue 3 monorepo，包含患者端、医生端、管理端和患者移动端。仓库同时提供数据库脚本、接口调试集合与 Docker Compose 部署配置。
+
+## 核心流程
+
+1. 患者提交 AI 分诊并从排班号源中选择医生预约。
+2. 医生处理挂号队列，生成并保存 AI 病历草稿。
+3. 处方经过风险审核后确认，通知通过 RabbitMQ 与 WebSocket 推送。
+4. 患者查看自己的病历和处方，管理员维护基础数据、提示词与排班。
+
+## AI 与数据处理
+
+AI 服务默认使用本地 mock provider，完整应用无需外部密钥也能启动；同时支持 OpenAI 兼容接口和 Dify。分诊、病历生成与处方检查读取数据库中启用的提示词模板，调用日志只记录摘要，不写入完整私密医疗文本。
+
+## 工程化交付
+
+仓库提供 PowerShell 与 Shell 启动脚本、Docker Compose 环境、Nginx 统一入口，以及后端编译和前端测试／构建命令，便于在本地复现完整演示链路。
