@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-type SearchType = 'all' | '笔记' | '项目' | '世界' | '关于';
+type SearchType = 'all' | '笔记' | '项目' | '世界' | '作品' | '关于';
 
 interface PagefindResultData {
   url: string;
@@ -28,6 +28,7 @@ const FILTERS: Array<{ value: SearchType; label: string }> = [
   { value: '笔记', label: '笔记' },
   { value: '项目', label: '项目' },
   { value: '世界', label: '世界' },
+  { value: '作品', label: '作品' },
   { value: '关于', label: '关于' },
 ];
 

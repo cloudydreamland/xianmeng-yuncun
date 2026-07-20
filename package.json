@@ -7,7 +7,9 @@
     "dev": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "build": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check && cross-env ASTRO_TELEMETRY_DISABLED=1 astro build && pagefind --site dist",
     "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
-    "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check"
+    "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
+    "test:e2e": "playwright test",
+    "gallery:prepare": "node scripts/prepare-gallery-image.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.3",
@@ -23,10 +25,12 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@playwright/test": "^1.61.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "cross-env": "^10.1.0",
     "pagefind": "1.5.2",
+    "sharp": "^0.35.3",
     "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.14.0"

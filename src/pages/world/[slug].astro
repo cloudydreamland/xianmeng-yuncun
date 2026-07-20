@@ -1,12 +1,15 @@
 ---
 import { getCollection, render } from 'astro:content';
 import CloudSearch from '../../components/CloudSearch';
+import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { cloudVillageDestinations, worldMapPoints } from '../../data/worldMap';
 
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
+  const works = (await getCollection('works', ({ data }) => !data.draft))
+    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || (b.data.createdAt ?? b.data.publishedAt).valueOf() - (a.data.createdAt ?? a.data.publishedAt).valueOf());
   return regions.map((region, index) => ({
     params: { slug: region.data.slug },
     props: {
@@ -14,11 +17,12 @@ export async function getStaticPaths() {
       regions,
       prev: regions[index - 1],
       next: regions[index + 1],
+      works,
     },
   }));
 }
 
-const { region, regions, prev, next } = Astro.props;
+const { region, regions, prev, next, works } = Astro.props;
 const { Content } = await render(region);
 const point = worldMapPoints.find(({ id }) => id === region.data.slug);
 if (!point) throw new Error(`缺少区域视觉焦点：${region.data.slug}`);
@@ -47,4 +51,6 @@ if (!point) throw new Error(`缺少区域视觉焦点：${region.data.slug}`);
   )}
 
   {region.data.slug === 'star-abyss' && <GrowthConstellation />}
+
+  {region.data.slug === 'lantern-lane' && works.length > 0 && <GalleryArchive works={works} />}
 </RegionLayout>

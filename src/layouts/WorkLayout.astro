@@ -1,0 +1,113 @@
+---
+import { getImage, Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import GalleryLightbox from '../components/GalleryLightbox';
+import IslandTag from '../components/IslandTag';
+
+const {
+  title,
+  slug,
+  summary,
+  createdAt,
+  publishedAt,
+  category,
+  tags = [],
+  cover,
+  coverAlt,
+  images = [],
+  creationMode,
+  tools = [],
+  processNote,
+  credit,
+  creditUrl,
+  license,
+  prev,
+  next,
+} = Astro.props;
+
+interface WorkImage {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string;
+}
+
+const galleryId = `work-gallery-${slug}`;
+const lightboxImages = await Promise.all(images.map(async (item: WorkImage) => {
+  const [full, thumbnail] = await Promise.all([
+    getImage({ src: item.src, width: 2000, format: 'webp', quality: 88 }),
+    getImage({ src: item.src, width: 240, format: 'webp', quality: 78 }),
+  ]);
+  return { src: full.src, thumbnail: thumbnail.src, alt: item.alt, caption: item.caption };
+}));
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有权利';
+---
+
+<BaseLayout
+  title={`${title}｜浮光廊`}
+  description={summary}
+  image={cover.src}
+  searchable
+  searchType="作品"
+  searchTitle={title}
+  searchCategory={category}
+  searchTags={tags}
+  searchDate={publishedAt}
+>
+  <article class="work-detail page-shell">
+    <header class="work-detail__header">
+      <a class="back-link" href="/world/lantern-lane/">← 返回浮光廊</a>
+      <p class="pixel-kicker">FLOATING LIGHT ARCHIVE · {category}</p>
+      <h1>{title}</h1>
+      <p>{summary}</p>
+      <div class="work-detail__meta">
+        {createdAt ? <span>创作于 <time datetime={createdAt.toISOString()}>{formatDate(createdAt)}</time></span> : <span>收录于 <time datetime={publishedAt.toISOString()}>{formatDate(publishedAt)}</time></span>}
+        {creationMode && <span>{creationMode}</span>}
+        {credit && <span>作者：{creditUrl ? <a href={creditUrl} rel="external noreferrer">{credit}</a> : credit}</span>}
+        <span>{licenseLabel}</span>
+      </div>
+      <div class="tag-row">{tags.map((tag: string) => <IslandTag label={tag} tone="yellow" />)}</div>
+    </header>
+
+    <figure class="work-detail__cover">
+      <Image src={cover} alt={coverAlt} widths={[720, 1200, 1800]} sizes="(max-width: 900px) 100vw, 1200px" loading="eager" />
+    </figure>
+
+    <div class="work-detail__story">
+      <div class="work-detail__body prose"><slot /></div>
+      <aside class="work-provenance pixel-frame" aria-labelledby="work-provenance-title">
+        <p class="pixel-kicker">CREATION RECORD</p>
+        <h2 id="work-provenance-title">收藏标注</h2>
+        <dl>
+          {credit && <div><dt>作者署名</dt><dd>{creditUrl ? <a href={creditUrl} rel="external noreferrer">{credit}</a> : credit}</dd></div>}
+          {creationMode && <div><dt>创作方式</dt><dd>{creationMode}</dd></div>}
+          {tools.length > 0 && <div><dt>使用工具</dt><dd>{tools.join(' · ')}</dd></div>}
+          {processNote && <div><dt>过程说明</dt><dd>{processNote}</dd></div>}
+          {!createdAt && <div><dt>收录日期</dt><dd>{formatDate(publishedAt)}</dd></div>}
+          <div><dt>授权方式</dt><dd>{licenseLabel}</dd></div>
+        </dl>
+      </aside>
+    </div>
+
+    <section class="work-gallery" id={galleryId} aria-labelledby="work-gallery-title">
+      <header class="section-heading"><p class="pixel-kicker">THE COMPLETE SERIES</p><h2 id="work-gallery-title">灯下观览</h2><p>点击图片可放大浏览；无脚本环境会直接打开优化后的图片文件。</p></header>
+      <div>
+        {images.map((item: WorkImage, index: number) => (
+          <figure>
+            <a href={lightboxImages[index].src} data-gallery-open data-gallery-index={index} aria-label={`放大查看：${item.alt}`}>
+              <Image src={item.src} alt={item.alt} widths={[480, 720, 1100]} sizes="(max-width: 760px) 100vw, 50vw" loading="lazy" />
+            </a>
+            {item.caption && <figcaption>{item.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    </section>
+    <GalleryLightbox client:load galleryId={galleryId} title={title} images={lightboxImages} />
+
+    <nav class="article-nav" aria-label="相邻作品">
+      {prev ? <a href={`/world/lantern-lane/${prev.data.slug}/`}><small>上一件作品</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/world/lantern-lane/${next.data.slug}/`}><small>下一件作品</small><strong>{next.data.title}</strong></a> : <span></span>}
+    </nav>
+  </article>
+</BaseLayout>

@@ -38,10 +38,10 @@ export const worldMapPoints: WorldMapPoint[] = [
 
 export const worldBackgrounds: Record<ResolvedTimeMode, ResponsiveWorldImage> = Object.fromEntries(
   (['dawn', 'day', 'dusk', 'night'] as const).map((time) => [time, {
-    avif: `/images/world/${time}/world-desktop.avif`,
-    webp: `/images/world/${time}/world-desktop.webp`,
-    mobileAvif: `/images/world/${time}/world-mobile.avif`,
-    mobileWebp: `/images/world/${time}/world-mobile.webp`,
+    avif: `/images/world/${time}/world-desktop-4k.avif`,
+    webp: `/images/world/${time}/world-desktop-4k.webp`,
+    mobileAvif: `/images/world/${time}/world-mobile-hd.avif`,
+    mobileWebp: `/images/world/${time}/world-mobile-hd.webp`,
   }]),
 ) as Record<ResolvedTimeMode, ResponsiveWorldImage>;
 
