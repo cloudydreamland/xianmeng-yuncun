@@ -80,9 +80,9 @@ pnpm preview
 - `src/styles/global.css`：像素绘本设计系统及内页布局。
 - `src/content/notes/`、`src/content/projects/`、`src/content/regions/`、`src/content/works/`：MDX 内容。
 - `src/content.config.ts`：内容字段定义。
-- `public/images/world/`：首页四时桌面／移动地图；`public/images/village/` 仍供内页使用。
+- `public/images/world/`：首页四时 4K 桌面／HD 移动地图；`public/images/village/` 提供同规格的内页背景。
 
-替换四时图片时，必须保持七境位置一致，并同时更新桌面与移动素材。正文内容不要被 AI 自动改写。
+替换四时图片时，必须保持七境位置一致，并同时更新 `*-desktop-4k` 与 `*-mobile-hd` 的 AVIF/WebP。正文内容不要被 AI 自动改写。
 
 ## 已知技术取舍
 

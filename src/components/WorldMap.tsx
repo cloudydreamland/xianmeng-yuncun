@@ -196,7 +196,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                 <source media="(max-width: 760px)" type="image/avif" srcSet={image.mobileAvif} />
                 <source media="(max-width: 760px)" type="image/webp" srcSet={image.mobileWebp} />
                 <source type="image/avif" srcSet={image.avif} />
-                <img src={image.webp} alt={imageAlt} width={1600} height={900} fetchPriority="high" />
+                <img src={image.webp} alt={imageAlt} width={3840} height={2160} fetchPriority="high" />
               </picture>
             )}
             <div className="world-map__vignette" aria-hidden="true" />
@@ -220,7 +220,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             </nav>
 
             <noscript>
-              <img className="world-map__noscript" src={backgrounds.day.webp} alt={imageAlt} width="1600" height="900" />
+              <img className="world-map__noscript" src={backgrounds.day.webp} alt={imageAlt} width="3840" height="2160" />
               <nav className="world-map__noscript-links" aria-label="雲梦世界地点">
                 {regions.map((region) => <a href={region.href}>{region.title}</a>)}
               </nav>
