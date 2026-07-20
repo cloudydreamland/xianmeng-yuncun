@@ -17,7 +17,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
   <header class="section-heading">
     <p class="pixel-kicker">THE GALLERY OF FLOATING LIGHTS</p>
     <h2 id="gallery-archive-title">浮光廊</h2>
-    <p>每件作品都保留创作时间、方式和来源说明；这里不陈列无出处的图片。</p>
+    <p>这里收藏摄影、插画与视觉实验；已有来源信息会随作品完整保留。</p>
   </header>
 
   <div class="filter-panel gallery-filters" aria-label="筛选作品">
@@ -47,7 +47,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
           <span>{work.data.category}</span>
         </a>
         <div class="gallery-card__body">
-          <time datetime={work.data.createdAt.toISOString()}>{formatDate(work.data.createdAt)}</time>
+          <time datetime={(work.data.createdAt ?? work.data.publishedAt).toISOString()}>{work.data.createdAt ? formatDate(work.data.createdAt) : `收录于 ${formatDate(work.data.publishedAt)}`}</time>
           <h3><a href={`/world/lantern-lane/${work.data.slug}/`}>{work.data.title}</a></h3>
           <p>{work.data.summary}</p>
           <div class="tag-row">{work.data.tags.map((tag) => <IslandTag label={tag} tone="yellow" />)}</div>

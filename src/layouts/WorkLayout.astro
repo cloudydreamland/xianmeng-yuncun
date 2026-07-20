@@ -19,6 +19,8 @@ const {
   creationMode,
   tools = [],
   processNote,
+  credit,
+  creditUrl,
   license,
   prev,
   next,
@@ -39,7 +41,7 @@ const lightboxImages = await Promise.all(images.map(async (item: WorkImage) => {
   return { src: full.src, thumbnail: thumbnail.src, alt: item.alt, caption: item.caption };
 }));
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '个人原创 · 保留所有权利';
+const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有权利';
 ---
 
 <BaseLayout
@@ -60,8 +62,9 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '个人原创
       <h1>{title}</h1>
       <p>{summary}</p>
       <div class="work-detail__meta">
-        <span>创作于 <time datetime={createdAt.toISOString()}>{formatDate(createdAt)}</time></span>
-        <span>{creationMode}</span>
+        {createdAt ? <span>创作于 <time datetime={createdAt.toISOString()}>{formatDate(createdAt)}</time></span> : <span>收录于 <time datetime={publishedAt.toISOString()}>{formatDate(publishedAt)}</time></span>}
+        {creationMode && <span>{creationMode}</span>}
+        {credit && <span>作者：{creditUrl ? <a href={creditUrl} rel="external noreferrer">{credit}</a> : credit}</span>}
         <span>{licenseLabel}</span>
       </div>
       <div class="tag-row">{tags.map((tag: string) => <IslandTag label={tag} tone="yellow" />)}</div>
@@ -75,11 +78,13 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '个人原创
       <div class="work-detail__body prose"><slot /></div>
       <aside class="work-provenance pixel-frame" aria-labelledby="work-provenance-title">
         <p class="pixel-kicker">CREATION RECORD</p>
-        <h2 id="work-provenance-title">创作标注</h2>
+        <h2 id="work-provenance-title">收藏标注</h2>
         <dl>
-          <div><dt>创作方式</dt><dd>{creationMode}</dd></div>
+          {credit && <div><dt>作者署名</dt><dd>{creditUrl ? <a href={creditUrl} rel="external noreferrer">{credit}</a> : credit}</dd></div>}
+          {creationMode && <div><dt>创作方式</dt><dd>{creationMode}</dd></div>}
           {tools.length > 0 && <div><dt>使用工具</dt><dd>{tools.join(' · ')}</dd></div>}
-          <div><dt>过程说明</dt><dd>{processNote}</dd></div>
+          {processNote && <div><dt>过程说明</dt><dd>{processNote}</dd></div>}
+          {!createdAt && <div><dt>收录日期</dt><dd>{formatDate(publishedAt)}</dd></div>}
           <div><dt>授权方式</dt><dd>{licenseLabel}</dd></div>
         </dl>
       </aside>

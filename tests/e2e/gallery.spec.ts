@@ -6,20 +6,23 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
 });
 
-test('没有真实公开作品时灯巷保持酝酿状态且不显示空画廊', async ({ page }) => {
+test('灯巷按公开作品状态展示画廊或酝酿说明', async ({ page }) => {
   await page.goto('/world/lantern-lane/');
   const cards = page.locator('[data-work-card]');
 
   if (await cards.count() === 0) {
     await expect(page.locator('.gallery-archive')).toHaveCount(0);
     await expect(page.getByText('设定已开放 · 功能酝酿中').first()).toBeVisible();
+  } else {
+    await expect(cards).toHaveCount(2);
+    await expect(page.getByText('已开放').first()).toBeVisible();
   }
 });
 
 test('公开作品支持 URL 筛选、详情页和键盘灯箱', async ({ page }) => {
   await page.goto('/world/lantern-lane/');
   const cards = page.locator('[data-work-card]');
-  test.skip(await cards.count() === 0, '等待用户提供首批真实作品后自动启用');
+  test.skip(await cards.count() === 0, '没有公开作品时跳过画廊交互');
 
   const category = await cards.first().getAttribute('data-category');
   await page.getByRole('button', { name: category || '' }).click();
@@ -38,7 +41,7 @@ test('公开作品支持 URL 筛选、详情页和键盘灯箱', async ({ page }
 test('作品搜索在有公开作品时返回真实详情', async ({ page }) => {
   await page.goto('/world/lantern-lane/');
   const firstCard = page.locator('[data-work-card]').first();
-  test.skip(await firstCard.count() === 0, '等待用户提供首批真实作品后自动启用');
+  test.skip(await firstCard.count() === 0, '没有公开作品时跳过作品搜索');
   const title = (await firstCard.locator('h3').innerText()).trim();
 
   await page.getByRole('button', { name: /搜索|云镜/ }).first().click();

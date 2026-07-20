@@ -9,7 +9,7 @@ import { cloudVillageDestinations, worldMapPoints } from '../../data/worldMap';
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
   const works = (await getCollection('works', ({ data }) => !data.draft))
-    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || b.data.createdAt.valueOf() - a.data.createdAt.valueOf());
+    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || (b.data.createdAt ?? b.data.publishedAt).valueOf() - (a.data.createdAt ?? a.data.publishedAt).valueOf());
   return regions.map((region, index) => ({
     params: { slug: region.data.slug },
     props: {
