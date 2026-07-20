@@ -12,7 +12,7 @@ interface Props {
   description?: string;
   image?: string;
   searchable?: boolean;
-  searchType?: '笔记' | '项目' | '关于';
+  searchType?: '笔记' | '项目' | '关于' | '世界';
   searchTitle?: string;
   searchCategory?: string;
   searchTags?: string[];
@@ -20,9 +20,9 @@ interface Props {
 }
 
 const {
-  title = '王选默 · 云村',
-  description = '王选默的个人网站：记录软件工程、机器学习、自然语言处理相关学习与实践。',
-  image = '/images/village/day/village-desktop.webp',
+  title = '雲梦世界',
+  description = '以云村为中心、六境环绕的个人数字世界，收纳学习笔记、开源项目与持续生长的想法。',
+  image = '/og.png',
   searchable = false,
   searchType,
   searchTitle,
@@ -30,7 +30,7 @@ const {
   searchTags = [],
   searchDate,
 } = Astro.props;
-const pageTitle = title === '王选默 · 云村' ? title : `${title}｜王选默 · 云村`;
+const pageTitle = title === '雲梦世界' ? title : `${title}｜雲梦世界`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
 ---
@@ -44,7 +44,7 @@ const imageUrl = new URL(image, Astro.site);
     <meta name="description" content={description} />
     <meta name="theme-color" content="#edf4e6" />
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" type="application/rss+xml" title="王选默 · 云村 RSS" href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title="雲梦世界 RSS" href="/rss.xml" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />

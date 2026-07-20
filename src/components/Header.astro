@@ -1,17 +1,17 @@
 ---
 const pathname = Astro.url.pathname;
 const links = [
-  { href: '/', label: '云村地图' },
+  { href: '/', label: '全境' },
   { href: '/notes', label: '山窗书屋' },
   { href: '/projects', label: '百工阁' },
-  { href: '/about', label: '关于我' },
+  { href: '/about', label: '三山观' },
 ];
 ---
 
 <header class="site-header">
-  <a class="site-brand" href="/" aria-label="王选默的个人网站首页">
-    <span class="site-brand__mark" aria-hidden="true">王</span>
-    <span><strong>王选默</strong><small>云村</small></span>
+  <a class="site-brand" href="/" aria-label="雲梦世界首页">
+    <span class="site-brand__mark" aria-hidden="true">雲</span>
+    <span><strong>雲梦世界</strong><small>云村与六境</small></span>
   </a>
   <nav class="desktop-nav pixel-hud" aria-label="主导航">
     {links.map((link) => (

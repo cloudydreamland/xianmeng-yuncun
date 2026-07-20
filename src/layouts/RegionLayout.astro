@@ -1,0 +1,62 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+const {
+  title,
+  realm,
+  summary,
+  quote,
+  functionTitle,
+  functionDescription,
+  status,
+  theme,
+  focus,
+  prev,
+  next,
+} = Astro.props;
+---
+
+<BaseLayout
+  title={`${title}｜雲梦地志`}
+  description={summary}
+  image="/images/world/day/world-desktop.webp"
+  searchable
+  searchType="世界"
+  searchTitle={title}
+>
+  <article class={`region-page region-page--${theme}`} style={`--region-focus: ${focus};`}>
+    <header class="region-hero page-shell">
+      <a class="back-link" href="/">← 返回雲梦全境</a>
+      <div class="region-hero__copy">
+        <p class="pixel-kicker">YUNMENG GAZETTEER · {realm}</p>
+        <h1>{title}</h1>
+        <p>{summary}</p>
+        <span class:list={['region-status', { 'region-status--active': status === 'active' }]}>
+          {status === 'active' ? '此境已开放' : '设定已开放 · 功能酝酿中'}
+        </span>
+      </div>
+      <blockquote>{quote}</blockquote>
+    </header>
+
+    <figure class="region-panorama" aria-label={`${title}在雲梦全境中的位置`}>
+      <img src="/images/world/day/world-desktop.webp" alt="" width="1600" height="900" />
+    </figure>
+
+    <div class="region-story page-shell">
+      <div class="region-story__body prose"><slot name="story" /></div>
+      <aside class="region-function pixel-frame">
+        <p class="pixel-kicker">THIS PLACE HOLDS</p>
+        <h2>{functionTitle}</h2>
+        <p>{functionDescription}</p>
+        <strong>{status === 'active' ? '当前可用' : '首版不放置无效入口'}</strong>
+      </aside>
+    </div>
+
+    <div class="region-feature page-shell"><slot /></div>
+
+    <nav class="region-nav page-shell" aria-label="相邻区域">
+      {prev ? <a href={`/world/${prev.data.slug}/`}><small>上一境</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/world/${next.data.slug}/`}><small>下一境</small><strong>{next.data.title}</strong></a> : <span></span>}
+    </nav>
+  </article>
+</BaseLayout>
