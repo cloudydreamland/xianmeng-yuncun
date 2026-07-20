@@ -9,7 +9,8 @@
     "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
     "test:e2e": "playwright test",
-    "gallery:prepare": "node scripts/prepare-gallery-image.mjs"
+    "gallery:prepare": "node scripts/prepare-gallery-image.mjs",
+    "media:prepare": "node scripts/prepare-background-images.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.3",

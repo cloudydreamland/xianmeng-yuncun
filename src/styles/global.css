@@ -988,8 +988,8 @@ img { max-width: 100%; display: block; }
   --pixel-shadow: #5f6558;
   --step-shadow: 6px 6px 0 rgba(53, 67, 60, .72);
   --step-shadow-soft: 4px 4px 0 rgba(67, 79, 69, .28);
-  --village-bg: image-set(url('/images/village/day/village-desktop-4k.avif') type('image/avif'), url('/images/village/day/village-desktop-4k.webp') type('image/webp'));
-  --village-bg-mobile: image-set(url('/images/village/day/village-mobile-hd.avif') type('image/avif'), url('/images/village/day/village-mobile-hd.webp') type('image/webp'));
+  --village-bg: var(--village-bg-day);
+  --village-bg-mobile: var(--village-bg-day-mobile);
   --world-top: #d9eef1;
   --world-bottom: #edf0da;
   --world-panel: rgba(255, 249, 232, .92);
@@ -1004,8 +1004,8 @@ img { max-width: 100%; display: block; }
 }
 
 html[data-time='dawn'] {
-  --village-bg: image-set(url('/images/village/dawn/village-desktop-4k.avif') type('image/avif'), url('/images/village/dawn/village-desktop-4k.webp') type('image/webp'));
-  --village-bg-mobile: image-set(url('/images/village/dawn/village-mobile-hd.avif') type('image/avif'), url('/images/village/dawn/village-mobile-hd.webp') type('image/webp'));
+  --village-bg: var(--village-bg-dawn);
+  --village-bg-mobile: var(--village-bg-dawn-mobile);
   --world-top: #d9e5f1;
   --world-bottom: #f2e6da;
   --world-panel: rgba(255, 247, 226, .92);
@@ -1016,8 +1016,8 @@ html[data-time='dawn'] {
 }
 
 html[data-time='dusk'] {
-  --village-bg: image-set(url('/images/village/dusk/village-desktop-4k.avif') type('image/avif'), url('/images/village/dusk/village-desktop-4k.webp') type('image/webp'));
-  --village-bg-mobile: image-set(url('/images/village/dusk/village-mobile-hd.avif') type('image/avif'), url('/images/village/dusk/village-mobile-hd.webp') type('image/webp'));
+  --village-bg: var(--village-bg-dusk);
+  --village-bg-mobile: var(--village-bg-dusk-mobile);
   --world-top: #705f74;
   --world-bottom: #d6a57f;
   --world-panel: rgba(255, 239, 208, .93);
@@ -1028,8 +1028,8 @@ html[data-time='dusk'] {
 }
 
 html[data-time='night'] {
-  --village-bg: image-set(url('/images/village/night/village-desktop-4k.avif') type('image/avif'), url('/images/village/night/village-desktop-4k.webp') type('image/webp'));
-  --village-bg-mobile: image-set(url('/images/village/night/village-mobile-hd.avif') type('image/avif'), url('/images/village/night/village-mobile-hd.webp') type('image/webp'));
+  --village-bg: var(--village-bg-night);
+  --village-bg-mobile: var(--village-bg-night-mobile);
   --world-top: #152c51;
   --world-bottom: #25496a;
   --world-panel: rgba(244, 231, 196, .94);

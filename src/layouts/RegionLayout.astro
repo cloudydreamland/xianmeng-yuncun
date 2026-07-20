@@ -1,5 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import { worldBackgrounds } from '../data/worldMap';
 
 const {
   title,
@@ -19,7 +20,7 @@ const {
 <BaseLayout
   title={`${title}｜雲梦地志`}
   description={summary}
-  image="/images/world/day/world-desktop-4k.webp"
+  image={worldBackgrounds.day.fallback}
   searchable
   searchType="世界"
   searchTitle={title}
@@ -40,8 +41,9 @@ const {
 
     <figure class="region-panorama" aria-label={`${title}在雲梦全境中的位置`}>
       <picture>
-        <source type="image/avif" srcset="/images/world/day/world-desktop-4k.avif" />
-        <img src="/images/world/day/world-desktop-4k.webp" alt="" width="3840" height="2160" loading="lazy" />
+        <source type="image/avif" srcset={worldBackgrounds.day.avifSrcSet} sizes={worldBackgrounds.day.sizes} />
+        <source type="image/webp" srcset={worldBackgrounds.day.webpSrcSet} sizes={worldBackgrounds.day.sizes} />
+        <img src={worldBackgrounds.day.fallback} alt="" width="1920" height="1080" loading="lazy" decoding="async" />
       </picture>
     </figure>
 
