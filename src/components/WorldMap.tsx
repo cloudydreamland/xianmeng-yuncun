@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Title, type TitleColor } from 'animal-island-ui';
 import type {
   RegionId,
   RegionStatus,
@@ -44,6 +45,16 @@ const TIME_OPTIONS: Array<{ value: TimeMode; label: string; glyph: string }> = [
   { value: 'dusk', label: '黄昏', glyph: '◕' },
   { value: 'night', label: '夜晚', glyph: '✦' },
 ];
+
+const REGION_TITLE_COLORS: Record<RegionId, TitleColor> = {
+  'cloud-village': 'app-green',
+  'rain-bridge': 'app-teal',
+  'star-abyss': 'purple',
+  'wind-valley': 'lime-green',
+  'moon-pool': 'app-blue',
+  'snow-cliff': 'app-yellow',
+  'lantern-lane': 'app-orange',
+};
 
 export function resolveTimeMode(mode: TimeMode, hour = new Date().getHours()): ResolvedTimeMode {
   if (mode !== 'auto') return mode;
@@ -176,16 +187,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   const image = resolvedTime ? backgrounds[resolvedTime] : null;
 
   return (
-    <section className="world-map" aria-labelledby="world-map-title">
-      <div className="world-map__masthead page-shell">
-        <div>
-          <p className="pixel-kicker">YUNMENG · A WORLD ABOVE THE CLOUDS</p>
-          <h1 id="world-map-title">雲梦世界</h1>
-          <p>越过云墙，七处山川各自守着一段心境，也承载着这座个人网站正在生长的功能。</p>
-        </div>
-        <span className="world-map__instruction"><i aria-hidden="true" /> 轻触地名，展开一卷山河</span>
-      </div>
-
+    <section className="world-map" aria-label="雲梦世界全境地图">
       <div className="world-map__frame">
         <div className="world-map__viewport" ref={viewportRef} tabIndex={0} aria-label="可横向浏览的雲梦全境地图">
           <div className="world-map__canvas">
@@ -200,7 +202,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             <div className="world-map__vignette" aria-hidden="true" />
 
             <nav className="world-markers" aria-label="雲梦世界地点">
-              {regions.map((region, index) => (
+              {regions.map((region) => (
                 <a
                   key={region.id}
                   href={`#${region.id}`}
@@ -210,12 +212,9 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                   aria-expanded={selectedId === region.id}
                   onClick={(event) => openRegion(event, region.id)}
                 >
-                  <span className="world-marker__pin" aria-hidden="true"><i /></span>
-                  <span className="world-marker__label">
-                    <small>{String(index + 1).padStart(2, '0')} · {region.realm}</small>
-                    <strong>{region.title}</strong>
-                    <em>{region.status === 'active' ? '已开放' : '酝酿中'}</em>
-                  </span>
+                  <Title size="small" color={REGION_TITLE_COLORS[region.id]} className="world-marker__title">
+                    {region.title}
+                  </Title>
                 </a>
               ))}
             </nav>
