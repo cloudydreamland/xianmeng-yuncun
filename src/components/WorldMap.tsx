@@ -177,8 +177,8 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                 <img
                   src={image.fallback}
                   alt={imageAlt}
-                  width={1920}
-                  height={1080}
+                  width={3840}
+                  height={2160}
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"
@@ -206,7 +206,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             </nav>
 
             <noscript>
-              <img className="world-map__noscript" src={backgrounds.day.fallback} alt={imageAlt} width="1920" height="1080" />
+              <img className="world-map__noscript" src={backgrounds.day.fallback} alt={imageAlt} width="3840" height="2160" />
               <nav className="world-map__noscript-links" aria-label="雲梦世界地点">
                 {regions.map((region) => <a href={region.href}>{region.title}</a>)}
               </nav>

@@ -30,7 +30,7 @@ export default function CloudEntrance() {
       <div className="cloud-entrance__mist cloud-entrance__mist--left" aria-hidden="true" />
       <div className="cloud-entrance__mist cloud-entrance__mist--right" aria-hidden="true" />
       <div className="cloud-entrance__copy">
-        <span>YUNMENG WORLD</span>
+        <span>雲梦世界</span>
         <strong>云门开，山河现</strong>
         <button className="animal-like-button" type="button" onClick={dismiss} aria-label="跳过云幕，进入雲梦世界">
           入境

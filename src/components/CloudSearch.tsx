@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-type SearchType = 'all' | '笔记' | '项目' | '世界' | '作品' | '关于';
+type SearchType = 'all' | '笔记' | '项目' | '推进' | '世界' | '作品' | '关于';
 
 interface PagefindResultData {
   url: string;
@@ -27,6 +27,7 @@ const FILTERS: Array<{ value: SearchType; label: string }> = [
   { value: 'all', label: '全部' },
   { value: '笔记', label: '笔记' },
   { value: '项目', label: '项目' },
+  { value: '推进', label: '推进' },
   { value: '世界', label: '世界' },
   { value: '作品', label: '作品' },
   { value: '关于', label: '关于' },
@@ -168,7 +169,7 @@ export default function CloudSearch({
   const content = (
     <div className={`cloud-search cloud-search--${variant}`}>
       <header className="cloud-search__header">
-        <div><p className="pixel-kicker">THE CLOUD MIRROR</p><h2>{heading}</h2></div>
+        <div><p className="pixel-kicker">云镜索引</p><h2>{heading}</h2></div>
         {variant === 'dialog' && <button className="cloud-search__close" type="button" aria-label="关闭搜索" onClick={() => dialogRef.current?.close()}>×</button>}
       </header>
       <label className="search-field">

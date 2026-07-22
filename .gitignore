@@ -8,3 +8,6 @@ dist/
 work/
 playwright-report/
 test-results/
+tools/
+tmp/
+.corepack-cache/

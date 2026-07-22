@@ -24,7 +24,7 @@ export async function GET(context) {
 
   return rss({
     title: '雲梦世界',
-    description: '雲梦世界中的学习笔记、开源实践与浮光廊作品。',
+    description: '雲梦世界中的学习笔记、项目档案与浮光廊作品。',
     site: context.site,
     items,
   });

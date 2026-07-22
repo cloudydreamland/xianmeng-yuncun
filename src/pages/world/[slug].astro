@@ -3,11 +3,21 @@ import { getCollection, render } from 'astro:content';
 import CloudSearch from '../../components/CloudSearch';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
+import IslandTag from '../../components/IslandTag';
+import PlanDashboard from '../../components/PlanDashboard.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
-import { cloudVillageDestinations, worldMapPoints } from '../../data/worldMap';
+import { regionIllustrations } from '../../data/regionIllustrations';
+import { cloudVillageDestinations, type RegionId } from '../../data/worldMap';
+import { contactEmail, friendLinks, visitorNotes } from '../../data/snowCliff';
+import { existsSync, readFileSync } from 'node:fs';
 
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
+  const notes = (await getCollection('notes', ({ data }) => !data.draft))
+    .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+  const projects = (await getCollection('projects'))
+    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+  const plans = await getCollection('plans');
   const works = (await getCollection('works', ({ data }) => !data.draft))
     .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || (b.data.createdAt ?? b.data.publishedAt).valueOf() - (a.data.createdAt ?? a.data.publishedAt).valueOf());
   return regions.map((region, index) => ({
@@ -17,23 +27,87 @@ export async function getStaticPaths() {
       regions,
       prev: regions[index - 1],
       next: regions[index + 1],
+      notes,
+      projects,
+      plans,
       works,
     },
   }));
 }
 
-const { region, regions, prev, next, works } = Astro.props;
+const { region, regions, prev, next, notes, projects, plans, works } = Astro.props;
 const { Content } = await render(region);
-const point = worldMapPoints.find(({ id }) => id === region.data.slug);
-if (!point) throw new Error(`缺少区域视觉焦点：${region.data.slug}`);
+const illustration = regionIllustrations[region.data.slug as RegionId];
+if (!illustration) throw new Error(`Missing region illustration: ${region.data.slug}`);
+const categories = [...new Set(notes.map(({ data }) => data.category))];
+const tags = [...new Set(notes.flatMap(({ data }) => data.tags))];
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const cleanMarkdownText = (value: string) => value
+  .replace(/<[^>]+>/g, '')
+  .replace(/!\[[^\]]*]\([^)]*\)/g, '')
+  .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
+  .replace(/[`*_~>#-]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+const readNoteSource = (id: string) => {
+  const candidates = [
+    new URL(`../../content/notes/${id}.mdx`, import.meta.url),
+    new URL(`../../content/notes/${id}.md`, import.meta.url),
+  ];
+  const file = candidates.find((candidate) => existsSync(candidate));
+  return file ? readFileSync(file, 'utf8') : '';
+};
+const extractSourceBlocks = (source = '') => {
+  const body = source.replace(/^---[\s\S]*?---\s*/, '');
+  const blocks: string[] = [];
+  let paragraph: string[] = [];
+  const flushParagraph = () => {
+    const text = cleanMarkdownText(paragraph.join(' '));
+    if (text) blocks.push(text);
+    paragraph = [];
+  };
+  body.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      return;
+    }
+    if (/^#{1,6}\s+/.test(trimmed) || /^[-*+]\s+/.test(trimmed) || /^\d+[.)]\s+/.test(trimmed)) {
+      flushParagraph();
+      const text = cleanMarkdownText(trimmed);
+      if (text) blocks.push(text);
+      return;
+    }
+    paragraph.push(trimmed);
+  });
+  flushParagraph();
+  return blocks;
+};
+const noteSourceCards = await Promise.all(notes.map(async (note) => {
+  const { headings } = await render(note);
+  const source = readNoteSource(note.id);
+  const outline = headings
+    .filter((heading) => heading.depth >= 2 && heading.depth <= 3)
+    .map((heading) => ({ depth: heading.depth, slug: heading.slug, text: heading.text }));
+  const blocks = extractSourceBlocks(source);
+  return {
+    id: note.id,
+    slug: note.data.slug,
+    sourcePath: `src/content/notes/${note.id}.mdx`,
+    outline,
+    blocks,
+    wordCount: blocks.join('').length,
+  };
+}));
+const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 ---
 
-<RegionLayout {...region.data} focus={point.cropPosition} prev={prev} next={next}>
+<RegionLayout {...region.data} illustration={illustration} prev={prev} next={next}>
   <Fragment slot="story"><Content /></Fragment>
 
   {region.data.slug === 'cloud-village' && (
     <section class="village-gates" aria-labelledby="village-gates-title">
-      <header class="section-heading"><p class="pixel-kicker">THREE PLACES IN THE VILLAGE</p><h2 id="village-gates-title">从村中继续前行</h2><p>三个入口保持简短直接，让世界观不会遮住真实内容。</p></header>
+      <header class="section-heading"><p class="pixel-kicker">七境入口</p><h2 id="village-gates-title">从云村继续前行</h2><p>云村居中，六境分司其职；真实内容从这里通向各自归处。</p></header>
       <div>{cloudVillageDestinations.map((item, index) => <a href={item.href}><span>0{index + 1}</span><h3>{item.label}</h3><p>{item.meta}</p><strong>进入 →</strong></a>)}</div>
     </section>
   )}
@@ -44,13 +118,240 @@ if (!point) throw new Error(`缺少区域视觉焦点：${region.data.slug}`);
         <CloudSearch client:load variant="embedded" heading="在雨桥上展开云镜" description="检索笔记、项目、世界设定与公开履历。" />
       </section>
       <section class="world-directory" aria-labelledby="world-directory-title">
-        <header class="section-heading"><p class="pixel-kicker">GAZETTEER OF SEVEN REALMS</p><h2 id="world-directory-title">七境地名册</h2><p>开放状态只表示网站功能是否完成，所有区域设定均可阅读。</p></header>
+        <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>开放状态只表示网站功能是否完成，所有区域设定均可阅读。</p></header>
         <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '已开放' : '酝酿中'}</strong></a>)}</div>
       </section>
     </>
   )}
 
   {region.data.slug === 'star-abyss' && <GrowthConstellation />}
+
+  {region.data.slug === 'wind-valley' && (
+    <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title">
+      <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>学习笔记、技术碎片、随笔与小实验都落在这里，等风翻页。</p></header>
+      <div class="filter-panel" aria-label="筛选笔记">
+        <div class="filter-group"><strong>内容分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
+        <div class="filter-group"><strong>风信标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
+        <div class="filter-summary"><p class="filter-count" aria-live="polite">共 {notes.length} 篇</p><button type="button" class="filter-reset" data-reset-filters hidden>清除筛选</button></div>
+      </div>
+      <div class="cloud-note-grid">
+        {notes.map((note) => (
+          <article class="cloud-note" data-note-card data-category={note.data.category} data-tags={JSON.stringify(note.data.tags)}>
+            {(() => {
+              const source = noteSourceMap.get(note.data.slug);
+              return source && (
+                <Fragment>
+                  {note.data.cover && (
+                    <a class="cloud-note__cover" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>
+                      <img src={note.data.cover} alt={note.data.coverAlt || note.data.title} width="720" height="405" loading="lazy" />
+                    </a>
+                  )}
+                  <div class="cloud-note__meta"><span>{note.data.category}</span><time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time></div>
+                  <h2><a href={`/notes/${note.data.slug}/`}>{note.data.title}</a></h2>
+                  <p>{note.data.description}</p>
+                  <details class="note-source">
+                    <summary>
+                      <span>源文件结构</span>
+                      <small>{source.outline.length || 1} 个章节 · 约 {source.wordCount} 字</small>
+                    </summary>
+                    <div class="note-source__inner">
+                      <p class="note-source__path">{source.sourcePath}</p>
+                      {source.outline.length > 0 ? (
+                        <ol class="note-source__toc" aria-label={`《${note.data.title}》目录`}>
+                          {source.outline.map((heading) => (
+                            <li class:list={[`depth-${heading.depth}`]}>
+                              <a href={`/notes/${note.data.slug}/#${heading.slug}`}>{heading.text}</a>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p class="note-source__empty">这篇笔记暂时没有二级或三级标题，已直接从正文生成内容摘录。</p>
+                      )}
+                      {source.blocks.length > 0 && (
+                        <div class="note-source__blocks" aria-label={`《${note.data.title}》正文结构摘录`}>
+                          {source.blocks.map((block, index) => (
+                            <p><span>{String(index + 1).padStart(2, '0')}</span>{block}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                  <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+                  <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
+                </Fragment>
+              );
+            })()}
+            {!noteSourceMap.has(note.data.slug) && (
+              <Fragment>
+            {note.data.cover && (
+              <a class="cloud-note__cover" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>
+                <img src={note.data.cover} alt={note.data.coverAlt || note.data.title} width="720" height="405" loading="lazy" />
+              </a>
+            )}
+            <div class="cloud-note__meta"><span>{note.data.category}</span><time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time></div>
+            <h2><a href={`/notes/${note.data.slug}/`}>{note.data.title}</a></h2>
+            <p>{note.data.description}</p>
+            <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+            <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
+              </Fragment>
+            )}
+          </article>
+        ))}
+      </div>
+      <div class="empty-state" data-empty-state hidden><strong>这阵风里暂时没有找到对应的文字。</strong><p>换一个分类，或让风把筛选吹散吧。</p></div>
+      <script>
+        const browser = document.querySelector('[data-notes-browser]');
+        if (browser) {
+          const state = { category: 'all', tag: 'all' };
+          const cards = [...browser.querySelectorAll<HTMLElement>('[data-note-card]')];
+          const count = browser.querySelector<HTMLElement>('.filter-count');
+          const empty = browser.querySelector<HTMLElement>('[data-empty-state]');
+          const reset = browser.querySelector<HTMLButtonElement>('[data-reset-filters]');
+          const categoryValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="category"]')].map((button) => button.dataset.filterValue || 'all'));
+          const tagValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="tag"]')].map((button) => button.dataset.filterValue || 'all'));
+
+          const syncButtons = () => {
+            browser.querySelectorAll<HTMLButtonElement>('[data-filter-type]').forEach((button) => {
+              const type = button.dataset.filterType as 'category' | 'tag';
+              const active = state[type] === (button.dataset.filterValue || 'all');
+              button.classList.toggle('active', active);
+              button.setAttribute('aria-pressed', String(active));
+            });
+          };
+
+          const applyFilters = (updateUrl = false) => {
+            let visible = 0;
+            cards.forEach((card) => {
+              const cardTags = JSON.parse(card.dataset.tags || '[]');
+              const matchesCategory = state.category === 'all' || card.dataset.category === state.category;
+              const matchesTag = state.tag === 'all' || cardTags.includes(state.tag);
+              card.hidden = !(matchesCategory && matchesTag);
+              if (!card.hidden) visible += 1;
+            });
+            syncButtons();
+            if (count) count.textContent = `共 ${visible} 篇`;
+            if (empty) empty.hidden = visible !== 0;
+            if (reset) reset.hidden = state.category === 'all' && state.tag === 'all';
+
+            if (updateUrl) {
+              const url = new URL(window.location.href);
+              if (state.category === 'all') url.searchParams.delete('category');
+              else url.searchParams.set('category', state.category);
+              if (state.tag === 'all') url.searchParams.delete('tag');
+              else url.searchParams.set('tag', state.tag);
+              history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+            }
+          };
+
+          const readUrl = () => {
+            const params = new URLSearchParams(window.location.search);
+            const category = params.get('category') || 'all';
+            const tag = params.get('tag') || 'all';
+            state.category = categoryValues.has(category) ? category : 'all';
+            state.tag = tagValues.has(tag) ? tag : 'all';
+            applyFilters(false);
+          };
+
+          browser.querySelectorAll<HTMLButtonElement>('[data-filter-type]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const type = button.dataset.filterType as 'category' | 'tag';
+              state[type] = button.dataset.filterValue || 'all';
+              applyFilters(true);
+            });
+          });
+          reset?.addEventListener('click', () => {
+            state.category = 'all';
+            state.tag = 'all';
+            applyFilters(true);
+          });
+          window.addEventListener('popstate', readUrl);
+          readUrl();
+        }
+      </script>
+    </section>
+  )}
+
+  {region.data.slug === 'moon-pool' && (
+    <>
+      <PlanDashboard plans={plans} projects={projects} />
+      <section class="moon-projects project-archive" aria-labelledby="moon-projects-title">
+        <header class="section-heading"><p class="pixel-kicker">月下档案</p><h2 id="moon-projects-title">月映册</h2><p>推进台记录当下行动；这里保存已经形成的项目、技术选择与长期复盘。</p></header>
+        <div class="archive-intro"><p>月下档案</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>份实践记录</span></div>
+        <div class="project-grid">
+          {projects.map((project, index) => (
+            <article class:list={['project-card', { featured: project.data.featured }]}>
+              {project.data.cover && (
+                <a class="project-card__cover" href={`/projects/${project.data.slug}/`} aria-label={`查看项目《${project.data.title}》`}>
+                  <img src={project.data.cover} alt={project.data.coverAlt || project.data.title} width="720" height="405" loading="lazy" />
+                </a>
+              )}
+              <div class="project-card__header"><span>第 {(index + 1).toString().padStart(2, '0')} 档</span><strong>{project.data.status}</strong></div>
+              <p class="project-card__period">{project.data.period}</p>
+              <h2 id={project.data.slug}><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h2>
+              <p>{project.data.description}</p>
+              <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone={project.data.featured ? 'green' : 'brown'} />)}</div>
+              <div class="project-card__links"><a href={`/projects/${project.data.slug}/`}>查看档案 →</a>{project.data.demoUrl && <a href={project.data.demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">源代码 ↗</a>}</div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  )}
+
+  {region.data.slug === 'snow-cliff' && (
+    <section class="snow-lodge" aria-labelledby="snow-lodge-title">
+      <header class="section-heading">
+        <p class="pixel-kicker">雪中来客</p>
+        <h2 id="snow-lodge-title">白狐酒舍</h2>
+        <p>雪崖先以静态方式开放：友链席位、邮件联系占位与访客须知都在这里，不接入站内留言数据库。</p>
+      </header>
+
+      <div class="snow-lodge__grid">
+        <article class="snow-card snow-card--contact">
+          <p class="pixel-kicker">一封雪信</p>
+          <h3>邮件联系</h3>
+          <p>首版只保留邮件入口，不展示社交平台、手机号或即时通讯账号。</p>
+          {contactEmail ? (
+            <a class="snow-card__action" href={`mailto:${contactEmail}`}>写信给我</a>
+          ) : (
+            <span class="snow-card__action snow-card__action--disabled" aria-disabled="true">邮箱待开放</span>
+          )}
+        </article>
+
+        <article class="snow-card snow-card--notice">
+          <p class="pixel-kicker">访客须知</p>
+          <h3>请在炉火旁慢坐</h3>
+          <ul>
+            {visitorNotes.map((note) => <li>{note}</li>)}
+          </ul>
+        </article>
+      </div>
+
+      <section class="friend-parlor" aria-labelledby="friend-parlor-title">
+        <header>
+          <p class="pixel-kicker">友人席位</p>
+          <h3 id="friend-parlor-title">友链与朋友档案</h3>
+          <p>这里只展示真实确认过的友链；没有确认前，不放示例站点，也不编造朋友信息。</p>
+        </header>
+        {friendLinks.length > 0 ? (
+          <div class="friend-link-grid">
+            {friendLinks.map((friend) => (
+              <a class="friend-link-card" href={friend.href} target="_blank" rel="noreferrer">
+                <strong>{friend.name}</strong>
+                <p>{friend.description}</p>
+                <span>{friend.tags.join(' · ')}</span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="friend-empty">
+            <strong>友人席位正在整理</strong>
+            <p>雪崖已经开门，但友链名册暂时留白。等确认真实站点后，再把朋友们请到炉火旁。</p>
+          </div>
+        )}
+      </section>
+    </section>
+  )}
 
   {region.data.slug === 'lantern-lane' && works.length > 0 && <GalleryArchive works={works} />}
 </RegionLayout>
