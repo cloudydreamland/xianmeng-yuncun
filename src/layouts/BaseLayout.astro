@@ -19,6 +19,7 @@ interface Props {
   searchCategory?: string;
   searchTags?: string[];
   searchDate?: Date;
+  preloadWorldMap?: boolean;
 }
 
 const {
@@ -31,10 +32,17 @@ const {
   searchCategory,
   searchTags = [],
   searchDate,
+  preloadWorldMap = false,
 } = Astro.props;
 const pageTitle = title === '雲梦世界' ? title : `${title}｜雲梦世界`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
+const worldPreloadSources = Object.fromEntries(
+  Object.entries(worldBackgrounds).map(([time, source]) => [time, {
+    srcset: source.avifSrcSet,
+    sizes: source.sizes,
+  }]),
+);
 const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
   .flatMap((time) => [
     `--village-bg-${time}:${villageBackgrounds[time].desktop}`,
@@ -82,6 +90,24 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
         root.dataset.timeMode = mode;
       })();
     </script>
+    {preloadWorldMap && (
+      <script is:inline define:vars={{ worldPreloadSources }}>
+        (() => {
+          const time = document.documentElement.dataset.time || 'day';
+          const source = worldPreloadSources[time];
+          if (!source) return;
+          const preload = document.createElement('link');
+          preload.rel = 'preload';
+          preload.as = 'image';
+          preload.type = 'image/avif';
+          preload.setAttribute('imagesrcset', source.srcset);
+          preload.setAttribute('imagesizes', source.sizes);
+          preload.setAttribute('fetchpriority', 'high');
+          preload.dataset.worldMapPreload = time;
+          document.head.append(preload);
+        })();
+      </script>
+    )}
   </head>
   <body class:list={[{ 'home-page': Astro.url.pathname === '/' }]}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
