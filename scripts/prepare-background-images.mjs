@@ -3,7 +3,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 const projectRoot = process.cwd();
-const worldWidths = [960, 1440, 1920, 2560, 3840, 5120];
+const worldWidths = [960, 1440, 1600, 1920, 2560, 2880, 3200, 3840, 5120];
 const villageWidths = [960, 1440, 1920, 2560, 3840];
 const times = ['dawn', 'day', 'dusk', 'night'];
 const target = process.argv[2] ?? 'all';
@@ -34,6 +34,19 @@ if (target === 'all' || target === 'world') {
   for (const time of times) {
     const source = path.join(projectRoot, 'media-originals', 'world', time, 'world-detailed-v3-8k.webp');
     await access(source);
+
+    await render(
+      source,
+      path.join(projectRoot, 'public', 'images', 'world', time, 'world-detailed-v3-placeholder'),
+      320,
+      180,
+      {
+        avif: 45,
+        webp: 68,
+        chromaSubsampling: '4:2:0',
+        effort: 6,
+      },
+    );
 
     for (const width of worldWidths) {
       const outputBase = path.join(

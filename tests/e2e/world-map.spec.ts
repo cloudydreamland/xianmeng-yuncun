@@ -9,8 +9,17 @@ test('首页只加载当前时段的一张响应式地图', async ({ page }) => 
 
   const avifSource = page.locator('.world-map__picture source[type="image/avif"]');
   await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-960\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-1600\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-2880\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-3200\.avif/);
   await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-5120\.avif/);
   await expect(page.locator('.world-map__picture img')).not.toHaveAttribute('src', /4k|mobile-hd/);
+
+  const preload = page.locator('link[data-world-map-preload]');
+  await expect(preload).toHaveCount(1);
+  await expect(preload).toHaveAttribute('type', 'image/avif');
+  await expect(preload).toHaveAttribute('imagesrcset', /world-detailed-v3-1600\.avif/);
+  await expect(preload).toHaveAttribute('fetchpriority', 'high');
 
   await page.waitForTimeout(2_000);
   const loadedWorldImages = await page.evaluate(() => performance
@@ -18,7 +27,21 @@ test('首页只加载当前时段的一张响应式地图', async ({ page }) => 
     .map((entry) => entry.name)
     .filter((url) => url.includes('/images/world/')));
 
-  expect([...new Set(loadedWorldImages)]).toHaveLength(1);
+  const fullResolutionImages = loadedWorldImages.filter((url) => /world-detailed-v3-\d+\.(?:avif|webp)$/.test(url));
+  const placeholders = loadedWorldImages.filter((url) => /world-detailed-v3-placeholder\.(?:avif|webp)$/.test(url));
+  expect([...new Set(fullResolutionImages)]).toHaveLength(1);
+  expect([...new Set(placeholders)]).toHaveLength(1);
+});
+
+test('首屏预加载与占位图跟随用户保存的时辰且不抢载其他时辰', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('yuncun-time-mode', 'night'));
+  await page.goto('/');
+
+  const preload = page.locator('link[data-world-map-preload="night"]');
+  await expect(preload).toHaveCount(1);
+  await expect(preload).toHaveAttribute('imagesrcset', /\/images\/world\/night\/world-detailed-v3-1920\.avif/);
+  await expect(preload).not.toHaveAttribute('imagesrcset', /\/images\/world\/(?:dawn|day|dusk)\//);
+  await expect(page.locator('.world-map__canvas')).toHaveCSS('background-color', 'rgb(185, 216, 216)');
 });
 
 test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复', async ({ page }) => {

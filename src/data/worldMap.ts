@@ -38,7 +38,7 @@ export const worldMapPoints: WorldMapPoint[] = [
   { id: 'lantern-lane', x: 82, y: 69, labelSide: 'left', cropPosition: '84% 72%' },
 ];
 
-const worldWidths = [960, 1440, 1920, 2560, 3840, 5120] as const;
+const worldWidths = [960, 1440, 1600, 1920, 2560, 2880, 3200, 3840, 5120] as const;
 const worldSizes = '(max-width: 760px) 960px, (max-width: 1440px) 100vw, (max-width: 2560px) 100vw, 2560px';
 
 function worldCandidate(time: ResolvedTimeMode, width: number, format: ImageDeliveryFormat): string {
