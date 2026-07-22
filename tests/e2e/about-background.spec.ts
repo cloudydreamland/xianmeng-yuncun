@@ -22,3 +22,13 @@ test('个人主页使用高清云村背景且不对背景应用模糊', async ({
   expect(layout.scrollWidth).toBe(layout.clientWidth);
   expect(layout.heroBackground).toBe('none');
 });
+
+test('夜间个人主页区分图片文字与浅色面板文字', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('yuncun-time-mode', 'night'));
+  await page.goto('/about/');
+
+  await expect(page.locator('html')).toHaveAttribute('data-time', 'night');
+  await expect(page.locator('.page-hero h1')).toHaveCSS('color', 'rgb(255, 244, 216)');
+  await expect(page.locator('.page-hero h1')).not.toHaveCSS('text-shadow', 'none');
+  await expect(page.locator('.about-letter')).toHaveCSS('color', 'rgb(89, 101, 92)');
+});

@@ -53,3 +53,63 @@ test('移动端地图可横向浏览并保留七境地名册', async ({ page }) 
   await expect(page.locator('.world-ledger')).toBeVisible();
   await expect(page.locator('.world-map__viewport')).toHaveCSS('overflow-x', 'auto');
 });
+
+test('四个时辰同步切换背景与语义文字色，并保持面板文字稳定', async ({ page }) => {
+  await page.goto('/');
+
+  const modes = ['dawn', 'day', 'dusk', 'night'] as const;
+  const pageColors = new Set<string>();
+  const imageColors = new Set<string>();
+  const mapFilters = new Set<string>();
+  const panelColors = new Set<string>();
+
+  for (const mode of modes) {
+    await page.evaluate((value) => localStorage.setItem('yuncun-time-mode', value), mode);
+    await page.reload();
+
+    await expect(page.locator('html')).toHaveAttribute('data-time', mode);
+    await expect(page.locator('.world-map__picture img')).toHaveAttribute('src', new RegExp(`/world/${mode}/`));
+
+    const styles = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const marker = getComputedStyle(document.querySelector('.world-marker__title')!);
+      const panel = getComputedStyle(document.querySelector('.world-time-dial__toggle')!);
+      const read = (name: string) => root.getPropertyValue(name).trim();
+
+      return {
+        page: read('--page-text-primary'),
+        image: read('--image-text-primary'),
+        panel: read('--panel-text-primary'),
+        markerFilter: marker.filter,
+        markerShadow: marker.textShadow,
+        controlColor: panel.color,
+      };
+    });
+
+    pageColors.add(styles.page);
+    imageColors.add(styles.image);
+    mapFilters.add(styles.markerFilter);
+    panelColors.add(styles.panel);
+    expect(styles.markerShadow).not.toBe('none');
+  }
+
+  expect(pageColors.size).toBe(4);
+  expect(imageColors.size).toBe(4);
+  expect(mapFilters.size).toBe(4);
+  expect(panelColors.size).toBe(1);
+});
+
+test('夜间图片文字有描边，浅色抽屉仍使用深色面板文字', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('yuncun-time-mode', 'night'));
+  await page.reload();
+
+  const brand = page.locator('.site-brand').first();
+  await expect(brand).toHaveCSS('color', 'rgb(255, 244, 216)');
+  await expect(brand).not.toHaveCSS('text-shadow', 'none');
+
+  await page.locator('.world-marker').first().click();
+  const drawer = page.locator('.world-drawer');
+  await expect(drawer).toHaveAttribute('open', '');
+  await expect(drawer).toHaveCSS('color', 'rgb(63, 73, 63)');
+});
