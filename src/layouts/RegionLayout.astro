@@ -1,6 +1,5 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { worldBackgrounds } from '../data/worldMap';
 
 const {
   title,
@@ -11,7 +10,7 @@ const {
   functionDescription,
   status,
   theme,
-  focus,
+  illustration,
   prev,
   next,
 } = Astro.props;
@@ -20,37 +19,36 @@ const {
 <BaseLayout
   title={`${title}｜雲梦地志`}
   description={summary}
-  image={worldBackgrounds.day.fallback}
+  image={illustration.fallback}
   searchable
   searchType="世界"
   searchTitle={title}
 >
-  <article class={`region-page region-page--${theme}`} style={`--region-focus: ${focus};`}>
+  <article class={`region-page region-page--${theme}`}>
     <header class="region-hero page-shell">
       <a class="back-link" href="/">← 返回雲梦全境</a>
       <div class="region-hero__copy">
-        <p class="pixel-kicker">YUNMENG GAZETTEER · {realm}</p>
+        <p class="pixel-kicker">雲梦地志 · {realm}</p>
         <h1>{title}</h1>
         <p>{summary}</p>
         <span class:list={['region-status', { 'region-status--active': status === 'active' }]}>
           {status === 'active' ? '此境已开放' : '设定已开放 · 功能酝酿中'}
         </span>
       </div>
+      <figure class="region-visual">
+        <picture>
+          <source type="image/avif" srcset={illustration.avifSrcSet} sizes={illustration.sizes} />
+          <source type="image/webp" srcset={illustration.webpSrcSet} sizes={illustration.sizes} />
+          <img data-region-hero-image src={illustration.fallback} alt={illustration.alt} width="1600" height="900" loading="eager" fetchpriority="high" decoding="sync" />
+        </picture>
+      </figure>
       <blockquote>{quote}</blockquote>
     </header>
-
-    <figure class="region-panorama" aria-label={`${title}在雲梦全境中的位置`}>
-      <picture>
-        <source type="image/avif" srcset={worldBackgrounds.day.avifSrcSet} sizes={worldBackgrounds.day.sizes} />
-        <source type="image/webp" srcset={worldBackgrounds.day.webpSrcSet} sizes={worldBackgrounds.day.sizes} />
-        <img src={worldBackgrounds.day.fallback} alt="" width="1920" height="1080" loading="lazy" decoding="async" />
-      </picture>
-    </figure>
 
     <div class="region-story page-shell">
       <div class="region-story__body prose"><slot name="story" /></div>
       <aside class="region-function pixel-frame">
-        <p class="pixel-kicker">THIS PLACE HOLDS</p>
+        <p class="pixel-kicker">此境所司</p>
         <h2>{functionTitle}</h2>
         <p>{functionDescription}</p>
         <strong>{status === 'active' ? '当前可用' : '首版不放置无效入口'}</strong>

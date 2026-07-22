@@ -1,11 +1,28 @@
 ---
 const pathname = Astro.url.pathname;
-const links = [
-  { href: '/', label: '全境' },
-  { href: '/notes', label: '山窗书屋' },
-  { href: '/projects', label: '百工阁' },
-  { href: '/about', label: '三山观' },
+
+interface NavLink {
+  href: string;
+  label: string;
+  match?: string[];
+}
+
+const links: NavLink[] = [
+  { href: '/', label: '云村', match: ['/', '/world/cloud-village/'] },
+  { href: '/world/rain-bridge/', label: '雨桥' },
+  { href: '/world/star-abyss/', label: '星渊' },
+  { href: '/world/wind-valley/', label: '风谷' },
+  { href: '/world/moon-pool/', label: '月潭' },
+  { href: '/world/snow-cliff/', label: '雪崖' },
+  { href: '/world/lantern-lane/', label: '浮屿·灯巷' },
+  { href: '/about', label: '个人主页' },
 ];
+
+const isActive = (link: NavLink) => {
+  if (link.match?.includes(pathname)) return true;
+  if (link.href === '/') return pathname === '/';
+  return pathname.startsWith(link.href);
+};
 ---
 
 <header class="site-header">
@@ -15,7 +32,7 @@ const links = [
   </a>
   <nav class="desktop-nav pixel-hud" aria-label="主导航">
     {links.map((link) => (
-      <a href={link.href} class:list={[{ active: link.href === '/' ? pathname === '/' : pathname.startsWith(link.href) }]} aria-current={link.href === '/' ? pathname === '/' ? 'page' : undefined : pathname.startsWith(link.href) ? 'page' : undefined}>
+      <a href={link.href} class:list={[{ active: isActive(link) }]} aria-current={isActive(link) ? 'page' : undefined}>
         {link.label}
       </a>
     ))}
@@ -26,7 +43,7 @@ const links = [
   <details class="mobile-nav">
     <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
     <nav aria-label="移动端导航">
-      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+      {links.map((link) => <a href={link.href} aria-current={isActive(link) ? 'page' : undefined}>{link.label}</a>)}
       <button type="button" class="mobile-search" data-search-open><span aria-hidden="true">⌕</span> 打开云镜</button>
     </nav>
   </details>

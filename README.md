@@ -65,6 +65,18 @@ coverAlt: 项目界面预览 # 可选
 
 每个项目会生成独立详情页 `/projects/<slug>/`，项目正文会显示在详情页中并单独进入 Pagefind 搜索索引。
 
+## 添加推进计划
+
+推进计划位于 `src/content/plans/`，Git 中的 MDX 文件是唯一数据源。使用生成命令创建符合 Schema 的模板：
+
+```bash
+pnpm plan:new -- plan-slug "计划标题"
+```
+
+slug 只允许小写英文字母、数字和短横线；同名文件已存在时命令会直接失败。计划可填写里程碑、下一步行动、领域、状态、优先级和关联项目，其中 `projectSlug` 必须指向 `src/content/projects/` 中真实存在的项目。
+
+公开计划会出现在月潭推进台 `/world/moon-pool/`，每份计划生成 `/world/moon-pool/<slug>/` 详情页并进入“推进”搜索类型；标记为 `featured` 的进行中计划会优先进入首页摘要。计划内容会随静态构建公开，请勿写入私人行程、账号、密钥或其他不希望公开的信息。
+
 ## 添加浮光廊作品
 
 作品内容位于 `src/content/works/`，图片位于 `src/assets/works/<slug>/`。灯巷只展示 `draft: false` 的真实作品；没有公开作品时继续显示区域设定，不生成空画廊。
@@ -107,8 +119,11 @@ draft: true
 
 - 四幅图必须保持完全相同的机位、河流、建筑与路径位置，否则地图热点会偏离。
 - 4K 修复图只存放在 `media-originals/` 作为母图，不进入网页首屏或静态部署产物。
-- 线上资源使用带版本号的 `*-restored-v1-{960,1440,1920}.avif/webp`；浏览器通过 `srcset` 按视口选择，不再预载相邻时段。
+- 线上背景使用 AI 超分细节修复后的 `*-detailed-v2-{960,1440,1920,2560,3840}.avif/webp`；浏览器通过 `srcset` 或 1x/2x `image-set()` 按视口和屏幕密度选择，不再把 1920px 素材拉伸到高 DPI 大屏。
+- `detailed-v2` 母图使用 Upscayl NCNN 的 `4xNomos8kSC` 模型确定性超分生成；这一步不使用提示词，升级时应保持原构图与热点坐标不变。
 - 运行 `pnpm media:prepare` 可从母图重新生成所有响应式衍生图；升级画面时必须使用新的版本号，避免破坏长期缓存。
+- 七境详情页使用各自的手绘动漫场景，母图位于 `media-originals/regions/*-article-v2-anime.png`；运行 `pnpm regions:prepare` 生成 960／1280／1600px 的 AVIF/WebP。页面不再放大裁切世界地图，因此不会用伪 4K 换取模糊观感。
+- 灯巷使用独立的 `lantern-lane-article-v3-hd-4k.webp` 母图，并额外生成 2400／3200px 候选，让高 DPI 屏幕获得真正的 2x 清晰度。
 - 当前四时图由原始同构构图进行 AI 细节修复后统一输出，不得单独重绘或改变七境坐标。
 - 七境坐标集中在 `src/data/worldMap.ts`，不要把坐标散落到组件或样式表中。
 - 默认分享图由 `src/layouts/BaseLayout.astro` 设置，替换主视觉后需要同步更新替代文本。

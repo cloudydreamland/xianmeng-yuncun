@@ -5,20 +5,22 @@ import ProjectLayout from '../../layouts/ProjectLayout.astro';
 export async function getStaticPaths() {
   const projects = (await getCollection('projects'))
     .sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+  const plans = await getCollection('plans');
   return projects.map((project, index) => ({
     params: { slug: project.data.slug },
     props: {
       project,
       prev: projects[index - 1],
       next: projects[index + 1],
+      linkedPlans: plans.filter(({ data }) => data.projectSlug === project.data.slug),
     },
   }));
 }
 
-const { project, prev, next } = Astro.props;
+const { project, prev, next, linkedPlans } = Astro.props;
 const { Content } = await render(project);
 ---
 
-<ProjectLayout {...project.data} prev={prev} next={next}>
+<ProjectLayout {...project.data} prev={prev} next={next} linkedPlans={linkedPlans}>
   <Content />
 </ProjectLayout>

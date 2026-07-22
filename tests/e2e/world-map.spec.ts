@@ -8,8 +8,8 @@ test('首页只加载当前时段的一张响应式地图', async ({ page }) => 
   await page.goto('/');
 
   const avifSource = page.locator('.world-map__picture source[type="image/avif"]');
-  await expect(avifSource).toHaveAttribute('srcset', /world-restored-v1-960\.avif/);
-  await expect(avifSource).toHaveAttribute('srcset', /world-restored-v1-1920\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-960\.avif/);
+  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-5120\.avif/);
   await expect(page.locator('.world-map__picture img')).not.toHaveAttribute('src', /4k|mobile-hd/);
 
   await page.waitForTimeout(2_000);

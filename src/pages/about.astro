@@ -1,18 +1,24 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
+import { cloudVillageBackground } from '../data/cloudVillageBackground';
 ---
 
-<BaseLayout title="三山观｜王选默" description="王选默，软件工程本科生，关注 Python、传统机器学习、自然语言处理与工程实践。" searchable searchType="关于" searchTitle="王选默">
+<BaseLayout title="个人主页｜王选默" description="王选默，软件工程本科生，关注 Python、传统机器学习、自然语言处理与工程实践。" searchable searchType="关于" searchTitle="王选默">
   <section class="page-hero page-hero--about">
+    <picture class="page-hero__background" aria-hidden="true">
+      <source type="image/avif" srcset={cloudVillageBackground.avifSrcSet} sizes={cloudVillageBackground.sizes} />
+      <source type="image/webp" srcset={cloudVillageBackground.webpSrcSet} sizes={cloudVillageBackground.sizes} />
+      <img src={cloudVillageBackground.fallback} alt="" width="3840" height="1920" loading="eager" fetchpriority="high" decoding="async" />
+    </picture>
     <div class="page-shell page-hero__inner">
-      <div><p class="pixel-kicker">ABOUT WANG XUANMO</p><h1>王选默</h1><p>软件工程本科生，喜欢钻研技术，正在持续学习机器学习、自然语言处理与工程实践。</p></div>
+      <div><p class="pixel-kicker">个人主页</p><h1>王选默</h1><p>软件工程本科生，喜欢钻研技术，正在持续学习机器学习、自然语言处理与工程实践。</p></div>
       <span class="page-hero__seal" aria-hidden="true">王</span>
     </div>
   </section>
   <div class="page-shell about-grid">
     <section class="about-letter" id="skills">
-      <p class="pixel-kicker">SKILLS &amp; INTERESTS</p>
+      <p class="pixel-kicker">技能与兴趣</p>
       <h2>把问题拆开，把技术做实。</h2>
       <p>我叫王选默，是软件工程专业本科生。当前绩点为 3.8659，排名约前 15%。我愿意在课后投入时间参与实验室科研与技术实践，也乐于快速学习新的工具和方法。</p>
       <div class="resume-skill-list">
@@ -39,7 +45,7 @@ import IslandTag from '../components/IslandTag';
   </div>
   <section class="timeline-section" id="honors">
     <div class="page-shell">
-      <div class="section-heading"><p class="pixel-kicker">HONORS &amp; AWARDS</p><h2>获奖经历</h2><p>每一次积累都有迹可循，也成为继续前行的路标。</p></div>
+      <div class="section-heading"><p class="pixel-kicker">荣誉与奖项</p><h2>获奖经历</h2><p>每一次积累都有迹可循，也成为继续前行的路标。</p></div>
       <ol class="timeline">
         <li><time>2025</time><div><h3>软件学院二等奖学金</h3><p>凭借阶段性学习表现获得学院奖学金。</p></div></li>
         <li><time>2025</time><div><h3>班级优秀学生干部</h3><p>在班级工作与学习中获得认可。</p></div></li>
