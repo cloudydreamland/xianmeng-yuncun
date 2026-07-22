@@ -38,16 +38,16 @@ export const worldMapPoints: WorldMapPoint[] = [
   { id: 'lantern-lane', x: 82, y: 69, labelSide: 'left', cropPosition: '84% 72%' },
 ];
 
-const worldWidths = [960, 1440, 1920] as const;
-const worldSizes = '(max-width: 760px) 960px, (max-width: 1920px) 100vw, 1920px';
+const worldWidths = [960, 1440, 1920, 2560, 3840, 5120] as const;
+const worldSizes = '(max-width: 760px) 960px, (max-width: 1440px) 100vw, (max-width: 2560px) 100vw, 2560px';
 
 function worldCandidate(time: ResolvedTimeMode, width: number, format: ImageDeliveryFormat): string {
   return deliveryImageUrl({
-    localPath: `/images/world/${time}/world-restored-v1-${width}.${format}`,
-    storageKey: `world/${time}/world-4k.webp`,
+    localPath: `/images/world/${time}/world-detailed-v3-${width}.${format}`,
+    storageKey: `world/${time}/world-detailed-v3-8k.webp`,
     width,
     format,
-    quality: format === 'avif' ? 68 : 76,
+    quality: format === 'avif' ? 84 : 92,
   });
 }
 
@@ -55,7 +55,7 @@ export const worldBackgrounds: Record<ResolvedTimeMode, ResponsiveWorldImage> = 
   (['dawn', 'day', 'dusk', 'night'] as const).map((time) => [time, {
     avifSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'avif'), width }))),
     webpSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'webp'), width }))),
-    fallback: worldCandidate(time, 1920, 'webp'),
+    fallback: worldCandidate(time, 3840, 'webp'),
     sizes: worldSizes,
   }]),
 ) as Record<ResolvedTimeMode, ResponsiveWorldImage>;
@@ -68,7 +68,11 @@ export const timeCopy: Record<ResolvedTimeMode, string> = {
 };
 
 export const cloudVillageDestinations = [
-  { href: '/notes', label: '山窗书屋', meta: '学习笔记' },
-  { href: '/projects', label: '百工阁', meta: '开源项目' },
-  { href: '/about', label: '三山观', meta: '关于与履历' },
+  { href: '/world/wind-valley/', label: '风谷', meta: '笔记、碎片与小实验' },
+  { href: '/world/moon-pool/', label: '月潭', meta: '项目、复盘与长期档案' },
+  { href: '/world/rain-bridge/', label: '雨桥', meta: '全境导航与云镜搜索' },
+  { href: '/world/star-abyss/', label: '星渊', meta: '学习路线与成长星图' },
+  { href: '/world/snow-cliff/', label: '雪崖', meta: '友链、邮件与访客须知' },
+  { href: '/world/lantern-lane/', label: '浮屿·灯巷', meta: '摄影、插画与视觉作品' },
+  { href: '/about', label: '个人主页', meta: '履历、技能与公开经历' },
 ];

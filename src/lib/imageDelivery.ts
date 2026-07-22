@@ -34,3 +34,14 @@ export function imageSrcSet(candidates: Array<{ url: string; width: number }>): 
 export function cssImageSet(avif: string, webp: string): string {
   return `image-set(url("${avif}") type("image/avif"), url("${webp}") type("image/webp"))`;
 }
+
+export function cssResponsiveImageSet(candidates: Array<{
+  url: string;
+  format: ImageDeliveryFormat;
+  resolution: 1 | 2;
+}>): string {
+  const sources = candidates.map(({ url, format, resolution }) => (
+    `url("${url}") type("image/${format}") ${resolution}x`
+  ));
+  return `image-set(${sources.join(', ')})`;
+}

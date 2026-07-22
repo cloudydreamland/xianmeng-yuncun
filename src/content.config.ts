@@ -1,11 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
-
-const slug = z.string().regex(
-  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  'slug 只能包含小写英文字母、数字和短横线',
-);
+import { contentSlugSchema as slug, planSchema } from './schemas/plan';
 
 const notes = defineCollection({
   loader: glob({ base: './src/content/notes', pattern: '**/*.{md,mdx}' }),
@@ -38,6 +34,11 @@ const projects = defineCollection({
     cover: z.string().optional(),
     coverAlt: z.string().optional(),
   }),
+});
+
+const plans = defineCollection({
+  loader: glob({ base: './src/content/plans', pattern: '**/*.{md,mdx}' }),
+  schema: planSchema,
 });
 
 const regions = defineCollection({
@@ -92,4 +93,4 @@ const works = defineCollection({
   }),
 });
 
-export const collections = { notes, projects, regions, works };
+export const collections = { notes, projects, plans, regions, works };

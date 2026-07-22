@@ -1,36 +1,13 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import IslandTag from '../components/IslandTag';
-
-const projects = (await getCollection('projects')).sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
 ---
 
-<BaseLayout title="百工阁" description="云村中的个人项目、技术选择、复盘与仍在生长的构想。">
-  <section class="page-hero page-hero--projects">
-    <div class="page-shell page-hero__inner">
-      <div><p class="pixel-kicker">THE VILLAGE WORKSHOP</p><h1>百工阁</h1><p>木屑与星火落在青石上，未完成的器物仍带着手心的温度。造物留下的不只是结果，也留下每一次笨拙而诚实的抵达。</p></div>
-      <span class="page-hero__seal" aria-hidden="true">工</span>
-    </div>
+<BaseLayout title="前往月潭" description="项目入口已迁往月潭。">
+  <section class="redirect-page page-shell">
+    <p class="pixel-kicker">入口已迁移</p>
+    <h1>项目已迁往月潭</h1>
+    <p>项目档案、技术选择与复盘现在由月潭承接。</p>
+    <a class="button button--primary" href="/world/moon-pool/">进入月潭</a>
   </section>
-  <section class="page-shell project-archive">
-    <div class="archive-intro"><p>村中委托</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>份工坊档案</span></div>
-    <div class="project-grid">
-      {projects.map((project, index) => (
-        <article class:list={['project-card', { featured: project.data.featured }]}>
-          {project.data.cover && (
-            <a class="project-card__cover" href={`/projects/${project.data.slug}/`} aria-label={`查看项目《${project.data.title}》`}>
-              <img src={project.data.cover} alt={project.data.coverAlt || project.data.title} width="720" height="405" loading="lazy" />
-            </a>
-          )}
-          <div class="project-card__header"><span>NO. {(index + 1).toString().padStart(2, '0')}</span><strong>{project.data.status}</strong></div>
-          <p class="project-card__period">{project.data.period}</p>
-          <h2 id={project.data.slug}><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h2>
-          <p>{project.data.description}</p>
-          <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone={project.data.featured ? 'green' : 'brown'} />)}</div>
-          <div class="project-card__links"><a href={`/projects/${project.data.slug}/`}>查看档案 →</a>{project.data.demoUrl && <a href={project.data.demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">源代码 ↗</a>}</div>
-        </article>
-      ))}
-    </div>
-  </section>
+  <script is:inline>window.location.replace('/world/moon-pool/');</script>
 </BaseLayout>

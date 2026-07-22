@@ -21,8 +21,8 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
   <div class="reading-progress" data-reading-progress aria-hidden="true"><span></span></div>
   <article class="note-article page-shell" data-note-article>
     <header class="note-header">
-      <a class="back-link" href="/notes">← 返回山窗书屋</a>
-      <p class="pixel-kicker">{category} · CLOUD NOTE</p>
+      <a class="back-link" href="/world/wind-valley/">← 返回风谷</a>
+      <p class="pixel-kicker">{category} · 风谷笔记</p>
       <h1>{title}</h1>
       <p class="note-lead">{description}</p>
       <div class="note-meta">
@@ -30,7 +30,7 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
         {updatedAt && <span>修订于 {formatDate(updatedAt)}</span>}
         <span>约 {wordCount} 字 · {readingMinutes} 分钟阅读</span>
       </div>
-      <div class="tag-row">{tags.map((tag: string) => <a class="tag-link" href={`/notes?tag=${encodeURIComponent(tag)}`}><IslandTag label={tag} /></a>)}</div>
+      <div class="tag-row">{tags.map((tag: string) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`}><IslandTag label={tag} /></a>)}</div>
     </header>
     {cover && (
       <figure class="content-cover content-cover--note">

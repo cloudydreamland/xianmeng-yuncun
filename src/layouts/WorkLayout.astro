@@ -58,7 +58,7 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有
   <article class="work-detail page-shell">
     <header class="work-detail__header">
       <a class="back-link" href="/world/lantern-lane/">← 返回浮光廊</a>
-      <p class="pixel-kicker">FLOATING LIGHT ARCHIVE · {category}</p>
+      <p class="pixel-kicker">浮光档案 · {category}</p>
       <h1>{title}</h1>
       <p>{summary}</p>
       <div class="work-detail__meta">
@@ -77,7 +77,7 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有
     <div class="work-detail__story">
       <div class="work-detail__body prose"><slot /></div>
       <aside class="work-provenance pixel-frame" aria-labelledby="work-provenance-title">
-        <p class="pixel-kicker">CREATION RECORD</p>
+        <p class="pixel-kicker">创作记录</p>
         <h2 id="work-provenance-title">收藏标注</h2>
         <dl>
           {credit && <div><dt>作者署名</dt><dd>{creditUrl ? <a href={creditUrl} rel="external noreferrer">{credit}</a> : credit}</dd></div>}
@@ -91,7 +91,7 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有
     </div>
 
     <section class="work-gallery" id={galleryId} aria-labelledby="work-gallery-title">
-      <header class="section-heading"><p class="pixel-kicker">THE COMPLETE SERIES</p><h2 id="work-gallery-title">灯下观览</h2><p>点击图片可放大浏览；无脚本环境会直接打开优化后的图片文件。</p></header>
+      <header class="section-heading"><p class="pixel-kicker">完整图集</p><h2 id="work-gallery-title">灯下观览</h2><p>点击图片可放大浏览；无脚本环境会直接打开优化后的图片文件。</p></header>
       <div>
         {images.map((item: WorkImage, index: number) => (
           <figure>

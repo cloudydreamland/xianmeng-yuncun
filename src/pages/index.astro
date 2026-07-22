@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CloudEntrance from '../components/CloudEntrance';
 import IslandTag from '../components/IslandTag';
+import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
 import {
   cloudVillageDestinations,
@@ -15,6 +16,7 @@ const notes = (await getCollection('notes', ({ data }) => !data.draft))
   .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
 const projects = (await getCollection('projects'))
   .sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+const plans = await getCollection('plans');
 const regions = (await getCollection('regions'))
   .sort((a, b) => a.data.order - b.data.order);
 const featuredProjects = projects.filter(({ data }) => data.featured).slice(0, 2);
@@ -55,14 +57,15 @@ const mapRegions = regions.map((region) => {
 
   <section id="village-content" class="village-bulletin">
     <div class="page-shell bulletin-layout">
+      <PlanSummary plans={plans} />
       <header class="bulletin-heading cloud-sign">
-        <p class="pixel-kicker">CURRENT NOTES FROM THE VILLAGE</p>
+        <p class="pixel-kicker">云村近况</p>
         <h2>云村近况</h2>
         <p>全境辽阔，真正的学习与造物仍从村中的一页纸、一道代码开始。</p>
       </header>
 
       <div class="bulletin-notes">
-        <span class="bulletin-label">山窗新笺</span>
+        <span class="bulletin-label">风谷新信</span>
         {recentNotes.map((note, index) => (
           <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
             <span class="bulletin-note__pin" aria-hidden="true"></span>
@@ -77,14 +80,14 @@ const mapRegions = regions.map((region) => {
 
       <div class="bulletin-projects">
         <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
-        <span class="bulletin-label">工坊近作</span>
+        <span class="bulletin-label">月潭近档</span>
         {featuredProjects.map((project, index) => (
           <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
             <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
             <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
             <p>{project.data.description}</p>
             <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
-            <a class="text-link" href={`/projects/${project.data.slug}/`}>查看工坊档案 →</a>
+            <a class="text-link" href={`/projects/${project.data.slug}/`}>查看月映档案 →</a>
           </article>
         ))}
       </div>

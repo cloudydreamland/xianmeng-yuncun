@@ -1,0 +1,318 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import IslandTag from './IslandTag';
+import {
+  calculatePlanProgress,
+  classifyDueDate,
+  comparePlans,
+  priorityValue,
+} from '../utils/planProgress';
+import { assertPlanProjectReferences } from '../schemas/plan';
+
+interface Props {
+  plans: CollectionEntry<'plans'>[];
+  projects: CollectionEntry<'projects'>[];
+}
+
+const { plans, projects } = Astro.props;
+const projectMap = new Map(projects.map((project) => [project.data.slug, project]));
+assertPlanProjectReferences(plans, projectMap.keys());
+
+const sortedPlans = [...plans].sort((left, right) => comparePlans(left.data, right.data));
+const areas = [...new Set(sortedPlans.map(({ data }) => data.area))];
+const tags = [...new Set(sortedPlans.flatMap(({ data }) => data.tags))];
+const statuses = ['进行中', '构想中', '暂停', '已完成'] as const;
+const now = new Date();
+const formatDate = (date?: Date) => date
+  ? new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
+  : '未设日期';
+const dateKey = (date?: Date) => date?.toISOString().slice(0, 10);
+const openActions = sortedPlans.flatMap((plan) => plan.data.nextActions
+  .filter((action) => action.status !== '已完成')
+  .map((action) => ({ plan, action, dueState: classifyDueDate(action.dueAt, now) })));
+const dueRank = { overdue: 0, upcoming: 1, later: 2, undated: 3 } as const;
+openActions.sort((left, right) => {
+  const byState = dueRank[left.dueState] - dueRank[right.dueState];
+  if (byState !== 0) return byState;
+  const leftDate = left.action.dueAt?.valueOf() ?? Number.POSITIVE_INFINITY;
+  const rightDate = right.action.dueAt?.valueOf() ?? Number.POSITIVE_INFINITY;
+  if (leftDate !== rightDate) return leftDate - rightDate;
+  return priorityValue(left.plan.data.priority) - priorityValue(right.plan.data.priority);
+});
+const milestones = sortedPlans.flatMap(({ data }) => data.milestones);
+const completedMilestones = milestones.filter(({ status }) => status === '已完成').length;
+const overallProgress = milestones.length ? Math.round((completedMilestones / milestones.length) * 100) : null;
+const upcomingCount = openActions.filter(({ dueState }) => dueState === 'upcoming').length;
+const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue').length;
+---
+
+<section class="plan-dashboard" data-plan-dashboard aria-labelledby="plan-dashboard-title">
+  <header class="plan-dashboard__heading">
+    <div>
+      <p class="pixel-kicker">月潭推进台</p>
+      <h2 id="plan-dashboard-title">正在推进的公开事项</h2>
+      <p>计划由仓库文件维护；里程碑记录阶段结果，行动项只保留眼下可以执行的下一步。</p>
+    </div>
+    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">如何新增计划 →</a>
+  </header>
+
+  <div class="plan-metrics" aria-label="计划概览">
+    <article><span>进行中</span><strong>{sortedPlans.filter(({ data }) => data.status === '进行中').length}</strong><small>项公开计划</small></article>
+    <article><span>里程碑</span><strong>{overallProgress === null ? '—' : `${overallProgress}%`}</strong><small>{completedMilestones} / {milestones.length} 已完成</small></article>
+    <article><span>未来七天</span><strong data-upcoming-count>{upcomingCount}</strong><small>项行动临近</small></article>
+    <article class:list={[{ 'has-alert': overdueCount > 0 }]}><span>已经逾期</span><strong data-overdue-count>{overdueCount}</strong><small>项需要回看</small></article>
+  </div>
+
+  {openActions.length > 0 && (
+    <section class="plan-actions" aria-labelledby="plan-actions-title">
+      <header><div><p class="pixel-kicker">下一步行动</p><h3 id="plan-actions-title">近期行动</h3></div><span>共 {openActions.length} 项未完成</span></header>
+      <ol data-action-list>
+        {openActions.map(({ plan, action, dueState }) => (
+          <li
+            data-action-row
+            data-due-at={dateKey(action.dueAt)}
+            data-priority={plan.data.priority}
+            class:list={[`is-${dueState}`]}
+          >
+            <span class="plan-actions__state">{action.status}</span>
+            <div><strong>{action.title}</strong><a href={`/world/moon-pool/${plan.data.slug}/`}>{plan.data.title}</a></div>
+            <div class="plan-actions__due">
+              {action.dueAt ? <time datetime={dateKey(action.dueAt)}>{formatDate(action.dueAt)}</time> : <span>未设日期</span>}
+              <small data-due-state>{dueState === 'overdue' ? '已逾期' : dueState === 'upcoming' ? '七天内' : ''}</small>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
+
+  <div class="plan-filters" aria-label="筛选计划">
+    <div><strong>状态</strong><button type="button" class="active" data-filter="status" data-value="all" aria-pressed="true">全部</button>{statuses.map((status) => <button type="button" data-filter="status" data-value={status} aria-pressed="false">{status}</button>)}</div>
+    <div><strong>领域</strong><button type="button" class="active" data-filter="area" data-value="all" aria-pressed="true">全部</button>{areas.map((area) => <button type="button" data-filter="area" data-value={area} aria-pressed="false">{area}</button>)}</div>
+    {tags.length > 0 && <div><strong>标签</strong><button type="button" class="active" data-filter="tag" data-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button type="button" data-filter="tag" data-value={tag} aria-pressed="false">#{tag}</button>)}</div>}
+    <p><span data-plan-count>{sortedPlans.length}</span> 项计划符合条件 <button type="button" data-filter-reset hidden>清除筛选</button></p>
+  </div>
+
+  <div class="plan-grid">
+    {sortedPlans.map((plan) => {
+      const progress = calculatePlanProgress(plan.data.milestones);
+      const activeActions = plan.data.nextActions.filter(({ status }) => status !== '已完成').slice(0, 3);
+      const linkedProject = plan.data.projectSlug ? projectMap.get(plan.data.projectSlug) : undefined;
+      return (
+        <article class="plan-card" data-plan-card data-status={plan.data.status} data-area={plan.data.area} data-tags={JSON.stringify(plan.data.tags)}>
+          <header>
+            <div><span>{plan.data.area}</span><strong class={`priority-${plan.data.priority}`}>{plan.data.priority}优先</strong></div>
+            <p>{plan.data.status}</p>
+          </header>
+          <h3><a href={`/world/moon-pool/${plan.data.slug}/`}>{plan.data.title}</a></h3>
+          <p class="plan-card__summary">{plan.data.summary}</p>
+          <div class="plan-card__progress">
+            <div><span>里程碑进度</span><strong>{progress === null ? '待拆解' : `${progress}%`}</strong></div>
+            {progress === null ? <div class="plan-progress is-empty" aria-label="尚未拆解里程碑"></div> : <div class="plan-progress" role="progressbar" aria-label={`${plan.data.title}里程碑进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress}><span style={`width:${progress}%`}></span></div>}
+          </div>
+          {activeActions.length > 0 && <ul class="plan-card__actions">{activeActions.map((action) => <li><span>{action.status}</span>{action.title}</li>)}</ul>}
+          <ol class="plan-card__milestones" aria-label={`${plan.data.title}里程碑`}>
+            {plan.data.milestones.map((milestone) => <li class:list={[`is-${milestone.status}`]}><span></span><div><strong>{milestone.title}</strong>{milestone.targetAt && <time datetime={dateKey(milestone.targetAt)}>{formatDate(milestone.targetAt)}</time>}</div></li>)}
+          </ol>
+          <div class="tag-row">{plan.data.tags.map((tag) => <IslandTag label={tag} tone="teal" />)}</div>
+          <footer>
+            <time datetime={dateKey(plan.data.updatedAt)}>更新于 {formatDate(plan.data.updatedAt)}</time>
+            <div>{linkedProject && <a href={`/projects/${linkedProject.data.slug}/`}>项目档案</a>}<a href={`/world/moon-pool/${plan.data.slug}/`}>查看推进详情 →</a></div>
+          </footer>
+        </article>
+      );
+    })}
+  </div>
+  <div class="plan-empty" data-plan-empty hidden><strong>没有符合当前条件的计划。</strong><button type="button" data-filter-reset>清除筛选</button></div>
+
+  <aside id="plan-guide" class="plan-guide">
+    <p class="pixel-kicker">Git 内容同步</p>
+    <h3>从仓库新增一项计划</h3>
+    <code>pnpm plan:new -- plan-slug "计划标题"</code>
+    <p>命令会在 <code>src/content/plans/</code> 生成模板。完善公开信息、里程碑与下一步行动后，随代码一起提交即可。</p>
+  </aside>
+</section>
+
+<script>
+  const dashboard = document.querySelector<HTMLElement>('[data-plan-dashboard]');
+  if (dashboard) {
+    const state = { status: 'all', area: 'all', tag: 'all' };
+    const cards = [...dashboard.querySelectorAll<HTMLElement>('[data-plan-card]')];
+    const allowed = (type: keyof typeof state) => new Set([...dashboard.querySelectorAll<HTMLButtonElement>(`[data-filter="${type}"]`)].map((button) => button.dataset.value || 'all'));
+    const allowedValues = { status: allowed('status'), area: allowed('area'), tag: allowed('tag') };
+
+    const applyFilters = (writeHistory = false) => {
+      let visible = 0;
+      cards.forEach((card) => {
+        const cardTags = JSON.parse(card.dataset.tags || '[]') as string[];
+        const matches = (state.status === 'all' || card.dataset.status === state.status)
+          && (state.area === 'all' || card.dataset.area === state.area)
+          && (state.tag === 'all' || cardTags.includes(state.tag));
+        card.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      dashboard.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
+        const type = button.dataset.filter as keyof typeof state;
+        const active = state[type] === (button.dataset.value || 'all');
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      const count = dashboard.querySelector<HTMLElement>('[data-plan-count]');
+      if (count) count.textContent = String(visible);
+      const isDefault = Object.values(state).every((value) => value === 'all');
+      dashboard.querySelectorAll<HTMLButtonElement>('[data-filter-reset]').forEach((button) => { button.hidden = isDefault; });
+      const empty = dashboard.querySelector<HTMLElement>('[data-plan-empty]');
+      if (empty) empty.hidden = visible !== 0;
+      if (writeHistory) {
+        const url = new URL(window.location.href);
+        (Object.keys(state) as Array<keyof typeof state>).forEach((type) => {
+          if (state[type] === 'all') url.searchParams.delete(type);
+          else url.searchParams.set(type, state[type]);
+        });
+        history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    };
+
+    const readUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      (Object.keys(state) as Array<keyof typeof state>).forEach((type) => {
+        const value = params.get(type) || 'all';
+        state[type] = allowedValues[type].has(value) ? value : 'all';
+      });
+      applyFilters(false);
+    };
+
+    dashboard.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const type = button.dataset.filter as keyof typeof state;
+        state[type] = button.dataset.value || 'all';
+        applyFilters(true);
+      });
+    });
+    dashboard.querySelectorAll<HTMLButtonElement>('[data-filter-reset]').forEach((button) => button.addEventListener('click', () => {
+      state.status = 'all'; state.area = 'all'; state.tag = 'all'; applyFilters(true);
+    }));
+    window.addEventListener('popstate', readUrl);
+    readUrl();
+
+    const todayParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const dateParts = Object.fromEntries(todayParts.map(({ type, value }) => [type, value]));
+    const today = Date.UTC(Number(dateParts.year), Number(dateParts.month) - 1, Number(dateParts.day)) / 86_400_000;
+    const rows = [...dashboard.querySelectorAll<HTMLElement>('[data-action-row]')];
+    const priority = { '高': 0, '中': 1, '低': 2 };
+    let upcoming = 0;
+    let overdue = 0;
+    const rowState = (row: HTMLElement) => {
+      const due = row.dataset.dueAt;
+      if (!due) return { rank: 3, days: Number.POSITIVE_INFINITY, name: 'undated' };
+      const [year, month, day] = due.split('-').map(Number);
+      const days = (Date.UTC(year, month - 1, day) / 86_400_000) - today;
+      if (days < 0) return { rank: 0, days, name: 'overdue' };
+      if (days <= 7) return { rank: 1, days, name: 'upcoming' };
+      return { rank: 2, days, name: 'later' };
+    };
+    rows.forEach((row) => {
+      const due = rowState(row);
+      row.classList.remove('is-overdue', 'is-upcoming', 'is-later', 'is-undated');
+      row.classList.add(`is-${due.name}`);
+      const label = row.querySelector<HTMLElement>('[data-due-state]');
+      if (label) label.textContent = due.name === 'overdue' ? '已逾期' : due.name === 'upcoming' ? '七天内' : '';
+      if (due.name === 'overdue') overdue += 1;
+      if (due.name === 'upcoming') upcoming += 1;
+    });
+    rows.sort((left, right) => {
+      const leftState = rowState(left);
+      const rightState = rowState(right);
+      return leftState.rank - rightState.rank || leftState.days - rightState.days
+        || priority[left.dataset.priority as keyof typeof priority] - priority[right.dataset.priority as keyof typeof priority];
+    });
+    const list = dashboard.querySelector('[data-action-list]');
+    rows.forEach((row) => list?.append(row));
+    const upcomingOutput = dashboard.querySelector('[data-upcoming-count]');
+    const overdueOutput = dashboard.querySelector('[data-overdue-count]');
+    if (upcomingOutput) upcomingOutput.textContent = String(upcoming);
+    if (overdueOutput) overdueOutput.textContent = String(overdue);
+  }
+</script>
+
+<style>
+  .plan-dashboard { padding: 20px 0 96px; color: var(--world-text); }
+  .plan-dashboard__heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 34px; }
+  .plan-dashboard__heading > div { max-width: 680px; }
+  .plan-dashboard__heading h2 { margin: 0; color: #514838; font-family: var(--serif); font-size: clamp(2rem, 4vw, 3.3rem); }
+  .plan-dashboard__heading p:last-child { color: #56645b; line-height: 1.8; }
+  .plan-dashboard__new { flex: 0 0 auto; padding-bottom: 5px; border-bottom: 2px solid #63856d; color: #476552; font-weight: 800; }
+  .plan-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .plan-metrics article { padding: 19px 21px; border: 3px solid #687169; background: #eef0df; box-shadow: 4px 4px 0 rgba(60,69,61,.3); }
+  .plan-metrics span, .plan-metrics small { display: block; color: #647168; font-size: .7rem; }
+  .plan-metrics strong { display: block; margin: 6px 0 3px; color: #445647; font-family: var(--serif); font-size: 2rem; }
+  .plan-metrics .has-alert { border-color: #986a56; background: #f3dfcf; }
+  .plan-actions { margin-top: 30px; border: 3px solid #5f6d68; background: rgba(247,246,226,.86); box-shadow: 6px 6px 0 rgba(54,67,60,.23); }
+  .plan-actions > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 22px 25px; border-bottom: 2px dashed #899087; }
+  .plan-actions h3 { margin: 0; color: #514838; font-family: var(--serif); font-size: 1.5rem; }
+  .plan-actions > header > span { color: #657168; font-size: .75rem; }
+  .plan-actions ol { margin: 0; padding: 0; list-style: none; }
+  .plan-actions li { display: grid; grid-template-columns: 72px 1fr auto; gap: 18px; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(95,109,104,.2); }
+  .plan-actions li:last-child { border-bottom: 0; }
+  .plan-actions__state { color: #52705a; font-size: .72rem; font-weight: 900; }
+  .plan-actions li > div:nth-child(2) { display: flex; flex-direction: column; gap: 3px; }
+  .plan-actions li a { color: #64746c; font-size: .72rem; }
+  .plan-actions__due { text-align: right; }
+  .plan-actions__due time, .plan-actions__due span, .plan-actions__due small { display: block; font-size: .7rem; }
+  .plan-actions__due small { min-height: 1em; color: #9a5c45; font-weight: 900; }
+  .plan-actions li.is-overdue { background: rgba(194,104,70,.09); }
+  .plan-filters { display: grid; gap: 11px; margin: 38px 0 26px; padding: 21px 23px; border: 2px solid #768079; background: rgba(244,242,220,.76); }
+  .plan-filters > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .plan-filters strong { min-width: 48px; color: #515e55; font-size: .76rem; }
+  .plan-filters button { padding: 6px 11px; border: 1px solid #899188; color: #566159; background: #fbf8e8; cursor: pointer; font-size: .72rem; }
+  .plan-filters button.active { color: #fffdf1; background: #58715e; box-shadow: 2px 2px 0 #354a3c; }
+  .plan-filters > p { margin: 4px 0 0 56px; color: #657168; font-size: .72rem; }
+  .plan-filters > p button { margin-left: 8px; border: 0; color: #8d533d; background: transparent; text-decoration: underline; }
+  .plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .plan-card { display: flex; min-width: 0; flex-direction: column; padding: 28px; border: 3px solid #626d65; background: #eef0df; box-shadow: 6px 6px 0 rgba(52,65,57,.26); }
+  .plan-card > header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+  .plan-card > header > div { display: flex; gap: 8px; flex-wrap: wrap; }
+  .plan-card > header span, .plan-card > header strong, .plan-card > header p { margin: 0; padding: 4px 8px; font-size: .68rem; }
+  .plan-card > header span { color: #526258; background: #d6decb; }
+  .plan-card > header strong { color: #6a4d32; background: #ead69d; }
+  .plan-card > header p { color: white; background: #58715e; }
+  .plan-card h3 { margin: 22px 0 10px; color: #514838; font-family: var(--serif); font-size: 1.65rem; }
+  .plan-card h3 a:hover { color: #35675e; }
+  .plan-card__summary { margin: 0; color: #58655e; line-height: 1.75; }
+  .plan-card__progress { margin: 24px 0 20px; }
+  .plan-card__progress > div:first-child { display: flex; justify-content: space-between; margin-bottom: 7px; color: #59685f; font-size: .72rem; }
+  .plan-progress { height: 12px; overflow: hidden; border: 2px solid #65736a; background: #d7ddcf; }
+  .plan-progress span { display: block; height: 100%; background: repeating-linear-gradient(90deg, #77a082 0 10px, #8db397 10px 18px); }
+  .plan-progress.is-empty { border-style: dashed; }
+  .plan-card__actions { display: grid; gap: 7px; margin: 0 0 22px; padding: 0; list-style: none; }
+  .plan-card__actions li { display: grid; grid-template-columns: 54px 1fr; gap: 9px; color: #535e57; font-size: .78rem; }
+  .plan-card__actions span { color: #3f6b55; font-weight: 900; }
+  .plan-card__milestones { display: grid; gap: 12px; margin: 0 0 22px; padding: 0; list-style: none; }
+  .plan-card__milestones li { display: grid; grid-template-columns: 15px 1fr; gap: 11px; align-items: start; color: #647068; }
+  .plan-card__milestones li > span { width: 12px; height: 12px; margin-top: 4px; border: 2px solid #728078; background: #f8f5e2; }
+  .plan-card__milestones li.is-已完成 > span { background: #6f9a7b; box-shadow: inset 0 0 0 2px #e9ecd9; }
+  .plan-card__milestones li.is-进行中 > span { background: #e4be64; }
+  .plan-card__milestones strong, .plan-card__milestones time { display: block; font-size: .76rem; }
+  .plan-card__milestones time { color: #7c857f; font-size: .66rem; }
+  .plan-card footer { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-top: auto; padding-top: 22px; border-top: 2px dashed #92978c; }
+  .plan-card footer time { color: #737e77; font-size: .66rem; }
+  .plan-card footer div { display: flex; flex-wrap: wrap; justify-content: end; gap: 13px; }
+  .plan-card footer a { color: #416855; font-size: .74rem; font-weight: 900; }
+  .plan-empty { padding: 38px; border: 2px dashed #77837a; text-align: center; }
+  .plan-empty strong, .plan-empty button { display: block; margin: 0 auto 12px; }
+  .plan-guide { margin-top: 32px; padding: 25px 28px; border-left: 6px solid #70957a; color: #58645c; background: rgba(240,239,216,.82); }
+  .plan-guide h3 { margin: 0 0 12px; color: #514838; font-family: var(--serif); }
+  .plan-guide code { padding: 3px 7px; color: #354e40; background: #dce5d5; }
+  @media (max-width: 900px) { .plan-metrics, .plan-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) {
+    .plan-dashboard__heading { align-items: start; flex-direction: column; }
+    .plan-metrics, .plan-grid { grid-template-columns: 1fr; }
+    .plan-actions li { grid-template-columns: 58px 1fr; padding-inline: 16px; }
+    .plan-actions__due { grid-column: 2; text-align: left; }
+    .plan-card { padding: 22px 18px; }
+    .plan-card footer { align-items: start; flex-direction: column; }
+    .plan-card footer div { justify-content: start; }
+    .plan-filters > p { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .plan-progress span { background: #78a083; } }
+</style>
