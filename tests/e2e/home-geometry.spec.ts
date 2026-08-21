@@ -21,7 +21,7 @@ test('首页几何粒子使用视口画布并启动点线动画', async ({ page 
 
   expect(metrics.cssHeight).toBeCloseTo(metrics.viewportHeight, -1);
   expect(metrics.pixelHeight).toBeLessThanOrEqual(metrics.viewportHeight * Math.min(metrics.ratio, 1.5) + 2);
-  await expect(field).toHaveAttribute('data-node-count', /[5-9][0-9]/);
+  await expect(field).toHaveAttribute('data-node-count', /1[3-9][0-9]/);
 });
 
 test('减少动态效果时首页粒子保持静态', async ({ page }) => {

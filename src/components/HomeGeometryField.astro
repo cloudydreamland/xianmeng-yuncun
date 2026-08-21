@@ -27,28 +27,28 @@
     dawn: {
       dot: 'rgba(255, 239, 207, .86)',
       bright: 'rgba(169, 232, 226, .9)',
-      line: 'rgba(112, 188, 194, .5)',
+      line: 'rgba(112, 188, 194, .64)',
       pointer: 'rgba(255, 213, 145, .78)',
       halo: 'rgba(255, 215, 158, .18)',
     },
     day: {
       dot: 'rgba(39, 126, 146, .76)',
       bright: 'rgba(255, 228, 157, .82)',
-      line: 'rgba(39, 131, 151, .42)',
+      line: 'rgba(39, 131, 151, .54)',
       pointer: 'rgba(255, 204, 105, .72)',
       halo: 'rgba(255, 214, 127, .16)',
     },
     dusk: {
       dot: 'rgba(250, 187, 151, .84)',
       bright: 'rgba(194, 190, 255, .9)',
-      line: 'rgba(218, 158, 181, .52)',
+      line: 'rgba(218, 158, 181, .64)',
       pointer: 'rgba(255, 211, 145, .8)',
       halo: 'rgba(244, 176, 190, .2)',
     },
     night: {
       dot: 'rgba(145, 220, 239, .9)',
       bright: 'rgba(213, 228, 255, .94)',
-      line: 'rgba(110, 174, 222, .56)',
+      line: 'rgba(110, 174, 222, .7)',
       pointer: 'rgba(185, 230, 255, .9)',
       halo: 'rgba(126, 191, 255, .2)',
     },
@@ -110,10 +110,12 @@
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      const areaCount = Math.round((width * height) / 15_500);
-      const minimum = finePointer ? 54 : 22;
-      const maximum = lowPower || constrainedNetwork ? (finePointer ? 58 : 30) : (finePointer ? 96 : 42);
-      const count = reducedMotion ? Math.min(24, maximum) : Math.max(minimum, Math.min(maximum, areaCount));
+      const constrainedDevice = lowPower || constrainedNetwork;
+      const areaCount = Math.round((width * height) / (finePointer ? 6_500 : 9_000));
+      const minimum = finePointer ? (constrainedDevice ? 72 : 135) : 32;
+      const maximum = constrainedDevice ? (finePointer ? 96 : 42) : (finePointer ? 190 : 68);
+      const staticCount = finePointer ? 42 : 24;
+      const count = reducedMotion ? Math.min(staticCount, maximum) : Math.max(minimum, Math.min(maximum, areaCount));
       nodes = Array.from({ length: count }, makeNode);
       host.dataset.nodeCount = String(count);
       draw(performance.now(), false);
@@ -150,7 +152,7 @@
 
     const draw = (now: number, update = true) => {
       context.clearRect(0, 0, width, height);
-      const connection = Math.min(168, Math.max(112, width * .105));
+      const connection = Math.min(142, Math.max(98, width * .086));
       const connectionSquared = connection * connection;
 
       if (update) {
@@ -159,16 +161,16 @@
             const dx = pointer.x - node.x;
             const dy = pointer.y - node.y;
             const distanceSquared = dx * dx + dy * dy;
-            if (distanceSquared > 64 && distanceSquared < 52_900) {
-              const force = 1 - Math.sqrt(distanceSquared) / 230;
-              node.vx += dx * force * .000004;
-              node.vy += dy * force * .000004;
+            if (distanceSquared > 64 && distanceSquared < 67_600) {
+              const force = 1 - Math.sqrt(distanceSquared) / 260;
+              node.vx += dx * force * .000018;
+              node.vy += dy * force * .000018;
             }
           }
           node.vx *= .999;
           node.vy *= .999;
           const speed = Math.hypot(node.vx, node.vy);
-          if (speed > .48) { node.vx *= .48 / speed; node.vy *= .48 / speed; }
+          if (speed > .58) { node.vx *= .58 / speed; node.vy *= .58 / speed; }
           node.x += node.vx;
           node.y += node.vy;
           node.angle += node.spin;
@@ -215,8 +217,8 @@
           const dx = pointer.x - node.x;
           const dy = pointer.y - node.y;
           const distance = Math.hypot(dx, dy);
-          if (distance >= 230) return;
-          context.globalAlpha = (1 - distance / 230) * .9;
+          if (distance >= 260) return;
+          context.globalAlpha = (1 - distance / 260) * .92;
           context.strokeStyle = palette.pointer;
           context.lineWidth = 1.15;
           context.beginPath();
@@ -305,7 +307,7 @@
     overflow: hidden;
     pointer-events: none;
     mix-blend-mode: screen;
-    opacity: .84;
+    opacity: .92;
     contain: paint;
   }
 
@@ -319,7 +321,7 @@
 
   :global(html[data-time='day']) .home-geometry-field {
     mix-blend-mode: multiply;
-    opacity: .62;
+    opacity: .72;
   }
 
   @media (max-width: 760px) {
