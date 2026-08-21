@@ -3,6 +3,7 @@ import type { RegionId, ResponsiveWorldImage } from './worldMap';
 
 export interface RegionIllustration extends ResponsiveWorldImage {
   alt: string;
+  atmosphere: string;
 }
 
 const defaultWidths = [960, 1280, 1600] as const;
@@ -30,6 +31,7 @@ function illustration(slug: RegionId): RegionIllustration {
     avifSrcSet: imageSrcSet(widths.map((width) => ({ url: candidate(width, 'avif'), width }))),
     webpSrcSet: imageSrcSet(widths.map((width) => ({ url: candidate(width, 'webp'), width }))),
     fallback: candidate(1600, 'webp'),
+    atmosphere: candidate(1280, 'webp'),
     sizes,
     alt: altText[slug],
   };

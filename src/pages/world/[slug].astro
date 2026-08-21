@@ -121,7 +121,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   {region.data.slug === 'rain-bridge' && (
     <>
       <section class="rain-search" aria-labelledby="rain-search-title">
-        <CloudSearch client:load variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
+        <CloudSearch client:visible variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
       </section>
       <section class="world-directory" aria-labelledby="world-directory-title">
         <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>

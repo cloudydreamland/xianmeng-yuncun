@@ -48,9 +48,9 @@ const mapRegions = regions.map((region) => {
 ---
 
 <BaseLayout>
-  <CloudEntrance client:only="react" />
+  <CloudEntrance client:idle={{ timeout: 2500 }} />
   <WorldMap
-    client:load
+    client:idle={{ timeout: 2000 }}
     backgrounds={worldBackgrounds}
     regions={mapRegions}
     timeCopy={timeCopy}

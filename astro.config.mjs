@@ -9,6 +9,10 @@ const picomatchCompatPath = fileURLToPath(new URL('./scripts/picomatch-compat.mj
 export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://xianmeng-yuncun.pages.dev',
   integrations: [react(), mdx(), sitemap()],
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'hover',
+  },
   markdown: {
     shikiConfig: {
       theme: 'github-light',

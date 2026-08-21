@@ -23,7 +23,6 @@ for (const [slug, theme] of regions) {
 test('pointer effects do not enable when reduced motion is requested', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/world/star-abyss/');
-  await expect(page.locator('[data-pointer-effect="star"]')).toHaveCount(1);
-  await expect(page.locator('[data-pointer-effect="star"] canvas')).toHaveCount(1);
-  await expect(page.locator('[data-pointer-effect="star"]')).not.toHaveAttribute('data-pointer-ready', 'true');
+  await expect(page.locator('[data-pointer-effect="star"]')).toHaveCount(0);
+  await expect(page.locator('.region-canvas-atmosphere__art')).toHaveCount(1);
 });

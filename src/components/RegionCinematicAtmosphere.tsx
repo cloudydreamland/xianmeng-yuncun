@@ -261,9 +261,9 @@ export default function RegionCinematicAtmosphere({ theme, image }: Props) {
       await app.init({
         resizeTo: host,
         background: '#071318',
-        antialias: true,
+        antialias: false,
         autoDensity: true,
-        resolution: Math.min(window.devicePixelRatio || 1, 1.5),
+        resolution: Math.min(window.devicePixelRatio || 1, 1.25),
         powerPreference: 'high-performance',
         preference: 'webgl',
       });
@@ -274,6 +274,7 @@ export default function RegionCinematicAtmosphere({ theme, image }: Props) {
 
       app.canvas.className = 'region-cinematic-canvas';
       host.appendChild(app.canvas);
+      app.ticker.maxFPS = 45;
 
       const texture = await Assets.load<Texture>(image);
       if (disposed || !app) return;
@@ -309,7 +310,7 @@ export default function RegionCinematicAtmosphere({ theme, image }: Props) {
           bloomScale: config.bloom.scale,
           brightness: config.bloom.brightness,
           blur: config.bloom.blur,
-          quality: 3,
+          quality: 2,
         }));
       }
       scenicLayer.filters = filters;
@@ -346,7 +347,7 @@ export default function RegionCinematicAtmosphere({ theme, image }: Props) {
           bloomScale: theme === 'lantern' ? 1.35 : 0.82,
           brightness: 1,
           blur: theme === 'lantern' ? 7 : 4,
-          quality: 2,
+          quality: 1,
         })];
       }
 

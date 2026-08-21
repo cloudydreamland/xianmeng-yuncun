@@ -1,6 +1,4 @@
 ---
-import RegionCinematicAtmosphere from './RegionCinematicAtmosphere';
-
 interface Props {
   theme: 'village' | 'wind' | 'star' | 'moon' | 'rain' | 'snow' | 'lantern';
   image: string;
@@ -11,10 +9,57 @@ const { theme, image } = Astro.props;
 
 <div class:list={['region-canvas-atmosphere', `region-canvas-atmosphere--${theme}`]} aria-hidden="true">
   <div class="region-canvas-atmosphere__art" style={`background-image: url("${image}")`}></div>
-  <RegionCinematicAtmosphere client:only="react" theme={theme} image={image} />
+  <div data-region-cinematic-mount data-theme={theme} data-image={image}></div>
   <div class="region-canvas-atmosphere__bloom"></div>
   <div class="region-canvas-atmosphere__veil"></div>
 </div>
+
+<script>
+  import type { RegionTheme } from './RegionCinematicAtmosphere';
+
+  type ConnectionInfo = { saveData?: boolean; effectiveType?: string };
+  type DeviceNavigator = Navigator & {
+    connection?: ConnectionInfo;
+    deviceMemory?: number;
+  };
+
+  const mount = document.querySelector<HTMLElement>('[data-region-cinematic-mount]');
+  const device = navigator as DeviceNavigator;
+  const connection = device.connection;
+  const constrainedNetwork = Boolean(connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || ''));
+  const capableDevice = (navigator.hardwareConcurrency || 8) >= 6 && (device.deviceMemory || 8) >= 4;
+  const allowCinematic = window.matchMedia('(min-width: 901px) and (prefers-reduced-motion: no-preference)').matches
+    && capableDevice
+    && !constrainedNetwork;
+
+  if (mount && allowCinematic) {
+    const start = async () => {
+      if (document.hidden || !mount.isConnected) return;
+      const theme = mount.dataset.theme as RegionTheme | undefined;
+      const image = mount.dataset.image;
+      if (!theme || !image) return;
+      const [{ createElement }, { createRoot }, { default: RegionCinematicAtmosphere }] = await Promise.all([
+        import('react'),
+        import('react-dom/client'),
+        import('./RegionCinematicAtmosphere'),
+      ]);
+      if (!mount.isConnected) return;
+      createRoot(mount).render(createElement(RegionCinematicAtmosphere, {
+        theme,
+        image,
+      }));
+    };
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    };
+    if (idleWindow.requestIdleCallback) {
+      idleWindow.requestIdleCallback(() => void start(), { timeout: 3000 });
+    } else {
+      globalThis.setTimeout(() => void start(), 1200);
+    }
+  }
+</script>
 
 <style>
   .region-canvas-atmosphere {

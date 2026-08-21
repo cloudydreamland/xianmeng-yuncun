@@ -61,6 +61,15 @@ body::before {
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 img { max-width: 100%; display: block; }
+
+/* Skip layout and paint work for long sections until they approach the viewport. */
+.region-story,
+.region-feature,
+.region-nav,
+.prose > section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
 ::selection { color: var(--wood-dark); background: rgba(241, 201, 106, 0.54); }
 
 .paper-noise {

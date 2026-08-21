@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-test('七境首屏图按实际容器选图并同步解码', async ({ page }) => {
+test('七境首屏图按实际容器选图并异步解码', async ({ page }) => {
   await page.goto('/world/lantern-lane/');
 
   const image = page.locator('[data-region-hero-image]');
   await expect(image).toBeVisible();
-  await expect(image).toHaveAttribute('decoding', 'sync');
+  await expect(image).toHaveAttribute('decoding', 'async');
 
   const source = page.locator('.region-visual source[type="image/avif"]');
   await expect(source).toHaveAttribute(

@@ -26,7 +26,7 @@ const {
   searchTitle={title}
 >
   <article class={`region-page region-page--${theme}`}>
-    <RegionCanvasAtmosphere theme={theme} image={illustration.fallback} />
+    <RegionCanvasAtmosphere theme={theme} image={illustration.atmosphere} />
     <header class="region-hero page-shell">
       <a class="back-link" href="/">← 归览雲梦全境</a>
       <div class="region-hero__copy">
@@ -41,7 +41,7 @@ const {
         <picture>
           <source type="image/avif" srcset={illustration.avifSrcSet} sizes={illustration.sizes} />
           <source type="image/webp" srcset={illustration.webpSrcSet} sizes={illustration.sizes} />
-          <img data-region-hero-image src={illustration.fallback} alt={illustration.alt} width="1600" height="900" loading="eager" fetchpriority="high" decoding="sync" />
+          <img data-region-hero-image src={illustration.fallback} alt={illustration.alt} width="1600" height="900" loading="eager" fetchpriority="high" decoding="async" />
         </picture>
       </figure>
       <blockquote>{quote}</blockquote>

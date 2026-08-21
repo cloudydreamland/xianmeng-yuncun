@@ -1,8 +1,6 @@
 ---
-import '@fontsource/noto-serif-sc/400.css';
-import '@fontsource/noto-serif-sc/700.css';
-import 'animal-island-ui/style';
 import '../styles/global.css';
+import fontStylesUrl from '../styles/fonts.css?url';
 import Header from '../components/HeaderV2.astro';
 import Footer from '../components/Footer.astro';
 import SearchPanel from '../components/SearchPanel.astro';
@@ -59,6 +57,8 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <link rel="apple-touch-icon" href="/icons/yuncun-app-180.png" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title="雲梦世界订阅" href="/rss.xml" />
+    <link rel="stylesheet" href={fontStylesUrl} media="print" onload="this.setAttribute('media','all')" />
+    <noscript><link rel="stylesheet" href={fontStylesUrl} /></noscript>
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
