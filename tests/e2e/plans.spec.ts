@@ -63,6 +63,65 @@ test('移动端推进台不产生横向溢出', async ({ page }) => {
   expect(sizes.width).toBeLessThanOrEqual(sizes.viewport);
 });
 
+test('可以新建、编辑并持久保存仅本地可见的日程笔记', async ({ page }) => {
+  await page.goto('/world/moon-pool/');
+  await page.evaluate(() => localStorage.removeItem('yuncun-local-plans-v1'));
+  await page.reload();
+
+  const planner = page.locator('[data-local-planner]');
+  await planner.locator('[data-local-plan-new]').click();
+  const dialog = planner.locator('[data-local-plan-dialog]');
+  await expect(dialog).toHaveAttribute('open', '');
+  await dialog.locator('[name="title"]').fill('准备周五复盘');
+  await dialog.locator('[name="date"]').fill('2026-07-24');
+  await dialog.locator('[name="priority"]').selectOption('high');
+  await dialog.locator('[name="notes"]').fill('整理本周完成事项，并记录下周最重要的三件事。');
+  await dialog.getByRole('button', { name: '保存到本地' }).click();
+
+  const card = planner.locator('[data-local-plan-card]').filter({ hasText: '准备周五复盘' });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('高优先');
+  await expect(card).toContainText('整理本周完成事项');
+  await expect(planner.locator('[data-local-plan-open-count]')).toHaveText('1');
+
+  await card.getByRole('button', { name: '编辑' }).click();
+  await dialog.locator('[name="notes"]').fill('复盘完成，补充下周学习安排。');
+  await dialog.getByRole('button', { name: '保存到本地' }).click();
+  await expect(card).toContainText('复盘完成，补充下周学习安排。');
+
+  await page.reload();
+  await expect(planner.locator('[data-local-plan-card]').filter({ hasText: '准备周五复盘' })).toContainText('复盘完成，补充下周学习安排。');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('yuncun-local-plans-v1') || '[]'));
+  expect(stored).toHaveLength(1);
+});
+
+test('本地日程不会出现在另一个浏览器存储空间', async ({ browser }) => {
+  const firstContext = await browser.newContext();
+  const firstPage = await firstContext.newPage();
+  await firstPage.goto('http://127.0.0.1:4321/world/moon-pool/');
+  await firstPage.evaluate(() => localStorage.setItem('yuncun-local-plans-v1', JSON.stringify([{
+    id: 'private-plan',
+    title: '仅本机可见',
+    date: '',
+    priority: 'medium',
+    notes: '私人笔记',
+    completed: false,
+    createdAt: '2026-07-22T00:00:00.000Z',
+    updatedAt: '2026-07-22T00:00:00.000Z',
+  }])));
+  await firstPage.reload();
+  await expect(firstPage.getByText('仅本机可见')).toBeVisible();
+
+  const secondContext = await browser.newContext();
+  const secondPage = await secondContext.newPage();
+  await secondPage.goto('http://127.0.0.1:4321/world/moon-pool/');
+  await expect(secondPage.getByText('仅本机可见')).toHaveCount(0);
+  await expect(secondPage.locator('[data-local-plan-empty]')).toBeVisible();
+
+  await firstContext.close();
+  await secondContext.close();
+});
+
 test('无 JavaScript 时仍能阅读计划和进入详情', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();

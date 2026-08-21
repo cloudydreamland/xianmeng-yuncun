@@ -93,4 +93,16 @@ const works = defineCollection({
   }),
 });
 
-export const collections = { notes, projects, plans, regions, works };
+const moments = defineCollection({
+  loader: glob({ base: './src/content/moments', pattern: '**/*.{md,mdx}' }),
+  schema: z.object({
+    title: z.string(),
+    slug,
+    summary: z.string(),
+    publishedAt: z.coerce.date(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { notes, projects, plans, regions, works, moments };

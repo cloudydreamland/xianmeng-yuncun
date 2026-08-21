@@ -1,0 +1,25 @@
+{
+  "name": "雲梦世界",
+  "short_name": "雲梦",
+  "description": "个人数字花园与本地工作台",
+  "lang": "zh-CN",
+  "start_url": "/workspace/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf4e6",
+  "theme_color": "#58715e",
+  "icons": [
+    {
+      "src": "/icons/yuncun-app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/yuncun-app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -22,7 +22,7 @@ async function render(source, outputBase, width, height, quality = {}) {
   const image = sharp(source).resize(width, height, {
     fit: 'fill',
     kernel: sharp.kernel.lanczos3,
-  });
+  }).sharpen({ sigma: 0.75, m1: 0.7, m2: 2.2, x1: 2.5, y2: 10, y3: 20 });
 
   await Promise.all([
     image.clone().avif({ quality: avif, effort, chromaSubsampling }).toFile(`${outputBase}.avif`),

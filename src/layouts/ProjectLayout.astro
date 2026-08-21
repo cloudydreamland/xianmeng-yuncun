@@ -33,8 +33,8 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
 >
   <article class="project-detail page-shell">
     <header class="project-detail__header">
-      <a class="back-link" href="/world/moon-pool/">← 返回月潭</a>
-      <p class="pixel-kicker">月映档案 · {status}</p>
+      <a class="back-link" href="/world/moon-pool/">← 归返月潭</a>
+      <p class="pixel-kicker">月映旧卷 · {status}</p>
       <h1>{title}</h1>
       <p class="project-detail__lead">{description}</p>
       <div class="project-detail__meta">
@@ -46,8 +46,8 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
       </div>
       {(demoUrl || repoUrl) && (
         <div class="project-detail__actions">
-          {demoUrl && <a class="button button--primary" href={demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}
-          {repoUrl && <a class="button button--ghost" href={repoUrl} target="_blank" rel="noreferrer">浏览源代码 ↗</a>}
+          {demoUrl && <a class="button button--primary" href={demoUrl} target="_blank" rel="noreferrer">观其成器 ↗</a>}
+          {repoUrl && <a class="button button--ghost" href={repoUrl} target="_blank" rel="noreferrer">溯其源流 ↗</a>}
         </div>
       )}
     </header>
@@ -60,7 +60,7 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
 
     {linkedPlans.length > 0 && (
       <section class="project-plan-links" aria-labelledby="project-plan-links-title">
-        <header><p class="pixel-kicker">当前推进</p><h2 id="project-plan-links-title">与此档案关联的计划</h2></header>
+        <header><p class="pixel-kicker">水上近事</p><h2 id="project-plan-links-title">与此旧卷相系的行舟</h2></header>
         <div>
           {linkedPlans.map((plan) => {
             const progress = calculatePlanProgress(plan.data.milestones);
@@ -78,8 +78,8 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
     <div class="project-detail__body prose"><slot /></div>
 
     <nav class="article-nav" aria-label="相邻项目">
-      {prev ? <a href={`/projects/${prev.data.slug}/`}><small>上一份档案</small><strong>{prev.data.title}</strong></a> : <span></span>}
-      {next ? <a href={`/projects/${next.data.slug}/`}><small>下一份档案</small><strong>{next.data.title}</strong></a> : <span></span>}
+      {prev ? <a href={`/projects/${prev.data.slug}/`}><small>前一卷</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/projects/${next.data.slug}/`}><small>后一卷</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>
   </article>
 </BaseLayout>

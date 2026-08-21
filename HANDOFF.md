@@ -51,15 +51,15 @@
 
 ## 本地启动
 
-需要 Node.js 22 和 pnpm。
+需要 Node.js 24.16.x 和 npm 11.13.x。详细说明见 `docs/ENVIRONMENT.md`。
 
 ```powershell
 git clone https://github.com/cloudydreamland/xianmeng-yuncun.git
 cd xianmeng-yuncun
 git switch main
 git pull
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 浏览器打开终端显示的地址，通常是 `http://localhost:4321`。
@@ -67,11 +67,11 @@ pnpm dev
 生产验证：
 
 ```powershell
-pnpm build
-pnpm preview
+npm run build
+npm run preview
 ```
 
-`pnpm build` 会生成 Astro 静态站，并在 `dist/pagefind` 生成搜索索引。开发模式没有完整 Pagefind 索引属于正常现象。
+`npm run build` 会生成 Astro 静态站，并在 `dist/pagefind` 生成搜索索引。开发模式没有完整 Pagefind 索引属于正常现象。
 
 ## 主要代码位置
 
@@ -83,7 +83,7 @@ pnpm preview
 - `media-originals/`：不参与静态部署的 4K 母图，未来同步到 R2。
 - `public/images/world/`：首页四时 960／1440／1920 响应式地图；`public/images/village/` 提供同规格的内页背景。
 
-替换四时图片时，必须保持七境位置一致，在 `media-originals/` 更新母图后运行 `pnpm media:prepare`，并使用新的文件版本号。正文内容不要被 AI 自动改写。
+替换四时图片时，必须保持七境位置一致，在 `media-originals/` 更新母图后运行 `npm run media:prepare`，并使用新的文件版本号。正文内容不要被 AI 自动改写。
 
 ## 已知技术取舍
 
@@ -94,7 +94,7 @@ pnpm preview
 ## 每次交付检查
 
 - [ ] 从最新 `main` 新建功能分支，没有直接覆盖无关用户修改。
-- [ ] `pnpm build` 为 0 错误。
+- [ ] `npm run build` 为 0 错误。
 - [ ] 桌面和手机的四时背景、七境地名和卷轴抽屉正常。
 - [ ] 灯巷作品草稿、图片隐私元数据和创作标注符合要求。
 - [ ] 搜索、筛选、阅读工具、项目详情和 404 正常。

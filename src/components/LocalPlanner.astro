@@ -1,0 +1,327 @@
+<section class="local-planner" data-local-planner aria-labelledby="local-planner-title">
+  <header class="local-planner__heading">
+    <div>
+      <p class="pixel-kicker">只属于这台设备</p>
+      <h3 id="local-planner-title">我的本地日程</h3>
+      <p>在这里记录私人计划和笔记。内容只保存在当前浏览器，不会上传、公开或进入站内搜索。</p>
+    </div>
+    <button type="button" class="pixel-button pixel-button--primary" data-local-plan-new>＋ 新建日程</button>
+  </header>
+
+  <div class="local-planner__summary" aria-live="polite">
+    <span><strong data-local-plan-open-count>0</strong> 项待完成</span>
+    <span><strong data-local-plan-today-count>0</strong> 项今天到期</span>
+  </div>
+
+  <div class="local-planner__list" data-local-plan-list></div>
+  <div class="local-planner__empty" data-local-plan-empty>
+    <strong>还没有本地日程。</strong>
+    <p>新建一项后，即使刷新页面也会保留在这个浏览器中。</p>
+  </div>
+
+  <dialog class="local-plan-dialog pixel-frame" data-local-plan-dialog>
+    <form method="dialog" data-local-plan-form>
+      <header>
+        <div><p class="pixel-kicker">本地私藏</p><h3 data-local-plan-form-title>新建日程</h3></div>
+        <button type="button" class="local-plan-dialog__close" data-local-plan-cancel aria-label="关闭">×</button>
+      </header>
+      <input type="hidden" name="id" />
+      <label>
+        <span>标题 <em>必填</em></span>
+        <input name="title" type="text" maxlength="80" required autocomplete="off" placeholder="例如：整理本周学习笔记" />
+      </label>
+      <div class="local-plan-dialog__row">
+        <label><span>日期</span><input name="date" type="date" /></label>
+        <label>
+          <span>优先级</span>
+          <select name="priority">
+            <option value="medium">中</option>
+            <option value="high">高</option>
+            <option value="low">低</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span>笔记</span>
+        <textarea name="notes" maxlength="2000" rows="7" placeholder="写下安排、想法、链接或复盘……"></textarea>
+      </label>
+      <p class="local-plan-dialog__privacy">仅存储在当前浏览器。清理浏览器网站数据后，这些内容也会被删除。</p>
+      <footer>
+        <button type="button" class="pixel-button" data-local-plan-cancel>取消</button>
+        <button type="submit" class="pixel-button pixel-button--primary">保存到本地</button>
+      </footer>
+    </form>
+  </dialog>
+</section>
+
+<script>
+  interface LocalPlan {
+    id: string;
+    title: string;
+    date: string;
+    priority: 'high' | 'medium' | 'low';
+    notes: string;
+    completed: boolean;
+    completedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  const STORAGE_KEY = 'yuncun-local-plans-v1';
+  const planner = document.querySelector<HTMLElement>('[data-local-planner]');
+
+  if (planner) {
+    const dialog = planner.querySelector<HTMLDialogElement>('[data-local-plan-dialog]')!;
+    const form = planner.querySelector<HTMLFormElement>('[data-local-plan-form]')!;
+    const list = planner.querySelector<HTMLElement>('[data-local-plan-list]')!;
+    const empty = planner.querySelector<HTMLElement>('[data-local-plan-empty]')!;
+    const formTitle = planner.querySelector<HTMLElement>('[data-local-plan-form-title]')!;
+    const openOutput = planner.querySelector<HTMLElement>('[data-local-plan-open-count]')!;
+    const todayOutput = planner.querySelector<HTMLElement>('[data-local-plan-today-count]')!;
+    const priorityLabels = { high: '高', medium: '中', low: '低' } as const;
+    const priorityRank = { high: 0, medium: 1, low: 2 } as const;
+
+    const isLocalPlan = (value: unknown): value is LocalPlan => {
+      if (!value || typeof value !== 'object') return false;
+      const item = value as Record<string, unknown>;
+      return typeof item.id === 'string'
+        && typeof item.title === 'string'
+        && typeof item.date === 'string'
+        && (item.priority === 'high' || item.priority === 'medium' || item.priority === 'low')
+        && typeof item.notes === 'string'
+        && typeof item.completed === 'boolean'
+        && (item.completedAt === undefined || typeof item.completedAt === 'string')
+        && typeof item.createdAt === 'string'
+        && typeof item.updatedAt === 'string';
+    };
+
+    const loadPlans = (): LocalPlan[] => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(isLocalPlan) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    let plans = loadPlans();
+
+    const savePlans = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+      } catch {
+        window.alert('浏览器未能保存这项日程，请检查是否禁用了本地存储。');
+      }
+    };
+
+    const localToday = () => {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60_000;
+      return new Date(now.valueOf() - offset).toISOString().slice(0, 10);
+    };
+
+    const formatDate = (value: string) => value
+      ? new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(`${value}T00:00:00`))
+      : '未设日期';
+
+    const dateState = (plan: LocalPlan) => {
+      if (!plan.date || plan.completed) return '';
+      const today = localToday();
+      if (plan.date < today) return 'overdue';
+      if (plan.date === today) return 'today';
+      return 'future';
+    };
+
+    const makeButton = (label: string, action: string, id: string, className = '') => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.dataset.localPlanAction = action;
+      button.dataset.localPlanId = id;
+      if (className) button.className = className;
+      return button;
+    };
+
+    const render = () => {
+      list.replaceChildren();
+      plans.sort((left, right) => Number(left.completed) - Number(right.completed)
+        || (left.date || '9999-12-31').localeCompare(right.date || '9999-12-31')
+        || priorityRank[left.priority] - priorityRank[right.priority]
+        || right.updatedAt.localeCompare(left.updatedAt));
+
+      plans.forEach((plan) => {
+        const state = dateState(plan);
+        const article = document.createElement('article');
+        article.className = `local-plan-card${plan.completed ? ' is-completed' : ''}${state ? ` is-${state}` : ''}`;
+        article.dataset.localPlanCard = plan.id;
+
+        const header = document.createElement('header');
+        const badges = document.createElement('div');
+        const priority = document.createElement('span');
+        priority.className = `local-plan-card__priority priority-${plan.priority}`;
+        priority.textContent = `${priorityLabels[plan.priority]}优先`;
+        badges.append(priority);
+        if (state === 'overdue' || state === 'today') {
+          const due = document.createElement('strong');
+          due.className = 'local-plan-card__due';
+          due.textContent = state === 'overdue' ? '已逾期' : '今天';
+          badges.append(due);
+        }
+        const status = document.createElement('span');
+        status.className = 'local-plan-card__status';
+        status.textContent = plan.completed ? '已完成' : '待完成';
+        header.append(badges, status);
+
+        const title = document.createElement('h4');
+        title.textContent = plan.title;
+        const date = document.createElement('time');
+        date.dateTime = plan.date;
+        date.textContent = formatDate(plan.date);
+        const notes = document.createElement('p');
+        notes.className = 'local-plan-card__notes';
+        notes.textContent = plan.notes || '没有附加笔记。';
+
+        const actions = document.createElement('footer');
+        actions.append(
+          makeButton(plan.completed ? '恢复' : '完成', 'toggle', plan.id),
+          makeButton('编辑', 'edit', plan.id),
+          makeButton('删除', 'delete', plan.id, 'is-danger'),
+        );
+        article.append(header, title, date, notes, actions);
+        list.append(article);
+      });
+
+      empty.hidden = plans.length > 0;
+      openOutput.textContent = String(plans.filter((plan) => !plan.completed).length);
+      todayOutput.textContent = String(plans.filter((plan) => !plan.completed && plan.date === localToday()).length);
+    };
+
+    const openForm = (plan?: LocalPlan) => {
+      form.reset();
+      const fields = form.elements as typeof form.elements & {
+        id: HTMLInputElement;
+        title: HTMLInputElement;
+        date: HTMLInputElement;
+        priority: HTMLSelectElement;
+        notes: HTMLTextAreaElement;
+      };
+      fields.id.value = plan?.id || '';
+      fields.title.value = plan?.title || '';
+      fields.date.value = plan?.date || '';
+      fields.priority.value = plan?.priority || 'medium';
+      fields.notes.value = plan?.notes || '';
+      formTitle.textContent = plan ? '编辑日程' : '新建日程';
+      dialog.showModal();
+      window.setTimeout(() => fields.title.focus(), 0);
+    };
+
+    planner.querySelector('[data-local-plan-new]')?.addEventListener('click', () => openForm());
+    planner.querySelectorAll('[data-local-plan-cancel]').forEach((button) => button.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('cancel', () => form.reset());
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const data = new FormData(form);
+      const id = String(data.get('id') || '');
+      const priorityValue = String(data.get('priority') || 'medium');
+      const now = new Date().toISOString();
+      const existing = plans.find((plan) => plan.id === id);
+      const next: LocalPlan = {
+        id: existing?.id || crypto.randomUUID(),
+        title: String(data.get('title') || '').trim(),
+        date: String(data.get('date') || ''),
+        priority: priorityValue === 'high' || priorityValue === 'low' ? priorityValue : 'medium',
+        notes: String(data.get('notes') || '').trim(),
+        completed: existing?.completed || false,
+        completedAt: existing?.completedAt,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      };
+      if (!next.title) return;
+      plans = existing ? plans.map((plan) => plan.id === existing.id ? next : plan) : [...plans, next];
+      savePlans();
+      window.dispatchEvent(new CustomEvent('yuncun-local-plans-updated'));
+      render();
+      dialog.close();
+    });
+
+    list.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-local-plan-action]');
+      if (!button) return;
+      const plan = plans.find((item) => item.id === button.dataset.localPlanId);
+      if (!plan) return;
+      if (button.dataset.localPlanAction === 'edit') openForm(plan);
+      if (button.dataset.localPlanAction === 'toggle') {
+        plan.completed = !plan.completed;
+        plan.updatedAt = new Date().toISOString();
+        plan.completedAt = plan.completed ? plan.updatedAt : undefined;
+        savePlans();
+        window.dispatchEvent(new CustomEvent('yuncun-local-plans-updated'));
+        render();
+      }
+      if (button.dataset.localPlanAction === 'delete' && window.confirm(`删除“${plan.title}”？这项操作无法撤销。`)) {
+        plans = plans.filter((item) => item.id !== plan.id);
+        savePlans();
+        window.dispatchEvent(new CustomEvent('yuncun-local-plans-updated'));
+        render();
+      }
+    });
+
+    render();
+  }
+</script>
+
+<style is:global>
+  .local-planner { margin: 38px 0; padding: 27px; border: 3px solid #596a62; color: var(--panel-text-primary); background: rgba(241, 239, 216, .94); box-shadow: 6px 6px 0 rgba(52, 65, 57, .28); }
+  .local-planner__heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+  .local-planner__heading > div { max-width: 700px; }
+  .local-planner__heading h3 { margin: 0; color: #514838; font-family: var(--serif); font-size: clamp(1.7rem, 3vw, 2.4rem); }
+  .local-planner__heading p:last-child { margin: 9px 0 0; color: var(--panel-text-secondary); line-height: 1.75; }
+  .local-planner__summary { display: flex; gap: 18px; margin: 23px 0 18px; padding: 12px 15px; border-block: 2px dashed #92978c; color: var(--panel-text-secondary); font-size: .76rem; }
+  .local-planner__summary strong { color: #355f4a; font-size: 1.05rem; }
+  .local-planner__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+  .local-plan-card { min-width: 0; padding: 20px; border: 2px solid #727d74; background: #fff8e5; box-shadow: 3px 3px 0 rgba(66, 76, 68, .2); }
+  .local-plan-card.is-overdue { border-color: #9a604d; background: #faeadc; }
+  .local-plan-card.is-completed { opacity: .7; }
+  .local-plan-card > header { display: flex; justify-content: space-between; gap: 12px; }
+  .local-plan-card > header div { display: flex; flex-wrap: wrap; gap: 6px; }
+  .local-plan-card > header span, .local-plan-card > header strong { padding: 3px 7px; font-size: .65rem; }
+  .local-plan-card__priority { color: #5b513e; background: #ead69d; }
+  .local-plan-card__priority.priority-high { color: #7a3e31; background: #efc1ad; }
+  .local-plan-card__priority.priority-low { color: #45604c; background: #d9e7d3; }
+  .local-plan-card__due { color: #8c4638; background: #f4d0be; }
+  .local-plan-card__status { color: #fffdf1; background: #58715e; }
+  .local-plan-card h4 { margin: 17px 0 7px; color: #514838; font-family: var(--serif); font-size: 1.25rem; }
+  .local-plan-card.is-completed h4 { text-decoration: line-through; }
+  .local-plan-card time { color: #69766e; font-size: .7rem; }
+  .local-plan-card__notes { min-height: 3.5em; margin: 15px 0 18px; overflow-wrap: anywhere; color: var(--panel-text-secondary); white-space: pre-wrap; line-height: 1.75; }
+  .local-plan-card footer { display: flex; gap: 8px; padding-top: 14px; border-top: 1px dashed #aaa795; }
+  .local-plan-card footer button { padding: 5px 10px; border: 1px solid #7d877f; color: #46584d; background: #f4f0db; cursor: pointer; font-weight: 800; }
+  .local-plan-card footer button.is-danger { margin-left: auto; color: #8a493a; }
+  .local-planner__empty { padding: 30px; border: 2px dashed #8b938b; text-align: center; }
+  .local-planner__empty strong { color: #4d584f; font-family: var(--serif); }
+  .local-planner__empty p { margin: 8px 0 0; color: var(--panel-text-secondary); }
+  .local-plan-dialog { width: min(620px, calc(100vw - 28px)); max-height: calc(100svh - 28px); padding: 0; overflow: auto; }
+  .local-plan-dialog::backdrop { background: rgba(17, 30, 35, .58); backdrop-filter: blur(5px); }
+  .local-plan-dialog form { display: grid; gap: 18px; padding: 26px; }
+  .local-plan-dialog form > header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+  .local-plan-dialog h3 { margin: 0; color: #514838; font-family: var(--serif); font-size: 1.8rem; }
+  .local-plan-dialog__close { border: 0; color: #59655c; background: transparent; cursor: pointer; font-size: 1.8rem; }
+  .local-plan-dialog label { display: grid; gap: 7px; color: #4f5c54; font-size: .76rem; font-weight: 900; }
+  .local-plan-dialog label em { color: #96533e; font-style: normal; }
+  .local-plan-dialog input, .local-plan-dialog select, .local-plan-dialog textarea { width: 100%; border: 2px solid #7b867e; border-radius: 0; outline: 0; color: #3f493f; background: #fffdf1; font: inherit; font-weight: 400; }
+  .local-plan-dialog input, .local-plan-dialog select { min-height: 44px; padding: 8px 10px; }
+  .local-plan-dialog textarea { padding: 11px; resize: vertical; line-height: 1.7; }
+  .local-plan-dialog input:focus, .local-plan-dialog select:focus, .local-plan-dialog textarea:focus { border-color: #3d7162; box-shadow: 0 0 0 3px rgba(61, 113, 98, .15); }
+  .local-plan-dialog__row { display: grid; grid-template-columns: 1fr 150px; gap: 15px; }
+  .local-plan-dialog__privacy { margin: 0; color: #6c756f; font-size: .68rem; line-height: 1.65; }
+  .local-plan-dialog footer { display: flex; justify-content: end; gap: 12px; }
+  @media (max-width: 700px) {
+    .local-planner { padding: 21px 16px; }
+    .local-planner__heading { align-items: start; flex-direction: column; }
+    .local-planner__list { grid-template-columns: 1fr; }
+    .local-plan-dialog form { padding: 22px 17px; }
+    .local-plan-dialog__row { grid-template-columns: 1fr; }
+  }
+</style>

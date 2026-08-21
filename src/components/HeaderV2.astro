@@ -1,0 +1,35 @@
+---
+import RealmOracleSigil from './RealmOracleSigil.astro';
+
+const pathname = Astro.url.pathname;
+const realms = [
+  ['/world/cloud-village/', '云村', 'cloud-village'],
+  ['/world/rain-bridge/', '雨桥', 'rain-bridge'],
+  ['/world/star-abyss/', '星渊', 'star-abyss'],
+  ['/world/wind-valley/', '风谷', 'wind-valley'],
+  ['/world/moon-pool/', '月潭', 'moon-pool'],
+  ['/world/snow-cliff/', '雪崖', 'snow-cliff'],
+  ['/world/lantern-lane/', '灯巷', 'lantern-lane'],
+] as const;
+const active = (href: string) => pathname.startsWith(href);
+---
+<header class="site-header">
+  <a class="site-brand" href="/" aria-label="七境世界首页"><span class="site-brand__mark" aria-hidden="true">云</span><span><strong>七境世界</strong><small>云村与六境</small></span></a>
+  <nav class="desktop-nav pixel-hud" aria-label="主导航">
+    <a href="/" class:list={[{ active: pathname === '/' }]}>首页</a>
+    {realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href} aria-label={`前往${label}`} class:list={[{ active: active(href) }]}><RealmOracleSigil realm={realm} size={20} /><span>{label}</span></a>)}
+    <a class="nav-workspace" href="/workspace/" class:list={[{ active: pathname.startsWith('/workspace') }]}>工作台</a>
+    <button type="button" class="nav-reading-list" data-reading-list-open aria-label="打开稍后阅读清单"><span aria-hidden="true">▤</span><span>稍后阅读</span><strong data-reading-list-count>0</strong></button>
+    <button type="button" class="nav-search" data-search-open aria-label="搜索云村内容"><span aria-hidden="true">⌕</span><span>云镜</span><kbd>⌘K</kbd></button>
+  </nav>
+  <details class="mobile-nav">
+    <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
+    <nav aria-label="移动端导航">
+      <a href="/">首页</a>
+      {realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href}><RealmOracleSigil realm={realm} size={22} /><span>{label}</span><small>古刻灵纹</small></a>)}
+      <a href="/workspace/">工作台</a>
+      <button type="button" class="mobile-reading-list" data-reading-list-open>▤ 稍后阅读 <strong data-reading-list-count>0</strong></button>
+      <button type="button" class="mobile-search" data-search-open>⌕ 打开云镜</button>
+    </nav>
+  </details>
+</header>

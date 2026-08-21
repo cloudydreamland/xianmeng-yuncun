@@ -73,7 +73,10 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastTriggerRef = useRef<HTMLAnchorElement | null>(null);
   const [timeMode, setTimeMode] = useState<TimeMode>('auto');
-  const [resolvedTime, setResolvedTime] = useState<ResolvedTimeMode | null>(null);
+  // Render a real image during SSR so the browser can discover the LCP asset
+  // before React hydrates. The stored/automatic mode is applied immediately
+  // after hydration and replaces it only when necessary.
+  const [resolvedTime, setResolvedTime] = useState<ResolvedTimeMode>('day');
   const [selectedId, setSelectedId] = useState<RegionId | null>(null);
   const [timeMenuOpen, setTimeMenuOpen] = useState(false);
 
@@ -163,28 +166,26 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
     window.setTimeout(() => lastTriggerRef.current?.focus(), 0);
   };
 
-  const image = resolvedTime ? backgrounds[resolvedTime] : null;
+  const image = backgrounds[resolvedTime];
 
   return (
     <section className="world-map" aria-label="雲梦世界全境地图">
       <div className="world-map__frame">
         <div className="world-map__viewport" ref={viewportRef} tabIndex={0} aria-label="可横向浏览的雲梦全境地图">
           <div className="world-map__canvas">
-            {image && (
-              <picture className="world-map__picture" key={resolvedTime}>
-                <source type="image/avif" srcSet={image.avifSrcSet} sizes={image.sizes} />
-                <source type="image/webp" srcSet={image.webpSrcSet} sizes={image.sizes} />
-                <img
-                  src={image.fallback}
-                  alt={imageAlt}
-                  width={3840}
-                  height={2160}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-              </picture>
-            )}
+            <picture className="world-map__picture" key={resolvedTime}>
+              <source type="image/avif" srcSet={image.avifSrcSet} sizes={image.sizes} />
+              <source type="image/webp" srcSet={image.webpSrcSet} sizes={image.sizes} />
+              <img
+                src={image.fallback}
+                alt={imageAlt}
+                width={3840}
+                height={2160}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+            </picture>
             <div className="world-map__vignette" aria-hidden="true" />
 
             <nav className="world-markers" aria-label="雲梦世界地点">
@@ -194,7 +195,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                   href={`#${region.id}`}
                   className={`world-marker world-marker--${region.id} world-marker--label-${region.labelSide}`}
                   style={{ left: `${region.x}%`, top: `${region.y}%` }}
-                  aria-label={`查看${region.title}，${region.status === 'active' ? '已开放' : '设定开放、功能酝酿中'}`}
+                  aria-label={`查看${region.title}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}`}
                   aria-expanded={selectedId === region.id}
                   onClick={(event) => openRegion(event, region.id)}
                 >
@@ -234,7 +235,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
       <nav className="world-ledger page-shell" aria-label="雲梦地名册">
         {regions.map((region) => (
           <a key={region.id} href={`#${region.id}`} onClick={(event) => openRegion(event, region.id)}>
-            <span>{region.realm}</span><strong>{region.title}</strong><em>{region.status === 'active' ? '已开放' : '酝酿中'}</em>
+            <span>{region.realm}</span><strong>{region.title}</strong><em>{region.status === 'active' ? '门扉已启' : '云雾未散'}</em>
           </a>
         ))}
       </nav>
@@ -245,7 +246,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             <button className="world-drawer__close" type="button" onClick={closeRegion} aria-label="关闭地点卷轴">×</button>
             <div className="world-drawer__status">
               <span>{selectedRegion.realm}</span>
-              <strong>{selectedRegion.status === 'active' ? '此境已开放' : '设定已开放 · 功能酝酿中'}</strong>
+              <strong>{selectedRegion.status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}</strong>
             </div>
             <h2>{selectedRegion.title}</h2>
             <p className="world-drawer__summary">{selectedRegion.summary}</p>

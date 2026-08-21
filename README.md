@@ -6,21 +6,21 @@
 
 ## 本地运行
 
-环境要求：Node.js 22，推荐使用 pnpm。
+环境要求：Node.js 24.16.x、npm 11.13.x。完整的环境安装、故障排查和全部命令见 [本地开发环境说明](./docs/ENVIRONMENT.md)。
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 生产检查与预览：
 
 ```bash
-pnpm build
-pnpm preview
+npm run build
+npm run preview
 ```
 
-构建产物输出到 `dist/`。`pnpm build` 会在 Astro 静态页面生成后继续运行 Pagefind，并把中文全文搜索索引写入 `dist/pagefind/`；因此开发服务器中搜索面板会提示索引尚未生成，完整搜索功能请使用上述生产预览流程验证。
+构建产物输出到 `dist/`。`npm run build` 会在 Astro 静态页面生成后继续运行 Pagefind，并把中文全文搜索索引写入 `dist/pagefind/`；因此开发服务器中搜索面板会提示索引尚未生成，完整搜索功能请使用上述生产预览流程验证。
 
 ## 添加笔记
 
@@ -70,7 +70,7 @@ coverAlt: 项目界面预览 # 可选
 推进计划位于 `src/content/plans/`，Git 中的 MDX 文件是唯一数据源。使用生成命令创建符合 Schema 的模板：
 
 ```bash
-pnpm plan:new -- plan-slug "计划标题"
+npm run plan:new -- plan-slug "计划标题"
 ```
 
 slug 只允许小写英文字母、数字和短横线；同名文件已存在时命令会直接失败。计划可填写里程碑、下一步行动、领域、状态、优先级和关联项目，其中 `projectSlug` 必须指向 `src/content/projects/` 中真实存在的项目。
@@ -83,7 +83,7 @@ slug 只允许小写英文字母、数字和短横线；同名文件已存在时
 
 每件作品必须填写标题、摘要、发布日期、分类、封面、多图替代文本和授权方式。个人收藏可以省略创作日期、创作方式和过程说明，页面会改为显示收录日期；已知作者可填写 `credit` 与 `creditUrl`。AI 辅助或混合创作一旦填写创作方式，仍必须同时填写使用工具。图片入库前应移除 EXIF/GPS，照片最长边不超过 3200px；Astro 会在构建时生成响应式图片。
 
-素材入库可使用 `pnpm gallery:prepare <输入图片> <src/assets/works/<slug>/输出.webp> photo`；插画将最后一个参数改为 `art`。脚本会纠正方向、限制最长边并拒绝保留 EXIF、GPS、ICC 或 XMP 元数据。
+素材入库可使用 `npm run gallery:prepare -- <输入图片> <src/assets/works/<slug>/输出.webp> photo`；插画将最后一个参数改为 `art`。脚本会纠正方向、限制最长边并拒绝保留 EXIF、GPS、ICC 或 XMP 元数据。
 
 ```yaml
 ---
@@ -121,8 +121,8 @@ draft: true
 - 4K 修复图只存放在 `media-originals/` 作为母图，不进入网页首屏或静态部署产物。
 - 线上背景使用 AI 超分细节修复后的 `*-detailed-v2-{960,1440,1920,2560,3840}.avif/webp`；浏览器通过 `srcset` 或 1x/2x `image-set()` 按视口和屏幕密度选择，不再把 1920px 素材拉伸到高 DPI 大屏。
 - `detailed-v2` 母图使用 Upscayl NCNN 的 `4xNomos8kSC` 模型确定性超分生成；这一步不使用提示词，升级时应保持原构图与热点坐标不变。
-- 运行 `pnpm media:prepare` 可从母图重新生成所有响应式衍生图；升级画面时必须使用新的版本号，避免破坏长期缓存。
-- 七境详情页使用各自的手绘动漫场景，母图位于 `media-originals/regions/*-article-v2-anime.png`；运行 `pnpm regions:prepare` 生成 960／1280／1600px 的 AVIF/WebP。页面不再放大裁切世界地图，因此不会用伪 4K 换取模糊观感。
+- 运行 `npm run media:prepare` 可从母图重新生成所有响应式衍生图；升级画面时必须使用新的版本号，避免破坏长期缓存。
+- 七境详情页使用各自的手绘动漫场景，母图位于 `media-originals/regions/*-article-v2-anime.png`；运行 `npm run regions:prepare` 生成 960／1280／1600px 的 AVIF/WebP。页面不再放大裁切世界地图，因此不会用伪 4K 换取模糊观感。
 - 灯巷使用独立的 `lantern-lane-article-v3-hd-4k.webp` 母图，并额外生成 2400／3200px 候选，让高 DPI 屏幕获得真正的 2x 清晰度。
 - 当前四时图由原始同构构图进行 AI 细节修复后统一输出，不得单独重绘或改变七境坐标。
 - 七境坐标集中在 `src/data/worldMap.ts`，不要把坐标散落到组件或样式表中。
@@ -155,8 +155,8 @@ draft: true
 
 1. 将项目推送到 GitHub 或 GitLab。
 2. 在 Cloudflare Dashboard 的 Workers & Pages 中创建 Pages 项目并连接仓库。
-3. 构建命令填写 `pnpm build`，输出目录填写 `dist`。
-4. Node.js 版本设置为 `22`，环境变量 `PUBLIC_SITE_URL` 设置为正式站点地址。
+3. 构建命令填写 `npm run build`，输出目录填写 `dist`。
+4. Node.js 版本设置为 `24.16.0`，环境变量 `PUBLIC_SITE_URL` 设置为正式站点地址。
 5. 在 `astro.config.mjs`、`public/robots.txt` 中将默认 `pages.dev` 地址替换为正式域名。
 
 Cloudflare 会为主分支创建生产部署，并为 Pull Request 创建预览地址。`public/_headers` 已包含静态资源缓存与基础安全响应头。

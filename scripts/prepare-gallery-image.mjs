@@ -4,7 +4,7 @@ import sharp from 'sharp';
 
 const [inputArg, outputArg, kind = 'photo'] = process.argv.slice(2);
 if (!inputArg || !outputArg || !['photo', 'art'].includes(kind)) {
-  console.error('用法：pnpm gallery:prepare <输入图片> <src/assets/works/.../输出文件> [photo|art]');
+  console.error('用法：npm run gallery:prepare -- <输入图片> <src/assets/works/.../输出文件> [photo|art]');
   process.exit(1);
 }
 

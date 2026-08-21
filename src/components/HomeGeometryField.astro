@@ -1,0 +1,277 @@
+<div class="home-geometry-field" data-home-geometry aria-hidden="true">
+  <canvas></canvas>
+</div>
+
+<script>
+  interface GeometryNode {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    angle: number;
+    spin: number;
+    phase: number;
+  }
+
+  interface Palette {
+    shape: string;
+    bright: string;
+    line: string;
+    pointer: string;
+  }
+
+  const palettes: Record<string, Palette> = {
+    dawn: {
+      shape: 'rgba(255, 231, 188, .78)',
+      bright: 'rgba(169, 232, 226, .9)',
+      line: 'rgba(112, 188, 194, .5)',
+      pointer: 'rgba(255, 213, 145, .78)',
+    },
+    day: {
+      shape: 'rgba(54, 137, 154, .66)',
+      bright: 'rgba(255, 228, 157, .82)',
+      line: 'rgba(39, 131, 151, .42)',
+      pointer: 'rgba(255, 204, 105, .72)',
+    },
+    dusk: {
+      shape: 'rgba(244, 174, 139, .76)',
+      bright: 'rgba(194, 190, 255, .9)',
+      line: 'rgba(218, 158, 181, .52)',
+      pointer: 'rgba(255, 211, 145, .8)',
+    },
+    night: {
+      shape: 'rgba(130, 210, 232, .8)',
+      bright: 'rgba(213, 228, 255, .94)',
+      line: 'rgba(110, 174, 222, .56)',
+      pointer: 'rgba(185, 230, 255, .9)',
+    },
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-home-geometry]').forEach((host) => {
+    if (host.dataset.ready === 'true') return;
+    host.dataset.ready = 'true';
+
+    const canvas = host.querySelector('canvas');
+    const scene = host.closest<HTMLElement>('.home-after-map');
+    const context = canvas?.getContext('2d');
+    if (!canvas || !scene || !context) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const finePointer = window.matchMedia('(pointer: fine)').matches;
+    const pointer = { x: 0, y: 0, active: false };
+    let nodes: GeometryNode[] = [];
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+    let running = false;
+    let visible = false;
+    let frame = 0;
+    let lastFrame = 0;
+    let palette = palettes.day;
+
+    const currentPalette = () => {
+      const time = document.documentElement.dataset.time || 'day';
+      palette = palettes[time] || palettes.day;
+    };
+
+    const makeNode = (): GeometryNode => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - .5) * .19,
+      vy: (Math.random() - .5) * .16,
+      size: 8 + Math.random() * 17,
+      angle: Math.random() * Math.PI,
+      spin: (Math.random() - .5) * .0024,
+      phase: Math.random() * Math.PI * 2,
+    });
+
+    const resize = () => {
+      const rect = scene.getBoundingClientRect();
+      width = Math.max(1, Math.round(rect.width));
+      height = Math.max(1, Math.round(scene.scrollHeight));
+      ratio = Math.min(window.devicePixelRatio || 1, finePointer ? 2 : 1.35);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const areaCount = Math.round((width * Math.min(height, 1500)) / 74_000);
+      const count = reducedMotion ? 12 : Math.max(finePointer ? 18 : 10, Math.min(finePointer ? 30 : 16, areaCount));
+      nodes = Array.from({ length: count }, makeNode);
+      draw(performance.now(), false);
+    };
+
+    const drawNode = (node: GeometryNode, index: number, now: number) => {
+      const pulse = 1 + Math.sin(now * .0008 + node.phase) * .08;
+      const size = node.size * pulse;
+      context.save();
+      context.translate(node.x, node.y);
+      context.rotate(node.angle);
+      context.lineWidth = index % 4 === 0 ? 1.35 : .9;
+      context.strokeStyle = index % 5 === 0 ? palette.bright : palette.shape;
+      context.strokeRect(-size / 2, -size / 2, size, size);
+      if (index % 3 === 0) {
+        context.beginPath();
+        context.moveTo(-size * .28, 0);
+        context.lineTo(size * .28, 0);
+        context.moveTo(0, -size * .28);
+        context.lineTo(0, size * .28);
+        context.stroke();
+      }
+      context.restore();
+    };
+
+    const draw = (now: number, update = true) => {
+      context.clearRect(0, 0, width, height);
+      const connection = Math.min(178, Math.max(126, width * .12));
+      const connectionSquared = connection * connection;
+
+      if (update) {
+        nodes.forEach((node) => {
+          if (pointer.active) {
+            const dx = pointer.x - node.x;
+            const dy = pointer.y - node.y;
+            const distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared > 36 && distanceSquared < 48_400) {
+              const force = (1 - Math.sqrt(distanceSquared) / 220) * .0032;
+              node.vx += dx * force * .01;
+              node.vy += dy * force * .01;
+            }
+          }
+          node.vx *= .995;
+          node.vy *= .995;
+          const speed = Math.hypot(node.vx, node.vy);
+          if (speed > .42) { node.vx *= .42 / speed; node.vy *= .42 / speed; }
+          node.x += node.vx;
+          node.y += node.vy;
+          node.angle += node.spin;
+          if (node.x < -30) node.x = width + 30;
+          if (node.x > width + 30) node.x = -30;
+          if (node.y < -30) node.y = height + 30;
+          if (node.y > height + 30) node.y = -30;
+        });
+      }
+
+      context.lineWidth = .72;
+      for (let left = 0; left < nodes.length; left += 1) {
+        const a = nodes[left];
+        for (let right = left + 1; right < nodes.length; right += 1) {
+          const b = nodes[right];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const distanceSquared = dx * dx + dy * dy;
+          if (distanceSquared >= connectionSquared) continue;
+          const alpha = (1 - distanceSquared / connectionSquared) * .72;
+          context.globalAlpha = alpha;
+          context.strokeStyle = palette.line;
+          context.beginPath();
+          context.moveTo(a.x, a.y);
+          context.lineTo(b.x, b.y);
+          context.stroke();
+        }
+      }
+
+      if (pointer.active) {
+        nodes.forEach((node) => {
+          const dx = pointer.x - node.x;
+          const dy = pointer.y - node.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance >= 230) return;
+          context.globalAlpha = (1 - distance / 230) * .9;
+          context.strokeStyle = palette.pointer;
+          context.lineWidth = 1.15;
+          context.beginPath();
+          context.moveTo(pointer.x, pointer.y);
+          context.lineTo(node.x, node.y);
+          context.stroke();
+        });
+        context.globalAlpha = .88;
+        context.strokeStyle = palette.pointer;
+        context.lineWidth = 1;
+        context.strokeRect(pointer.x - 4.5, pointer.y - 4.5, 9, 9);
+      }
+
+      context.globalAlpha = 1;
+      nodes.forEach((node, index) => drawNode(node, index, now));
+    };
+
+    const animate = (now: number) => {
+      if (!running) return;
+      const interval = finePointer ? 1000 / 45 : 1000 / 30;
+      if (now - lastFrame >= interval) {
+        lastFrame = now;
+        draw(now);
+      }
+      frame = window.requestAnimationFrame(animate);
+    };
+
+    const start = () => {
+      if (running || reducedMotion || !visible || document.hidden) return;
+      running = true;
+      frame = window.requestAnimationFrame(animate);
+    };
+
+    const stop = () => {
+      running = false;
+      window.cancelAnimationFrame(frame);
+    };
+
+    const setPointer = (event: PointerEvent) => {
+      if (!finePointer) return;
+      const rect = scene.getBoundingClientRect();
+      pointer.x = event.clientX - rect.left;
+      pointer.y = event.clientY - rect.top;
+      pointer.active = pointer.x >= 0 && pointer.x <= rect.width && pointer.y >= 0 && pointer.y <= rect.height;
+    };
+
+    currentPalette();
+    resize();
+    scene.addEventListener('pointermove', setPointer, { passive: true });
+    scene.addEventListener('pointerleave', () => { pointer.active = false; });
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(scene);
+
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) start(); else stop();
+    }, { rootMargin: '160px 0px' });
+    intersectionObserver.observe(scene);
+
+    const timeObserver = new MutationObserver(() => {
+      currentPalette();
+      if (!running) draw(performance.now(), false);
+    });
+    timeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-time'] });
+  });
+</script>
+
+<style>
+  .home-geometry-field {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: .72;
+    contain: strict;
+  }
+
+  canvas { display: block; }
+
+  :global(html[data-time='day']) .home-geometry-field {
+    mix-blend-mode: multiply;
+    opacity: .52;
+  }
+
+  @media (max-width: 760px) {
+    .home-geometry-field { opacity: .42; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-geometry-field { opacity: .32; }
+  }
+</style>

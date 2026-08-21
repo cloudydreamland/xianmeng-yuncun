@@ -1,0 +1,94 @@
+---
+const STORAGE_KEY = 'yuncun-reading-list-v1';
+---
+
+<dialog class="reading-list-dialog pixel-frame" data-reading-list-dialog aria-labelledby="reading-list-title">
+  <div class="reading-list-dialog__inner">
+    <header class="reading-list-dialog__header">
+      <div><p class="pixel-kicker">云镜收藏</p><h2 id="reading-list-title">稍后阅读</h2></div>
+      <button class="reading-list-dialog__close" type="button" data-reading-list-close aria-label="关闭稍后阅读">×</button>
+    </header>
+    <p class="reading-list-dialog__intro">只保存在当前浏览器，适合把还没读完的笔记先放在这里。</p>
+    <div class="reading-list-dialog__items" data-reading-list-items></div>
+    <div class="reading-list-dialog__empty" data-reading-list-empty>
+      <strong>清单还是空的</strong><p>在笔记卡片或正文页点击“加入稍后阅读”即可收藏。</p>
+    </div>
+    <button class="reading-list-dialog__clear" type="button" data-reading-list-clear hidden>清空清单</button>
+  </div>
+</dialog>
+
+<script is:inline define:vars={{ STORAGE_KEY }}>
+  const read = () => {
+    try {
+      const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(value) ? value.filter((item) => item && item.id && item.title && item.url) : [];
+    } catch { return []; }
+  };
+  const write = (items) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch { /* private mode */ }
+  };
+  const allButtons = () => [...document.querySelectorAll('[data-reading-list-toggle]')];
+  const render = () => {
+    const items = read().sort((a, b) => b.savedAt - a.savedAt);
+    document.querySelectorAll('[data-reading-list-count]').forEach((node) => { node.textContent = String(items.length); });
+    allButtons().forEach((button) => {
+      const active = items.some((item) => item.id === button.dataset.readingListId);
+      button.classList.toggle('is-saved', active);
+      button.setAttribute('aria-pressed', String(active));
+      button.textContent = active ? '已加入稍后阅读' : '加入稍后阅读';
+    });
+    const list = document.querySelector('[data-reading-list-items]');
+    const empty = document.querySelector('[data-reading-list-empty]');
+    const clear = document.querySelector('[data-reading-list-clear]');
+    if (list) {
+      list.replaceChildren(...items.map((item) => {
+        const row = document.createElement('article');
+        row.className = 'reading-list-item';
+        const copy = document.createElement('div');
+        const link = document.createElement('a');
+        link.href = item.url;
+        link.textContent = item.title;
+        const note = document.createElement('small');
+        const priority = item.priority === 'now' ? '近期阅读' : item.priority === 'someday' ? '长期收藏' : '以后阅读';
+        note.textContent = item.note ? `${priority} · ${item.note}` : priority;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.dataset.readingListRemove = item.id;
+        remove.textContent = '移除';
+        copy.append(link, note);
+        row.append(copy, remove);
+        return row;
+      }));
+    }
+    if (empty) empty.hidden = items.length > 0;
+    if (clear) clear.hidden = items.length === 0;
+  };
+  const open = () => document.querySelector('[data-reading-list-dialog]')?.showModal();
+  document.querySelectorAll('[data-reading-list-open]').forEach((button) => button.addEventListener('click', open));
+  document.querySelector('[data-reading-list-close]')?.addEventListener('click', () => document.querySelector('[data-reading-list-dialog]')?.close());
+  document.querySelector('[data-reading-list-dialog]')?.addEventListener('click', (event) => {
+    const dialog = event.currentTarget;
+    if (event.target === dialog) dialog.close();
+  });
+  document.querySelector('[data-reading-list-clear]')?.addEventListener('click', () => { write([]); render(); });
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const toggle = target.closest('[data-reading-list-toggle]');
+    const remove = target.closest('[data-reading-list-remove]');
+    if (toggle) {
+      const items = read();
+      const id = toggle.dataset.readingListId || '';
+      const title = toggle.dataset.readingListTitle || '';
+      const url = toggle.dataset.readingListUrl || '';
+      if (!id || !title || !url) return;
+      const index = items.findIndex((item) => item.id === id);
+      if (index >= 0) items.splice(index, 1);
+      else items.push({ id, title, url, savedAt: Date.now(), priority: 'later', note: '' });
+      write(items); window.dispatchEvent(new CustomEvent('yuncun-reading-list-updated')); render();
+    }
+    if (remove) { write(read().filter((item) => item.id !== remove.dataset.readingListRemove)); window.dispatchEvent(new CustomEvent('yuncun-reading-list-updated')); render(); }
+  });
+  window.addEventListener('storage', render);
+  render();
+</script>

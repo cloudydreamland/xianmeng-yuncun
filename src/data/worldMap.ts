@@ -39,7 +39,10 @@ export const worldMapPoints: WorldMapPoint[] = [
 ];
 
 const worldWidths = [960, 1440, 1920, 2560, 3840, 5120] as const;
-const worldSizes = '(max-width: 760px) 960px, (max-width: 1440px) 100vw, (max-width: 2560px) 100vw, 2560px';
+// The map canvas is 960px wide on phones and capped at 1800px on desktops.
+// Keeping this in sync with the CSS lets the browser choose a DPR-appropriate
+// file instead of either upscaling a small image or downloading the 5K asset.
+const worldSizes = '(max-width: 760px) 960px, (max-width: 1800px) 100vw, 1800px';
 
 function worldCandidate(time: ResolvedTimeMode, width: number, format: ImageDeliveryFormat): string {
   return deliveryImageUrl({
@@ -68,11 +71,11 @@ export const timeCopy: Record<ResolvedTimeMode, string> = {
 };
 
 export const cloudVillageDestinations = [
-  { href: '/world/wind-valley/', label: '风谷', meta: '笔记、碎片与小实验' },
-  { href: '/world/moon-pool/', label: '月潭', meta: '项目、复盘与长期档案' },
-  { href: '/world/rain-bridge/', label: '雨桥', meta: '全境导航与云镜搜索' },
-  { href: '/world/star-abyss/', label: '星渊', meta: '学习路线与成长星图' },
-  { href: '/world/snow-cliff/', label: '雪崖', meta: '友链、邮件与访客须知' },
-  { href: '/world/lantern-lane/', label: '浮屿·灯巷', meta: '摄影、插画与视觉作品' },
+  { href: '/world/wind-valley/', label: '风谷', meta: '风中札记与未成之思' },
+  { href: '/world/moon-pool/', label: '月潭', meta: '造物旧录与来路回望' },
+  { href: '/world/rain-bridge/', label: '雨桥', meta: '七境舆图与云镜问津' },
+  { href: '/world/star-abyss/', label: '星渊', meta: '问道来路与未至星群' },
+  { href: '/world/snow-cliff/', label: '雪崖', meta: '故人雪信与炉边名帖' },
+  { href: '/world/lantern-lane/', label: '浮屿·灯巷', meta: '镜中山河与纸上丹青' },
   { href: '/about', label: '个人主页', meta: '履历、技能与公开经历' },
 ];

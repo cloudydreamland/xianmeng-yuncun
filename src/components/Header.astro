@@ -39,12 +39,14 @@ const isActive = (link: NavLink) => {
     <button type="button" class="nav-search" data-search-open aria-label="搜索云村内容">
       <span aria-hidden="true">⌕</span><span>云镜</span><kbd>⌘K</kbd>
     </button>
+    <button type="button" class="nav-reading-list" data-reading-list-open aria-label="打开稍后阅读清单"><span aria-hidden="true">▤</span><span>稍后阅读</span><strong data-reading-list-count>0</strong></button>
   </nav>
   <details class="mobile-nav">
     <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
     <nav aria-label="移动端导航">
       {links.map((link) => <a href={link.href} aria-current={isActive(link) ? 'page' : undefined}>{link.label}</a>)}
       <button type="button" class="mobile-search" data-search-open><span aria-hidden="true">⌕</span> 打开云镜</button>
+      <button type="button" class="mobile-reading-list" data-reading-list-open>▤ 稍后阅读 <strong data-reading-list-count>0</strong></button>
     </nav>
   </details>
 </header>

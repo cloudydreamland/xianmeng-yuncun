@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+test('world map image is present in the server-rendered HTML', async ({ request }) => {
+  const response = await request.get('/');
+  const html = await response.text();
+
+  expect(html).toContain('world-map__picture');
+  expect(html).toContain('world-detailed-v3-960.avif');
+  expect(html).toContain('(max-width: 1800px) 100vw, 1800px');
+});
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
 });
@@ -97,6 +106,35 @@ test('四个时辰同步切换背景与语义文字色，并保持面板文字�
   expect(imageColors.size).toBe(4);
   expect(mapFilters.size).toBe(4);
   expect(panelColors.size).toBe(1);
+});
+
+test('首页场景从全境地图之后开始，并随地图时辰同步变色', async ({ page }) => {
+  const modes = ['dawn', 'day', 'dusk', 'night'] as const;
+  const sceneFilters = new Set<string>();
+  await page.goto('/');
+
+  for (const mode of modes) {
+    await page.evaluate((value) => localStorage.setItem('yuncun-time-mode', value), mode);
+    await page.reload();
+
+    const map = page.locator('.world-map');
+    const scene = page.locator('.home-after-map');
+    const [mapBox, sceneBox] = await Promise.all([map.boundingBox(), scene.boundingBox()]);
+
+    expect(mapBox).not.toBeNull();
+    expect(sceneBox).not.toBeNull();
+    expect(sceneBox!.y).toBeGreaterThanOrEqual(mapBox!.y + mapBox!.height - 1);
+    await expect(page.locator('html')).toHaveAttribute('data-time', mode);
+
+    const style = await scene.evaluate((element) => {
+      const pseudo = getComputedStyle(element, '::before');
+      return { backgroundImage: pseudo.backgroundImage, filter: pseudo.filter };
+    });
+    expect(style.backgroundImage).toContain('home-heaven-rift-v5-1536');
+    sceneFilters.add(style.filter);
+  }
+
+  expect(sceneFilters.size).toBe(4);
 });
 
 test('夜间图片文字有描边，浅色抽屉仍使用深色面板文字', async ({ page }) => {

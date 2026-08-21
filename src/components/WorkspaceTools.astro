@@ -1,0 +1,339 @@
+---
+interface PublicAction {
+  title: string;
+  plan: string;
+  href: string;
+  dueAt?: string;
+}
+
+const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
+---
+
+<section class="workspace-today pixel-frame" aria-labelledby="workspace-today-title" data-workspace-tools>
+  <header class="workspace-today__header">
+    <div><p class="pixel-kicker">TODAY · 今日云笺</p><h2 id="workspace-today-title">今日诸务，只取最要紧的一桩。</h2></div>
+    <time data-workspace-today-label></time>
+  </header>
+
+  <div class="focus-card">
+    <div><span>今日一桩</span><strong data-focus-display>尚未落笔</strong></div>
+    <form data-focus-form>
+      <label class="sr-only" for="workspace-focus">今日一桩</label>
+      <input id="workspace-focus" name="focus" maxlength="100" autocomplete="off" placeholder="写下今日最要紧的一件事" />
+      <button class="pixel-button pixel-button--primary" type="submit">保存</button>
+      <button class="pixel-button" type="button" data-focus-toggle hidden>标记完成</button>
+    </form>
+  </div>
+
+  <div class="today-metrics" aria-label="今日概览">
+    <article><span>未完成任务</span><strong data-metric-open>0</strong></article>
+    <article><span>今天到期</span><strong data-metric-today>0</strong></article>
+    <article><span>七天内</span><strong data-metric-week>0</strong></article>
+    <article><span>稍后阅读</span><strong data-metric-reading>0</strong></article>
+  </div>
+
+  <div class="today-columns">
+    <section aria-labelledby="private-due-title">
+      <h3 id="private-due-title">眼前的私人任务</h3>
+      <ol class="today-list" data-private-due-list></ol>
+      <p class="workspace-muted" data-private-due-empty>七天内没有到期任务。</p>
+    </section>
+    <section aria-labelledby="public-action-title">
+      <h3 id="public-action-title">公开计划的下一步</h3>
+      {publicActions.length > 0 ? (
+        <div class="workspace-action-list">
+          {publicActions.slice(0, 5).map((action) => (
+            <a class="workspace-action" href={action.href} data-public-action data-title={action.title} data-plan={action.plan} data-due-at={action.dueAt || ''}>
+              <strong>{action.title}</strong><span>{action.plan}</span><time>{action.dueAt || '未设日期'}</time>
+            </a>
+          ))}
+        </div>
+      ) : <p class="workspace-muted">当前没有未完成的公开行动。</p>}
+    </section>
+  </div>
+</section>
+
+<section class="workspace-reading" aria-labelledby="workspace-reading-title">
+  <header class="workspace-section-heading"><p class="pixel-kicker">READING QUEUE · 待阅</p><h2 id="workspace-reading-title">待阅笺匣</h2><p>收存站内文章与远方链接，也记下为何值得再次展笺。</p></header>
+  <form class="reading-capture" data-reading-capture>
+    <label>标题<input name="title" required maxlength="120" autocomplete="off" /></label>
+    <label>链接<input name="url" required type="url" inputmode="url" autocomplete="url" /></label>
+    <button class="pixel-button pixel-button--primary" type="submit">加入清单</button>
+  </form>
+  <div class="workspace-reading__list" data-workspace-reading-list></div>
+  <p class="workspace-muted" data-workspace-reading-empty>笺匣尚空。可从风谷收存文章，也可在上方添入远方链接。</p>
+</section>
+
+<section class="workspace-capture" id="capture" aria-labelledby="workspace-capture-title">
+  <header class="workspace-section-heading"><p class="pixel-kicker">MARKDOWN INBOX · 灵念</p><h2 id="workspace-capture-title">灵念速记</h2><p>落笔即存于当前浏览器；整理成章后，可复制或封存为 MDX。</p></header>
+  <div class="capture-layout">
+    <form class="capture-form" data-capture-form>
+      <label>类型<select name="kind"><option value="note">笔记</option><option value="task">任务计划</option><option value="idea">灵感</option></select></label>
+      <label>标题<input name="title" required maxlength="100" autocomplete="off" /></label>
+      <label>slug<input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autocomplete="off" /></label>
+      <label>摘要<textarea name="summary" required maxlength="240" rows="3"></textarea></label>
+      <label>标签<input name="tags" autocomplete="off" aria-describedby="capture-tags-help" /><small id="capture-tags-help">多个标签用逗号分隔</small></label>
+      <label>正文<textarea name="body" rows="9"></textarea></label>
+      <div class="capture-actions">
+        <button class="pixel-button" type="button" data-capture-clear>清空</button>
+        <button class="pixel-button" type="button" data-capture-copy>复制 Markdown</button>
+        <button class="pixel-button pixel-button--primary" type="button" data-capture-download>下载 .mdx</button>
+      </div>
+      <p class="workspace-muted" data-capture-status aria-live="polite"></p>
+    </form>
+    <div class="capture-output"><p class="workspace-muted" data-capture-empty>填写标题、slug 和摘要后显示预览。</p><pre class="capture-preview" data-capture-preview aria-label="Markdown 预览" hidden></pre></div>
+  </div>
+</section>
+
+<section class="workspace-review" aria-labelledby="workspace-review-title">
+  <header class="workspace-section-heading"><p class="pixel-kicker">WEEKLY REVIEW · 照见</p><h2 id="workspace-review-title">月潭回望</h2><p>照见本机私务、待阅笺匣、未成草稿与公开行动，汇作一卷七日回望。</p></header>
+  <div class="review-layout">
+    <div class="review-summary" data-review-summary></div>
+    <pre class="review-preview" data-review-preview></pre>
+  </div>
+  <div class="review-actions"><button class="pixel-button" type="button" data-review-copy>复制回顾</button><button class="pixel-button pixel-button--primary" type="button" data-review-download>下载周回顾</button><span class="workspace-muted" data-review-status aria-live="polite"></span></div>
+</section>
+
+<section class="workspace-backup" aria-labelledby="workspace-backup-title">
+  <header class="workspace-section-heading"><p class="pixel-kicker">LOCAL BACKUP · 封卷</p><h2 id="workspace-backup-title">封卷与复原</h2><p>将案上私务、阅笺批注、今日一桩与未成草稿封存为 JSON。复原旧卷时，将覆盖本机现有内容。</p></header>
+  <div class="backup-actions">
+    <button class="pixel-button pixel-button--primary" type="button" data-backup-export>导出备份</button>
+    <label class="pixel-button backup-import">选择备份文件<input type="file" accept="application/json,.json" data-backup-import /></label>
+    <span class="workspace-muted" data-backup-status aria-live="polite">尚未在这台设备上导出备份。</span>
+  </div>
+</section>
+
+<script>
+  interface LocalPlan {
+    id: string; title: string; date: string; priority: 'high' | 'medium' | 'low'; notes: string;
+    completed: boolean; completedAt?: string; createdAt: string; updatedAt: string;
+  }
+  interface ReadingItem {
+    id: string; title: string; url: string; savedAt: number; note?: string; priority?: 'now' | 'later' | 'someday';
+  }
+  interface FocusItem { date: string; title: string; completed: boolean; }
+  interface CaptureDraft { kind: string; title: string; slug: string; summary: string; tags: string; body: string; updatedAt: string; }
+
+  const KEYS = {
+    plans: 'yuncun-local-plans-v1',
+    reading: 'yuncun-reading-list-v1',
+    focus: 'yuncun-workspace-focus-v1',
+    capture: 'yuncun-capture-draft-v1',
+    backup: 'yuncun-backup-meta-v1',
+  } as const;
+  const root = document.querySelector<HTMLElement>('[data-workspace]');
+  const tools = document.querySelector<HTMLElement>('[data-workspace-tools]');
+
+  if (root && tools) {
+    const parse = <T,>(key: string, fallback: T): T => {
+      try { return JSON.parse(localStorage.getItem(key) || '') as T; } catch { return fallback; }
+    };
+    const store = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
+    const dateKey = (date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(date);
+    const today = dateKey();
+    const dateValue = (value: string) => value ? Date.parse(`${value}T00:00:00+08:00`) : Number.POSITIVE_INFINITY;
+    const sevenDays = 7 * 86_400_000;
+    const download = (contents: string, filename: string, type: string) => {
+      const url = URL.createObjectURL(new Blob([contents], { type }));
+      const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    };
+    const copyText = async (contents: string) => {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(contents);
+    };
+    const readPlans = (): LocalPlan[] => {
+      const value = parse<unknown>(KEYS.plans, []);
+      return Array.isArray(value) ? value.filter((item): item is LocalPlan => Boolean(item && typeof item === 'object' && typeof item.id === 'string' && typeof item.title === 'string')) : [];
+    };
+    const readItems = (): ReadingItem[] => {
+      const value = parse<unknown>(KEYS.reading, []);
+      return Array.isArray(value) ? value.filter((item): item is ReadingItem => {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.title !== 'string' || typeof item.url !== 'string') return false;
+        try { return ['http:', 'https:'].includes(new URL(item.url, window.location.origin).protocol); } catch { return false; }
+      }) : [];
+    };
+    const writeItems = (items: ReadingItem[]) => {
+      store(KEYS.reading, items);
+      window.dispatchEvent(new CustomEvent('yuncun-reading-list-updated'));
+    };
+
+    const focusInput = root.querySelector<HTMLInputElement>('[data-focus-form] input');
+    const focusDisplay = root.querySelector<HTMLElement>('[data-focus-display]');
+    const focusToggle = root.querySelector<HTMLButtonElement>('[data-focus-toggle]');
+    const readFocus = (): FocusItem | null => {
+      const value = parse<FocusItem | null>(KEYS.focus, null);
+      return value?.date === today && typeof value.title === 'string' ? value : null;
+    };
+    const renderFocus = () => {
+      const focus = readFocus();
+      if (focusInput) focusInput.value = focus?.title || '';
+      if (focusDisplay) {
+        focusDisplay.textContent = focus?.title || '还没有设定';
+        focusDisplay.classList.toggle('is-completed', Boolean(focus?.completed));
+      }
+      if (focusToggle) { focusToggle.hidden = !focus; focusToggle.textContent = focus?.completed ? '恢复进行' : '标记完成'; }
+    };
+    root.querySelector<HTMLFormElement>('[data-focus-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault(); const title = focusInput?.value.trim() || '';
+      if (!title) { localStorage.removeItem(KEYS.focus); renderFocus(); return; }
+      store(KEYS.focus, { date: today, title, completed: readFocus()?.completed || false }); renderFocus();
+    });
+    focusToggle?.addEventListener('click', () => { const focus = readFocus(); if (!focus) return; focus.completed = !focus.completed; store(KEYS.focus, focus); renderFocus(); });
+
+    const renderDashboard = () => {
+      const plans = readPlans(); const reading = readItems(); const now = Date.now();
+      const open = plans.filter((item) => !item.completed);
+      const dueSoon = open.filter((item) => item.date && dateValue(item.date) <= now + sevenDays).sort((a, b) => dateValue(a.date) - dateValue(b.date));
+      const set = (selector: string, value: number) => { const node = root.querySelector(selector); if (node) node.textContent = String(value); };
+      set('[data-metric-open]', open.length); set('[data-metric-today]', open.filter((item) => item.date === today).length);
+      set('[data-metric-week]', dueSoon.length); set('[data-metric-reading]', reading.length);
+      const list = root.querySelector<HTMLOListElement>('[data-private-due-list]');
+      const empty = root.querySelector<HTMLElement>('[data-private-due-empty]');
+      if (list) list.replaceChildren(...dueSoon.slice(0, 6).map((plan) => {
+        const row = document.createElement('li'); const title = document.createElement('strong'); title.textContent = plan.title;
+        const due = document.createElement('time'); due.dateTime = plan.date; due.textContent = plan.date < today ? `${plan.date} · 已逾期` : plan.date === today ? '今天' : plan.date;
+        row.append(title, due); return row;
+      }));
+      if (empty) empty.hidden = dueSoon.length > 0;
+    };
+
+    const readingRoot = root.querySelector<HTMLElement>('[data-workspace-reading-list]');
+    const readingEmpty = root.querySelector<HTMLElement>('[data-workspace-reading-empty]');
+    const priorityLabels = { now: '近期阅读', later: '以后阅读', someday: '长期收藏' } as const;
+    const priorityRank = { now: 0, later: 1, someday: 2 } as const;
+    const renderReading = () => {
+      const items = readItems().sort((a, b) => priorityRank[a.priority || 'later'] - priorityRank[b.priority || 'later'] || b.savedAt - a.savedAt);
+      readingRoot?.replaceChildren(...items.map((item) => {
+        const row = document.createElement('article'); row.className = 'workspace-reading__item';
+        const header = document.createElement('header'); const link = document.createElement('a'); link.href = item.url; link.textContent = item.title;
+        const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '移除'; remove.addEventListener('click', () => { writeItems(readItems().filter((entry) => entry.id !== item.id)); renderReading(); renderDashboard(); });
+        header.append(link, remove);
+        const controls = document.createElement('div'); const select = document.createElement('select'); select.setAttribute('aria-label', `${item.title}的阅读优先级`);
+        (Object.keys(priorityLabels) as Array<keyof typeof priorityLabels>).forEach((value) => { const option = document.createElement('option'); option.value = value; option.textContent = priorityLabels[value]; option.selected = (item.priority || 'later') === value; select.append(option); });
+        const note = document.createElement('textarea'); note.rows = 2; note.maxLength = 500; note.placeholder = '写下收藏原因、摘录或下一步'; note.value = item.note || ''; note.setAttribute('aria-label', `${item.title}的阅读备注`);
+        const update = () => { const itemsNow = readItems(); const current = itemsNow.find((entry) => entry.id === item.id); if (!current) return; current.priority = select.value as ReadingItem['priority']; current.note = note.value.trim(); writeItems(itemsNow); };
+        select.addEventListener('change', () => { update(); renderReading(); }); note.addEventListener('change', update);
+        controls.append(select, note); row.append(header, controls); return row;
+      }));
+      if (readingEmpty) readingEmpty.hidden = items.length > 0;
+    };
+    root.querySelector<HTMLFormElement>('[data-reading-capture]')?.addEventListener('submit', (event) => {
+      event.preventDefault(); const form = event.currentTarget as HTMLFormElement; const data = new FormData(form); const title = String(data.get('title') || '').trim(); const rawUrl = String(data.get('url') || '').trim();
+      try {
+        const url = new URL(rawUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported URL');
+        const items = readItems(); const id = `link:${url.href}`; const existing = items.find((item) => item.id === id);
+        if (existing) { existing.title = title; existing.savedAt = Date.now(); } else items.push({ id, title, url: url.href, savedAt: Date.now(), priority: 'later', note: '' });
+        writeItems(items); form.reset(); renderReading(); renderDashboard();
+      } catch { window.alert('请输入完整的 http 或 https 链接。'); }
+    });
+
+    const captureForm = root.querySelector<HTMLFormElement>('[data-capture-form]');
+    const capturePreview = root.querySelector<HTMLElement>('[data-capture-preview]'); const captureEmpty = root.querySelector<HTMLElement>('[data-capture-empty]'); const captureStatus = root.querySelector<HTMLElement>('[data-capture-status]');
+    const captureValue = (name: string) => { const field = captureForm?.elements.namedItem(name); return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement ? field.value.trim() : ''; };
+    const yaml = (text: string) => `'${text.replace(/'/g, "''")}'`;
+    const captureData = (): CaptureDraft => ({ kind: captureValue('kind') || 'note', title: captureValue('title'), slug: captureValue('slug'), summary: captureValue('summary'), tags: captureValue('tags'), body: captureValue('body'), updatedAt: new Date().toISOString() });
+    const renderCapture = (save = true) => {
+      const draft = captureData(); if (save) store(KEYS.capture, draft);
+      const complete = Boolean(draft.title && draft.slug && draft.summary); const date = dateKey(); const tags = draft.tags.split(',').map((item) => item.trim()).filter(Boolean);
+      let output = '';
+      if (complete) {
+        const common = draft.kind === 'task'
+          ? [`---`, `title: ${yaml(draft.title)}`, `slug: ${draft.slug}`, `summary: ${yaml(draft.summary)}`, `area: ${yaml('个人计划')}`, `status: ${yaml('构想中')}`, `priority: ${yaml('中')}`, `updatedAt: ${date}`, `featured: false`, `tags: [${tags.map(yaml).join(', ')}]`, `milestones: []`, `nextActions: []`, `---`]
+          : [`---`, `title: ${yaml(draft.title)}`, `slug: ${draft.slug}`, `description: ${yaml(draft.summary)}`, `publishedAt: ${date}`, `tags: [${tags.map(yaml).join(', ')}]`, `category: ${yaml(draft.kind === 'idea' ? '灵感札记' : '学习笔记')}`, `draft: true`, `---`];
+        output = [...common, '', draft.body].join('\n').trimEnd();
+      }
+      if (capturePreview) { capturePreview.textContent = output; capturePreview.hidden = !output; } if (captureEmpty) captureEmpty.hidden = Boolean(output);
+      return output;
+    };
+    const savedDraft = parse<CaptureDraft | null>(KEYS.capture, null);
+    if (captureForm && savedDraft) Object.entries(savedDraft).forEach(([name, value]) => { const field = captureForm.elements.namedItem(name); if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) field.value = String(value); });
+    captureForm?.addEventListener('input', () => renderCapture()); captureForm?.addEventListener('change', () => renderCapture()); renderCapture(false);
+    root.querySelector('[data-capture-clear]')?.addEventListener('click', () => { if (!window.confirm('清空当前草稿？')) return; captureForm?.reset(); localStorage.removeItem(KEYS.capture); renderCapture(false); if (captureStatus) captureStatus.textContent = '草稿已清空。'; });
+    root.querySelector('[data-capture-copy]')?.addEventListener('click', async () => { const output = renderCapture(); if (!output) { if (captureStatus) captureStatus.textContent = '请先填写标题、slug 和摘要。'; return; } try { await copyText(output); if (captureStatus) captureStatus.textContent = 'Markdown 已复制。'; } catch { if (captureStatus) captureStatus.textContent = '复制失败，请从右侧预览手动复制。'; } });
+    root.querySelector('[data-capture-download]')?.addEventListener('click', () => { const output = renderCapture(); if (!output) { if (captureStatus) captureStatus.textContent = '请先填写标题、slug 和摘要。'; return; } download(output, `${captureValue('slug')}.mdx`, 'text/markdown;charset=utf-8'); if (captureStatus) captureStatus.textContent = '草稿已下载。'; });
+
+    const reviewPreview = root.querySelector<HTMLElement>('[data-review-preview]'); const reviewSummary = root.querySelector<HTMLElement>('[data-review-summary]'); const reviewStatus = root.querySelector<HTMLElement>('[data-review-status]');
+    const buildReview = () => {
+      const plans = readPlans(); const reading = readItems(); const start = Date.now() - sevenDays; const completed = plans.filter((item) => item.completedAt && Date.parse(item.completedAt) >= start); const saved = reading.filter((item) => item.savedAt >= start); const open = plans.filter((item) => !item.completed); const draft = parse<CaptureDraft | null>(KEYS.capture, null);
+      const publicRows = [...root.querySelectorAll<HTMLElement>('[data-public-action]')];
+      const section = (title: string, rows: string[]) => [`## ${title}`, '', ...(rows.length ? rows.map((row) => `- ${row}`) : ['- 无']), ''];
+      const markdown = [
+        `# 七日回顾 · ${today}`, '', `统计区间：最近七天`, '',
+        ...section('已经完成', completed.map((item) => item.title)),
+        ...section('仍在推进', open.slice(0, 10).map((item) => `${item.title}${item.date ? `（${item.date}）` : ''}`)),
+        ...section('本周收集', saved.map((item) => `[${item.title}](${item.url})${item.note ? ` — ${item.note}` : ''}`)),
+        ...section('公开计划下一步', publicRows.map((row) => `${row.dataset.title} · ${row.dataset.plan}`)),
+        ...section('当前草稿', draft?.title ? [`${draft.title}（更新于 ${draft.updatedAt.slice(0, 10)}）`] : []),
+        '## 下周最重要的三件事', '', '- [ ] ', '- [ ] ', '- [ ] ', '', '## 一句话回望', '',
+      ].join('\n');
+      if (reviewPreview) reviewPreview.textContent = markdown;
+      if (reviewSummary) {
+        reviewSummary.replaceChildren(...[
+          ['完成任务', completed.length], ['仍在推进', open.length], ['新增收藏', saved.length], ['当前草稿', draft?.title ? 1 : 0],
+        ].map(([label, value]) => { const card = document.createElement('article'); const strong = document.createElement('strong'); strong.textContent = String(value); const span = document.createElement('span'); span.textContent = String(label); card.append(strong, span); return card; }));
+      }
+      return markdown;
+    };
+    root.querySelector('[data-review-copy]')?.addEventListener('click', async () => { try { await copyText(buildReview()); if (reviewStatus) reviewStatus.textContent = '周回顾已复制。'; } catch { if (reviewStatus) reviewStatus.textContent = '复制失败，请手动复制。'; } });
+    root.querySelector('[data-review-download]')?.addEventListener('click', () => { download(buildReview(), `weekly-review-${today}.md`, 'text/markdown;charset=utf-8'); if (reviewStatus) reviewStatus.textContent = '周回顾已下载。'; });
+
+    const backupStatus = root.querySelector<HTMLElement>('[data-backup-status]');
+    const renderBackupMeta = () => { const meta = parse<{ lastExportAt?: string }>(KEYS.backup, {}); if (backupStatus && meta.lastExportAt) backupStatus.textContent = `上次导出：${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(meta.lastExportAt))}`; };
+    root.querySelector('[data-backup-export]')?.addEventListener('click', () => {
+      const exportedAt = new Date().toISOString(); const payload = { version: 1, site: 'yuncun-workspace', exportedAt, data: { plans: parse<unknown>(KEYS.plans, []), reading: parse<unknown>(KEYS.reading, []), focus: parse<unknown>(KEYS.focus, null), capture: parse<unknown>(KEYS.capture, null) } };
+      download(JSON.stringify(payload, null, 2), `yuncun-backup-${today}.json`, 'application/json;charset=utf-8'); store(KEYS.backup, { lastExportAt: exportedAt }); renderBackupMeta();
+    });
+    root.querySelector<HTMLInputElement>('[data-backup-import]')?.addEventListener('change', async (event) => {
+      const input = event.currentTarget as HTMLInputElement; const file = input.files?.[0]; if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text()) as { version?: number; site?: string; data?: Record<string, unknown> };
+        if (payload.version !== 1 || payload.site !== 'yuncun-workspace' || !payload.data) throw new Error('Invalid backup');
+        if (!Array.isArray(payload.data.plans) || !Array.isArray(payload.data.reading)) throw new Error('Invalid collections');
+        const safeReading = payload.data.reading.filter((item): item is ReadingItem => {
+          if (!item || typeof item !== 'object') return false;
+          const entry = item as Record<string, unknown>;
+          if (typeof entry.id !== 'string' || typeof entry.title !== 'string' || typeof entry.url !== 'string') return false;
+          try { return ['http:', 'https:'].includes(new URL(entry.url, window.location.origin).protocol); } catch { return false; }
+        });
+        if (safeReading.length !== payload.data.reading.length) throw new Error('Unsafe reading URL');
+        payload.data.reading = safeReading;
+        if (!window.confirm('恢复备份会覆盖当前浏览器里的私人任务、阅读备注、今日重点和草稿。继续吗？')) { input.value = ''; return; }
+        const mapping = { plans: KEYS.plans, reading: KEYS.reading, focus: KEYS.focus, capture: KEYS.capture } as const;
+        (Object.keys(mapping) as Array<keyof typeof mapping>).forEach((name) => { const value = payload.data?.[name]; if (value === undefined || value === null) localStorage.removeItem(mapping[name]); else store(mapping[name], value); });
+        window.location.reload();
+      } catch { if (backupStatus) backupStatus.textContent = '无法恢复：文件不是有效的雲梦工作台备份。'; input.value = ''; }
+    });
+
+    const refresh = () => { renderFocus(); renderDashboard(); renderReading(); buildReview(); renderBackupMeta(); };
+    window.addEventListener('storage', refresh); window.addEventListener('yuncun-local-plans-updated', refresh); window.addEventListener('yuncun-reading-list-updated', () => { renderReading(); renderDashboard(); buildReview(); });
+    const label = root.querySelector<HTMLTimeElement>('[data-workspace-today-label]'); if (label) { label.dateTime = today; label.textContent = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date()); }
+    refresh();
+  }
+</script>
+
+<style is:global>
+  .workspace-today,.workspace-reading,.workspace-capture,.workspace-review,.workspace-backup { margin-top: 52px; }
+  .workspace-today { padding: 28px; color: #45646a; background: rgba(245,253,251,.95); }
+  .workspace-today__header { display:flex; align-items:end; justify-content:space-between; gap:20px; padding-bottom:18px; border-bottom:2px dashed #98a193; }
+  .workspace-today h2,.workspace-section-heading h2 { margin:0; color:#315b66; font-family:var(--serif); }
+  .workspace-today h2 { font-size:clamp(1.8rem,4vw,3rem); }
+  .workspace-today__header time { color:#68766d; font-size:.78rem; }
+  .focus-card { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(320px,1.3fr); gap:22px; align-items:end; margin:24px 0; padding:20px; border:2px solid #73aeb5; background:#f4fcff; }
+  .focus-card span,.focus-card strong { display:block; } .focus-card span { color:#788078; font-size:.7rem; } .focus-card strong { margin-top:6px; color:#3f614e; font-family:var(--serif); font-size:1.2rem; } .focus-card strong.is-completed { text-decoration:line-through; opacity:.6; }
+  .focus-card form { display:flex; flex-wrap:wrap; gap:8px; } .focus-card input { flex:1 1 220px; min-height:42px; padding:9px 11px; border:2px solid #859187; color:#3f4d43; background:#fffdf1; font:inherit; }
+  .today-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .today-metrics article { padding:17px 19px; border:2px solid #76aeb5; background:#e7f8f8; } .today-metrics span,.today-metrics strong { display:block; } .today-metrics span { color:#617a7e; font-size:.7rem; } .today-metrics strong { margin-top:4px; color:#32636a; font-family:var(--serif); font-size:1.8rem; }
+  .today-columns { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:28px; } .today-columns h3 { margin:0 0 13px; color:#48604f; font-family:var(--serif); }
+  .today-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; } .today-list li,.workspace-action { display:grid; grid-template-columns:1fr auto; gap:6px 12px; padding:11px 13px; border-left:4px solid #739078; background:#fff9e9; } .today-list time,.workspace-action span,.workspace-action time { color:#758076; font-size:.7rem; }
+  .workspace-action-list { display:grid; gap:8px; } .workspace-action strong { grid-column:1/-1; }
+  .workspace-section-heading { margin-bottom:18px; } .workspace-section-heading h2 { font-size:2rem; } .workspace-section-heading > p:last-child { color:#647169; line-height:1.7; }
+  .workspace-reading { padding:26px; border:2px solid #6aa8b4; background:rgba(248,253,255,.95); }
+  .reading-capture { display:grid; grid-template-columns:1fr 1.4fr auto; gap:12px; align-items:end; padding-bottom:22px; border-bottom:2px dashed #a0a798; } .reading-capture label { display:grid; gap:6px; color:#536258; font-size:.72rem; font-weight:800; } .reading-capture input { min-height:42px; padding:8px 10px; border:2px solid #8a968b; background:#fffdf1; font:inherit; }
+  .workspace-reading__list { display:grid; gap:12px; margin-top:20px; } .workspace-reading__item { padding:16px; border:1px solid #90998d; background:#fff9e9; } .workspace-reading__item header { display:flex; justify-content:space-between; gap:12px; } .workspace-reading__item a { color:#456651; font-weight:800; overflow-wrap:anywhere; } .workspace-reading__item button { border:0; color:#8d5b4b; background:transparent; cursor:pointer; } .workspace-reading__item > div { display:grid; grid-template-columns:150px 1fr; gap:10px; margin-top:12px; } .workspace-reading__item select,.workspace-reading__item textarea { padding:8px 10px; border:1px solid #929c90; color:#4d5b51; background:#fffdf1; font:inherit; }
+  .capture-layout { display:grid; grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr); gap:22px; } .capture-form { display:grid; gap:12px; padding:22px; border:2px solid #71aab4; background:#f5fbff; } .capture-form label { display:grid; gap:6px; color:#536b70; font-size:.75rem; font-weight:800; } .capture-form small { color:#71878b; font-weight:400; } .capture-form input,.capture-form textarea,.capture-form select { width:100%; padding:10px; border:2px solid #8db8be; border-radius:0; color:#405a60; background:#fbfeff; font:inherit; } .capture-actions,.review-actions,.backup-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:5px; } .capture-output { min-height:390px; padding:22px; border:2px solid #4e7378; color:#e9ffff; background:#244f58; } .capture-output > p { color:#c7e3e5; } .capture-preview,.review-preview { margin:0; overflow:auto; font-size:.78rem; line-height:1.7; white-space:pre-wrap; }
+  .workspace-review { padding:26px; border:2px solid #67a4af; background:rgba(242,251,255,.95); box-shadow:0 7px 0 rgba(49,137,151,.15); } .review-layout { display:grid; grid-template-columns:260px 1fr; gap:20px; } .review-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-content:start; } .review-summary article { padding:16px; border:2px solid #78abb2; background:#f5fcff; } .review-summary strong,.review-summary span { display:block; } .review-summary strong { color:#376b70; font-family:var(--serif); font-size:1.7rem; } .review-summary span { color:#637b80; font-size:.7rem; } .review-preview { max-height:440px; padding:20px; color:#e9ffff; background:#244f58; }
+  .workspace-backup { padding:25px 28px; border:2px solid #6da7b0; background:rgba(246,252,255,.94); } .backup-import { cursor:pointer; } .backup-import input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .workspace-muted { color:#6a766d; font-size:.78rem; line-height:1.7; }
+  @media (max-width:800px) { .focus-card,.today-columns,.capture-layout,.review-layout { grid-template-columns:1fr; } .today-metrics { grid-template-columns:repeat(2,1fr); } .reading-capture { grid-template-columns:1fr; } .workspace-reading__item > div { grid-template-columns:1fr; } }
+</style>

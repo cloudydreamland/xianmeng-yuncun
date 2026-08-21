@@ -49,11 +49,11 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
 <section class="plan-dashboard" data-plan-dashboard aria-labelledby="plan-dashboard-title">
   <header class="plan-dashboard__heading">
     <div>
-      <p class="pixel-kicker">月潭推进台</p>
-      <h2 id="plan-dashboard-title">正在推进的公开事项</h2>
-      <p>计划由仓库文件维护；里程碑记录阶段结果，行动项只保留眼下可以执行的下一步。</p>
+      <p class="pixel-kicker">月潭行舟录</p>
+      <h2 id="plan-dashboard-title">今夜仍在水上之事</h2>
+      <p>诸事皆以卷册为凭；渡标记沿途所得，眼前之行则只留真正可以迈出的下一步。</p>
     </div>
-    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">如何新增计划 →</a>
+    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">如何添一叶新舟 →</a>
   </header>
 
   <div class="plan-metrics" aria-label="计划概览">
@@ -65,7 +65,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
 
   {openActions.length > 0 && (
     <section class="plan-actions" aria-labelledby="plan-actions-title">
-      <header><div><p class="pixel-kicker">下一步行动</p><h3 id="plan-actions-title">近期行动</h3></div><span>共 {openActions.length} 项未完成</span></header>
+      <header><div><p class="pixel-kicker">舟行未歇</p><h3 id="plan-actions-title">近岸之事</h3></div><span>尚有 {openActions.length} 项待行</span></header>
       <ol data-action-list>
         {openActions.map(({ plan, action, dueState }) => (
           <li
@@ -117,19 +117,19 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
           <div class="tag-row">{plan.data.tags.map((tag) => <IslandTag label={tag} tone="teal" />)}</div>
           <footer>
             <time datetime={dateKey(plan.data.updatedAt)}>更新于 {formatDate(plan.data.updatedAt)}</time>
-            <div>{linkedProject && <a href={`/projects/${linkedProject.data.slug}/`}>项目档案</a>}<a href={`/world/moon-pool/${plan.data.slug}/`}>查看推进详情 →</a></div>
+            <div>{linkedProject && <a href={`/projects/${linkedProject.data.slug}/`}>月映旧卷</a>}<a href={`/world/moon-pool/${plan.data.slug}/`}>展读行舟录 →</a></div>
           </footer>
         </article>
       );
     })}
   </div>
-  <div class="plan-empty" data-plan-empty hidden><strong>没有符合当前条件的计划。</strong><button type="button" data-filter-reset>清除筛选</button></div>
+  <div class="plan-empty" data-plan-empty hidden><strong>此刻水面无相合之舟。</strong><button type="button" data-filter-reset>清除筛选</button></div>
 
   <aside id="plan-guide" class="plan-guide">
-    <p class="pixel-kicker">Git 内容同步</p>
-    <h3>从仓库新增一项计划</h3>
-    <code>pnpm plan:new -- plan-slug "计划标题"</code>
-    <p>命令会在 <code>src/content/plans/</code> 生成模板。完善公开信息、里程碑与下一步行动后，随代码一起提交即可。</p>
+    <p class="pixel-kicker">卷册入潭</p>
+    <h3>从仓库添一册新计划</h3>
+    <code>npm run plan:new -- plan-slug "计划标题"</code>
+    <p>此令会在 <code>src/content/plans/</code> 留下一页新卷。写明可示人的来意、渡标与下一步，再随代码一同收存即可。</p>
   </aside>
 </section>
 
@@ -237,7 +237,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
 
 <style>
   .plan-dashboard { padding: 20px 0 96px; color: var(--world-text); }
-  .plan-dashboard__heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 34px; }
+  .plan-dashboard__heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 34px; padding: 26px 30px; border: 2px solid rgba(255,249,225,.72); border-left: 6px solid #9fc8d7; background: rgba(246,243,220,.92); box-shadow: 7px 7px 0 rgba(18,31,33,.2); backdrop-filter: blur(10px); }
   .plan-dashboard__heading > div { max-width: 680px; }
   .plan-dashboard__heading h2 { margin: 0; color: #514838; font-family: var(--serif); font-size: clamp(2rem, 4vw, 3.3rem); }
   .plan-dashboard__heading p:last-child { color: #56645b; line-height: 1.8; }
