@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
 });
 
-test('首页只加载当前时段的一张响应式地图', async ({ page }) => {
+test('首页加载服务端响应式地图并切换到当前时段', async ({ page }) => {
   await page.goto('/');
 
   const avifSource = page.locator('.world-map__picture source[type="image/avif"]');
@@ -27,7 +27,11 @@ test('首页只加载当前时段的一张响应式地图', async ({ page }) => 
     .map((entry) => entry.name)
     .filter((url) => url.includes('/images/world/')));
 
-  expect([...new Set(loadedWorldImages)]).toHaveLength(1);
+  const uniqueImages = [...new Set(loadedWorldImages)];
+  // 静态站无法在服务端得知访客时区：非白昼时先请求 SSR 的白昼 LCP 图，
+  // hydration 后再切换当前时段，因此最多会出现两张、且每个时段只请求一次。
+  expect(uniqueImages.length).toBeGreaterThanOrEqual(1);
+  expect(uniqueImages.length).toBeLessThanOrEqual(2);
 });
 
 test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复', async ({ page }) => {

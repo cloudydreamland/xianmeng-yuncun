@@ -12,10 +12,10 @@ test('灯巷按公开作品状态展示画廊或酝酿说明', async ({ page }) 
 
   if (await cards.count() === 0) {
     await expect(page.locator('.gallery-archive')).toHaveCount(0);
-    await expect(page.getByText('设定已开放 · 功能酝酿中').first()).toBeVisible();
+    await expect(page.getByText('境中有景 · 门扉待启').first()).toBeVisible();
   } else {
     await expect(cards).toHaveCount(2);
-    await expect(page.getByText('已开放').first()).toBeVisible();
+    await expect(page.getByText('此境门扉已启').first()).toBeVisible();
   }
 });
 
@@ -29,6 +29,7 @@ test('公开作品支持 URL 筛选、详情页和键盘灯箱', async ({ page }
   await expect(page).toHaveURL(new RegExp(`category=${encodeURIComponent(category || '')}`));
   await cards.first().getByRole('link', { name: /查看作品/ }).click();
 
+  await expect(page.locator('[data-gallery-ready="true"]')).toBeAttached();
   const firstImage = page.locator('[data-gallery-open]').first();
   await firstImage.click();
   await expect(page.locator('.gallery-lightbox')).toHaveAttribute('open', '');

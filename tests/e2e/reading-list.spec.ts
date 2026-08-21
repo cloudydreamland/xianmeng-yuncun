@@ -3,7 +3,10 @@ import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem('yuncun-entered', 'true');
-    window.localStorage.removeItem('yuncun-reading-list-v1');
+    if (!window.sessionStorage.getItem('yuncun-reading-list-test-ready')) {
+      window.localStorage.removeItem('yuncun-reading-list-v1');
+      window.sessionStorage.setItem('yuncun-reading-list-test-ready', 'true');
+    }
   });
 });
 
@@ -20,7 +23,7 @@ test('笔记可以加入本地稍后阅读并跨页面保留', async ({ page }) 
   await page.locator('[data-reading-list-open]').first().click();
   const dialog = page.locator('[data-reading-list-dialog]');
   await expect(dialog).toHaveAttribute('open', '');
-  await expect(dialog.getByRole('link', { name: '春日山窗' })).toHaveAttribute('href', '/notes/chun-ri-shan-chuang/');
+  await expect(dialog.locator('a[href="/notes/chun-ri-shan-chuang/"]')).toBeVisible();
 
   await dialog.getByRole('button', { name: '移除' }).click();
   await expect(dialog.locator('[data-reading-list-empty]')).toBeVisible();

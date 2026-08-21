@@ -4,6 +4,7 @@ import CloudSearch from '../../components/CloudSearch';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
 import IslandTag from '../../components/IslandTag';
+import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
@@ -281,6 +282,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   {region.data.slug === 'moon-pool' && (
     <>
       <PlanDashboard plans={plans} projects={projects} />
+      <LocalPlanner />
       <section class="moon-projects project-archive" aria-labelledby="moon-projects-title">
         <header class="section-heading"><p class="pixel-kicker">月下藏卷</p><h2 id="moon-projects-title">月映册</h2><p>行舟录记今夜将往何方；月映册则收已成之物、术法取舍与经年回望。</p></header>
         <div class="archive-intro"><p>月下藏卷</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>卷造物旧录</span></div>

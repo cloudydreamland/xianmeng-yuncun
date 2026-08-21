@@ -66,10 +66,12 @@ const mapRegions = regions.map((region) => {
       </div>
     </section>
     <section class="home-workspace-cta page-shell"><div><p class="pixel-kicker">境外云案</p><h2>七境之外，尚有一方独属你的案几。</h2><p>今日诸务、待阅之笺、初生的念头与七日回望，皆可暂寄案上，待你亲手归卷。</p></div><a class="pixel-button pixel-button--primary" href="/workspace/">启案入席 →</a></section>
+    <div class="home-plan-summary-wrap page-shell">
+      <PlanSummary plans={plans} />
+    </div>
 
     <section id="village-content" class="village-bulletin">
       <div class="page-shell bulletin-layout">
-        <PlanSummary plans={plans} />
         <header class="bulletin-heading cloud-sign">
           <p class="pixel-kicker">云村近况</p>
           <h2>云村近况</h2>
@@ -110,6 +112,7 @@ const mapRegions = regions.map((region) => {
 
 <style>
   .village-bulletin { display:none; }
+  .home-plan-summary-wrap { padding-block: 18px 76px; }
   .realm-overview { padding:94px 0 70px; }
   .realm-overview .section-heading { width:min(900px,100%); max-width:900px; padding:clamp(24px,3vw,38px); border:1px solid var(--home-heading-border); border-left:5px solid var(--home-accent); background:var(--home-heading-panel); box-shadow:var(--home-panel-shadow); backdrop-filter:blur(16px) saturate(1.08); transition:background .65s ease,border-color .65s ease,box-shadow .65s ease; }
   .realm-overview h1 { margin:0; color:var(--home-heading); font-family:var(--serif); font-size:clamp(2.2rem,5vw,4.3rem); text-shadow:var(--home-heading-shadow); transition:color .65s ease,text-shadow .65s ease; }

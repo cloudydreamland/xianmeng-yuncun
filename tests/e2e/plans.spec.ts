@@ -40,7 +40,7 @@ test('计划详情展示进度、项目关联并可从项目档案返回', async
   await page.goto('/world/moon-pool/yuncun-next-stage/');
   await expect(page.getByRole('heading', { level: 1, name: '雲梦世界持续建设' })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: /里程碑进度/ })).toHaveAttribute('aria-valuenow', '75');
-  await expect(page.getByRole('link', { name: '查看稳定项目档案 →' })).toHaveAttribute('href', '/projects/yuncun-blog/');
+  await expect(page.getByRole('link', { name: '展读造物旧录 →' })).toHaveAttribute('href', '/projects/yuncun-blog/');
 
   await page.goto('/projects/yuncun-blog/');
   const linked = page.locator('.project-plan-links');
