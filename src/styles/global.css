@@ -1564,6 +1564,40 @@ body.workspace-route::after {
 }
 .desktop-nav a:hover,
 .desktop-nav a.active { color: var(--pixel-ink); background: #b9d9ae; box-shadow: inset 0 -3px 0 #72906a; }
+.desktop-realm-menu { position: relative; }
+.desktop-realm-menu > summary {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  color: #5b4736;
+  font-size: .76rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.desktop-realm-menu > summary::-webkit-details-marker { display: none; }
+.desktop-realm-menu > summary > span:last-child { font-size: .62rem; transition: transform .18s ease; }
+.desktop-realm-menu[open] > summary > span:last-child { transform: rotate(180deg); }
+.desktop-realm-menu.active > summary,
+.desktop-realm-menu > summary:hover,
+.desktop-realm-menu[open] > summary { background: #b9d9ae; box-shadow: inset 0 -3px 0 #72906a; }
+.desktop-realm-menu__panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: -6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
+  width: 270px;
+  gap: 4px;
+  padding: 9px;
+  border: 3px solid var(--pixel-line);
+  background: rgba(255, 249, 232, .98);
+  box-shadow: 6px 6px 0 rgba(45, 57, 49, .62);
+}
+.desktop-nav .desktop-realm-menu__panel .realm-nav-link { justify-content: flex-start; min-height: 38px; padding: 7px 9px; }
+.desktop-realm-menu__panel .realm-nav-link:last-child { grid-column: 1 / -1; }
 .js .nav-search {
   height: 34px;
   gap: 6px;
@@ -1600,6 +1634,7 @@ body.workspace-route::after {
   .js .nav-search, .js .nav-reading-list { padding-inline: 7px; }
   .nav-search kbd { display: none; }
   .nav-reading-list > span:not([aria-hidden]) { display: none; }
+  .desktop-realm-menu > summary { padding-inline: 6px; font-size: .72rem; }
 }
 
 /* Village bulletin */

@@ -24,6 +24,14 @@ const regions = (await getCollection('regions'))
 const featuredProjects = projects.filter(({ data }) => data.featured).slice(0, 2);
 const recentNotes = notes.slice(0, 3);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(date);
+const latestActivityAt = notes[0]?.data.updatedAt ?? notes[0]?.data.publishedAt;
+const formatFullDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+const randomDestinations = [
+  ...notes.map((note) => `/notes/${note.data.slug}/`),
+  ...projects.map((project) => `/projects/${project.data.slug}/`),
+];
+const randomFallback = randomDestinations[0] ?? '/world/cloud-village/';
+const latestNoteHref = recentNotes[0] ? `/notes/${recentNotes[0].data.slug}/` : '/world/wind-valley/';
 
 const pointsById = new Map(worldMapPoints.map((point) => [point.id, point]));
 const mapRegions = regions.map((region) => {
@@ -59,16 +67,36 @@ const mapRegions = regions.map((region) => {
 
   <div class="home-after-map">
     <HomeGeometryField />
+    <section class="home-intro page-shell" aria-labelledby="home-intro-title">
+      <div class="home-intro__copy pixel-frame">
+        <p class="pixel-kicker">王选默的数字世界</p>
+        <h1 id="home-intro-title">在七境之间，记录学习、造物与日常。</h1>
+        <p>这里以云村为中心，收纳软件工程、机器学习与自然语言处理的学习札记，也保存项目复盘、公开计划和偶然拾得的灵感。</p>
+        <nav class="home-intro__actions" aria-label="主页快速入口">
+          <a class="pixel-button pixel-button--primary" href={latestNoteHref}>读最新笔记 →</a>
+          <a class="pixel-button" href="/world/moon-pool/">看项目</a>
+          <a class="pixel-button" href="/about">认识我</a>
+          <a class="pixel-button home-random-link" href={randomFallback} data-random-portal data-random-links={JSON.stringify(randomDestinations)}>随缘一阅 ↝</a>
+        </nav>
+      </div>
+      <aside class="home-intro__ledger pixel-frame" aria-label="站点内容概况">
+        <p class="pixel-kicker">此间已有</p>
+        <dl>
+          <div><dt>公开笔记</dt><dd>{notes.length}</dd></div>
+          <div><dt>项目档案</dt><dd>{projects.length}</dd></div>
+          <div><dt>开放境域</dt><dd>{regions.filter(({ data }) => data.status === 'active').length}</dd></div>
+        </dl>
+        {latestActivityAt && <p class="home-intro__updated">最近更新 <time datetime={latestActivityAt.toISOString()}>{formatFullDate(latestActivityAt)}</time></p>}
+        <a href="/rss.xml">以 RSS 接收新风信 →</a>
+      </aside>
+    </section>
+
     <section class="realm-overview page-shell" aria-labelledby="realm-overview-title">
-      <header class="section-heading"><p class="pixel-kicker">七境灵图</p><h1 id="realm-overview-title">七境各司一念，<br />万象皆有归处。</h1><p>循图认路，依境藏心。择一方灵域，便可抵达与之相守的文字、造物与日常。</p></header>
+      <header class="section-heading"><p class="pixel-kicker">七境灵图</p><h2 id="realm-overview-title">七境各司一念，<br />万象皆有归处。</h2><p>循图认路，依境藏心。择一方灵域，便可抵达与之相守的文字、造物与日常。</p></header>
       <div class="realm-overview-grid">
         {mapRegions.map((region) => <a class="realm-overview-card" href={region.href}><div class="realm-overview-card__seal"><RealmOracleSigil realm={region.id} size={42} /><span>{region.realm}</span></div><h2>{region.title}</h2><strong>{region.functionTitle}</strong><p>{region.functionDescription}</p><em>{region.status === 'active' ? '门扉已启' : '灵境将启'} →</em></a>)}
       </div>
     </section>
-    <section class="home-workspace-cta page-shell"><div><p class="pixel-kicker">境外云案</p><h2>七境之外，尚有一方独属你的案几。</h2><p>今日诸务、待阅之笺、初生的念头与七日回望，皆可暂寄案上，待你亲手归卷。</p></div><a class="pixel-button pixel-button--primary" href="/workspace/">启案入席 →</a></section>
-    <div class="home-plan-summary-wrap page-shell">
-      <PlanSummary plans={plans} />
-    </div>
 
     <section id="village-content" class="village-bulletin">
       <div class="page-shell bulletin-layout">
@@ -79,7 +107,7 @@ const mapRegions = regions.map((region) => {
         </header>
 
         <div class="bulletin-notes">
-          <span class="bulletin-label">风谷新信</span>
+          <div class="bulletin-column-heading"><span class="bulletin-label">风谷新信</span><a href="/world/wind-valley/">全部笔记 →</a></div>
           {recentNotes.map((note, index) => (
             <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
               <span class="bulletin-note__pin" aria-hidden="true"></span>
@@ -94,7 +122,7 @@ const mapRegions = regions.map((region) => {
 
         <div class="bulletin-projects">
           <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
-          <span class="bulletin-label">月潭近档</span>
+          <div class="bulletin-column-heading"><span class="bulletin-label">月潭近档</span><a href="/world/moon-pool/">全部项目 →</a></div>
           {featuredProjects.map((project, index) => (
             <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
               <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
@@ -107,15 +135,50 @@ const mapRegions = regions.map((region) => {
         </div>
       </div>
     </section>
+
+    <div class="home-plan-summary-wrap page-shell">
+      <PlanSummary plans={plans} />
+    </div>
+    <section class="home-workspace-cta page-shell"><div><p class="pixel-kicker">境外云案</p><h2>七境之外，尚有一方独属你的案几。</h2><p>今日诸务、待阅之笺、初生的念头与七日回望，皆可暂寄案上，待你亲手归卷。</p></div><a class="pixel-button pixel-button--primary" href="/workspace/">启案入席 →</a></section>
+    <section class="home-follow page-shell pixel-frame" aria-labelledby="home-follow-title">
+      <div><p class="pixel-kicker">风信不断</p><h2 id="home-follow-title">下次再来，也不必从头寻路。</h2><p>订阅 RSS 接收新内容，或打开云镜，从标题、分类与标签中检索全境。</p></div>
+      <div><a class="pixel-button pixel-button--primary" href="/rss.xml">订阅 RSS</a><button class="pixel-button" type="button" data-search-open>打开云镜 ⌕</button></div>
+    </section>
   </div>
 </BaseLayout>
 
+<script>
+  document.querySelectorAll<HTMLElement>('[data-random-portal]').forEach((element) => {
+    element.addEventListener('click', (event) => {
+      if (!(event instanceof MouseEvent) || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const links = JSON.parse(element.dataset.randomLinks ?? '[]') as string[];
+      if (links.length < 2) return;
+      event.preventDefault();
+      const currentPath = window.location.pathname;
+      const choices = links.filter((href) => href !== currentPath);
+      window.location.assign(choices[Math.floor(Math.random() * choices.length)] ?? links[0]);
+    });
+  });
+</script>
+
 <style>
-  .village-bulletin { display:none; }
-  .home-plan-summary-wrap { padding-block: 18px 76px; }
-  .realm-overview { padding:94px 0 70px; }
+  .home-intro { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.65fr); gap:20px; padding-top:76px; }
+  .home-intro__copy,.home-intro__ledger { padding:clamp(24px,3vw,38px); background:rgba(242,251,248,.94); }
+  .home-intro__copy h1 { max-width:800px; margin:4px 0 18px; color:#3c514c; font-family:var(--serif); font-size:clamp(2.35rem,5vw,4.9rem); line-height:1.08; }
+  .home-intro__copy > p:not(.pixel-kicker) { max-width:780px; margin:0; color:#566b66; line-height:1.85; }
+  .home-intro__actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:30px; }
+  .home-intro__ledger { display:flex; flex-direction:column; color:#50635d; background:rgba(231,242,226,.95); }
+  .home-intro__ledger dl { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 22px; }
+  .home-intro__ledger dl div { display:flex; min-height:94px; flex-direction:column-reverse; justify-content:center; padding:10px 8px; border:2px solid #789285; background:#f5f2dd; text-align:center; }
+  .home-intro__ledger dt { color:#607067; font-size:.68rem; font-weight:800; letter-spacing:.08em; }
+  .home-intro__ledger dd { margin:0 0 4px; color:#4e5a4f; font-family:var(--serif); font-size:2rem; font-weight:800; }
+  .home-intro__updated { margin:auto 0 12px; padding-top:14px; border-top:1px dashed #8ca097; font-size:.75rem; }
+  .home-intro__updated time { display:block; margin-top:5px; color:#42695a; font-weight:900; }
+  .home-intro__ledger > a { color:#416956; font-size:.75rem; font-weight:900; }
+  .home-plan-summary-wrap { padding-block: 30px 52px; }
+  .realm-overview { padding:74px 0 70px; }
   .realm-overview .section-heading { width:min(900px,100%); max-width:900px; padding:clamp(24px,3vw,38px); border:1px solid var(--home-heading-border); border-left:5px solid var(--home-accent); background:var(--home-heading-panel); box-shadow:var(--home-panel-shadow); backdrop-filter:blur(16px) saturate(1.08); transition:background .65s ease,border-color .65s ease,box-shadow .65s ease; }
-  .realm-overview h1 { margin:0; color:var(--home-heading); font-family:var(--serif); font-size:clamp(2.2rem,5vw,4.3rem); text-shadow:var(--home-heading-shadow); transition:color .65s ease,text-shadow .65s ease; }
+  .realm-overview .section-heading h2 { margin:0; color:var(--home-heading); font-family:var(--serif); font-size:clamp(2.2rem,5vw,4.3rem); text-shadow:var(--home-heading-shadow); transition:color .65s ease,text-shadow .65s ease; }
   .realm-overview .section-heading .pixel-kicker { color:var(--home-accent); letter-spacing:.32em; transition:color .65s ease; }
   .realm-overview .section-heading > p:last-child { color:var(--home-copy); line-height:1.8; text-shadow:var(--home-copy-shadow); transition:color .65s ease,text-shadow .65s ease; }
   .realm-overview-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:34px; }
@@ -127,9 +190,17 @@ const mapRegions = regions.map((region) => {
   .realm-overview-card h2 { margin:10px 0 7px; color:#514838; font-family:var(--serif); font-size:1.55rem; }
   .realm-overview-card strong { color:#3e6a53; }
   .realm-overview-card p { margin:9px 0 16px; font-size:.79rem; line-height:1.65; }
-  .home-workspace-cta { display:flex; align-items:center; justify-content:space-between; gap:22px; margin-block:24px 72px; padding:30px; border:2px solid #58a9bb; background:rgba(241,253,255,.94); box-shadow:0 8px 0 rgba(53,151,166,.16),0 18px 42px rgba(50,168,192,.17); }
+  .bulletin-column-heading { display:flex; min-height:44px; align-items:start; justify-content:space-between; gap:12px; }
+  .bulletin-column-heading > a { color:#416956; font-size:.72rem; font-weight:900; }
+  .home-workspace-cta { display:flex; align-items:center; justify-content:space-between; gap:22px; margin-block:24px 44px; padding:30px; border:2px solid #58a9bb; background:rgba(241,253,255,.94); box-shadow:0 8px 0 rgba(53,151,166,.16),0 18px 42px rgba(50,168,192,.17); }
   .home-workspace-cta h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:2rem; }
   .home-workspace-cta p:not(.pixel-kicker) { margin-bottom:0; color:#617067; }
+  .home-follow { display:flex; align-items:center; justify-content:space-between; gap:28px; margin-bottom:94px; padding:30px 34px; background:rgba(232,240,220,.94); }
+  .home-follow h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:clamp(1.7rem,3vw,2.4rem); }
+  .home-follow p:not(.pixel-kicker) { margin:10px 0 0; color:#617067; }
+  .home-follow > div:last-child { display:flex; flex:0 0 auto; gap:12px; }
   @media (max-width:900px) { .realm-overview-grid { grid-template-columns:repeat(2,1fr); } }
-  @media (max-width:600px) { .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } }
+  @media (max-width:900px) { .home-intro { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
+  @media (max-width:600px) { .home-intro { padding-top:52px; } .home-intro__copy,.home-intro__ledger { padding:22px 20px 24px; } .home-intro__actions { display:grid; grid-template-columns:1fr 1fr; } .home-intro__ledger dl { grid-template-columns:repeat(3,1fr); } .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
+  @media (max-width:420px) { .home-intro__actions { grid-template-columns:1fr; } .home-intro__ledger dl { grid-template-columns:1fr; } }
 </style>

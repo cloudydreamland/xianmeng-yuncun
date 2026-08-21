@@ -134,7 +134,7 @@ test('首页场景从全境地图之后开始，并随地图时辰同步变色',
       const pseudo = getComputedStyle(element, '::before');
       return { backgroundImage: pseudo.backgroundImage, filter: pseudo.filter };
     });
-    expect(style.backgroundImage).toContain('home-heaven-rift-v5-1536');
+    expect(style.backgroundImage).toContain('home-heaven-rift-v6-');
     sceneFilters.add(style.filter);
   }
 
