@@ -21,7 +21,7 @@
   --radius-md: 26px;
   --radius-lg: 40px;
   --page: min(1180px, calc(100vw - 48px));
-  --serif: "Noto Serif SC", "Songti SC", SimSun, serif;
+  --serif: "Songti SC", STSong, "Noto Serif CJK SC", SimSun, serif;
   --sans: Nunito, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   --animal-primary-color: var(--water-deep);
   --animal-primary-color-hover: var(--water);
@@ -837,8 +837,18 @@ img { max-width: 100%; display: block; }
 .world-map__viewport { position: relative; overflow: hidden; outline: 0; scrollbar-color: #7aa39d #d8e8e5; }
 .world-map__viewport:focus-visible { box-shadow: inset 0 0 0 4px #efd778; }
 .world-map__canvas { position: relative; aspect-ratio: 16 / 9; min-width: 980px; overflow: hidden; }
-.world-map__picture, .world-map__picture img, .world-map__noscript { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.world-map__picture img { animation: atlas-arrive .8s ease both; }
+.world-map__picture, .world-map__noscript { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.world-map__picture { background-image: var(--world-map-day); background-position: center; background-size: cover; animation: atlas-arrive .8s ease both; }
+html[data-time="dawn"] .world-map__picture { background-image: var(--world-map-dawn); }
+html[data-time="day"] .world-map__picture { background-image: var(--world-map-day); }
+html[data-time="dusk"] .world-map__picture { background-image: var(--world-map-dusk); }
+html[data-time="night"] .world-map__picture { background-image: var(--world-map-night); }
+@media (max-width: 760px) {
+  html[data-time="dawn"] .world-map__picture { background-image: var(--world-map-dawn-mobile); }
+  html[data-time="day"] .world-map__picture { background-image: var(--world-map-day-mobile); }
+  html[data-time="dusk"] .world-map__picture { background-image: var(--world-map-dusk-mobile); }
+  html[data-time="night"] .world-map__picture { background-image: var(--world-map-night-mobile); }
+}
 .world-map__vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(circle at 50% 46%, transparent 38%, rgba(16, 36, 42, .2) 100%), linear-gradient(180deg, rgba(8, 22, 28, .58), transparent 18%, transparent 78%, rgba(10, 26, 34, .16)); }
 
 .world-markers { position: absolute; inset: 0; z-index: 4; }
@@ -1097,7 +1107,7 @@ img { max-width: 100%; display: block; }
 @keyframes drawer-enter-mobile { from { opacity: 0; transform: translateY(35px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .world-map__picture img, .world-drawer[open] { animation: none; }
+  .world-map__picture, .world-drawer[open] { animation: none; }
 }
 
 /* --------------------------------------------------------------------------
@@ -1437,25 +1447,6 @@ body.workspace-route::after {
   }
 }
 
-.realm-overview {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 900px;
-}
-.home-workspace-cta,
-.region-nav {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 190px;
-}
-.workspace-page > section,
-.region-story {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 720px;
-}
-.region-feature {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 920px;
-}
-
 .pixel-kicker,
 .eyebrow {
   margin: 0 0 10px;
@@ -1553,7 +1544,6 @@ body.workspace-route::after {
   border-radius: 0;
   background: rgba(255, 249, 232, .92);
   box-shadow: 5px 5px 0 rgba(45, 57, 49, .65);
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, 100% 4px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) 100%, 8px 100%, 8px calc(100% - 4px), 0 calc(100% - 4px), 0 8px, 4px 8px, 4px 4px, 8px 4px);
   backdrop-filter: blur(12px);
 }
 .desktop-nav a {
@@ -1595,6 +1585,7 @@ body.workspace-route::after {
   border: 3px solid var(--pixel-line);
   background: rgba(255, 249, 232, .98);
   box-shadow: 6px 6px 0 rgba(45, 57, 49, .62);
+  z-index: 2;
 }
 .desktop-nav .desktop-realm-menu__panel .realm-nav-link { justify-content: flex-start; min-height: 38px; padding: 7px 9px; }
 .desktop-realm-menu__panel .realm-nav-link:last-child { grid-column: 1 / -1; }
@@ -2690,3 +2681,4 @@ html[data-time='night'] .prose { color: #46564f; background: #fffaf0; }
 .about-profile > .pixel-kicker,
 .cloud-search .pixel-kicker,
 .site-footer .pixel-kicker { color: var(--panel-text-accent); }
+.site-footer .pixel-kicker { color: #194d47; }

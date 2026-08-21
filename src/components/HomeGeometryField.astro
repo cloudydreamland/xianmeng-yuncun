@@ -101,14 +101,11 @@
     });
 
     const resize = () => {
-      const rect = scene.getBoundingClientRect();
-      width = Math.max(1, Math.round(rect.width));
+      width = Math.max(1, Math.round(window.innerWidth));
       height = Math.max(1, Math.round(window.innerHeight));
       ratio = Math.min(window.devicePixelRatio || 1, finePointer && !lowPower ? 1.5 : 1);
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       const constrainedDevice = lowPower || constrainedNetwork;
       const areaCount = Math.round((width * height) / (finePointer ? 6_500 : 9_000));

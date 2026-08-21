@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Title, type TitleColor } from 'animal-island-ui';
 import type {
   RegionId,
@@ -73,9 +73,8 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastTriggerRef = useRef<HTMLAnchorElement | null>(null);
   const [timeMode, setTimeMode] = useState<TimeMode>('auto');
-  // Render a real image during SSR so the browser can discover the LCP asset
-  // before React hydrates. The stored/automatic mode is applied immediately
-  // after hydration and replaces it only when necessary.
+  // CSS selects the correct preloaded map before hydration; this state keeps
+  // the control label and time switcher in sync once React is active.
   const [resolvedTime, setResolvedTime] = useState<ResolvedTimeMode>('day');
   const [selectedId, setSelectedId] = useState<RegionId | null>(null);
   const [timeMenuOpen, setTimeMenuOpen] = useState(false);
@@ -166,26 +165,19 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
     window.setTimeout(() => lastTriggerRef.current?.focus(), 0);
   };
 
-  const image = backgrounds[resolvedTime];
+  const mapBackgroundStyle = Object.fromEntries(
+    Object.entries(backgrounds).flatMap(([time, image]) => [
+      [`--world-map-${time}`, `url("${image.cssImage ?? image.fallback}")`],
+      [`--world-map-${time}-mobile`, `url("${image.cssImageMobile ?? image.cssImage ?? image.fallback}")`],
+    ]),
+  ) as CSSProperties;
 
   return (
     <section className="world-map" aria-label="雲梦世界全境地图">
       <div className="world-map__frame">
         <div className="world-map__viewport" ref={viewportRef} tabIndex={0} aria-label="可横向浏览的雲梦全境地图">
           <div className="world-map__canvas">
-            <picture className="world-map__picture" key={resolvedTime}>
-              <source type="image/avif" srcSet={image.avifSrcSet} sizes={image.sizes} />
-              <source type="image/webp" srcSet={image.webpSrcSet} sizes={image.sizes} />
-              <img
-                src={image.fallback}
-                alt={imageAlt}
-                width={3840}
-                height={2160}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
-            </picture>
+            <div className="world-map__picture" style={mapBackgroundStyle} role="img" aria-label={imageAlt} />
             <div className="world-map__vignette" aria-hidden="true" />
 
             <nav className="world-markers" aria-label="雲梦世界地点">

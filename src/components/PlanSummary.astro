@@ -33,7 +33,7 @@ const selected = [...featured, ...sorted.filter((plan) => !featured.includes(pla
   .home-plan-summary > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
   .home-plan-summary h3 { margin: 0; color: #514838; font-family: var(--serif); font-size: 1.55rem; }
   .home-plan-summary > header a { color: #426753; font-size: .75rem; font-weight: 900; }
-  .home-plan-summary > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .home-plan-summary > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
   .home-plan-card { padding: 17px 18px; border: 2px solid #7d897f; color: #556159; background: #f6f3db; transition: transform .18s ease, box-shadow .18s ease; }
   .home-plan-card:hover { transform: translateY(-3px); box-shadow: 4px 4px 0 rgba(67,78,69,.24); }
   .home-plan-card > span, .home-plan-card p, .home-plan-card small { display: block; font-size: .68rem; }

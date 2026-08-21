@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import fontStylesUrl from '../styles/fonts.css?url';
 import Header from '../components/HeaderV2.astro';
 import Footer from '../components/Footer.astro';
 import SearchPanel from '../components/SearchPanel.astro';
@@ -34,6 +33,11 @@ const {
 const pageTitle = title === '雲梦世界' ? title : `${title}｜雲梦世界`;
 const isRegionRoute = Astro.url.pathname.startsWith('/world/');
 const isWorkspaceRoute = Astro.url.pathname.startsWith('/workspace/');
+const isHomeRoute = Astro.url.pathname === '/';
+const homeMapPreloads = Object.fromEntries(Object.entries(worldBackgrounds).map(([time, asset]) => [time, {
+  mobile: asset.cssImageMobile,
+  desktop: asset.cssImage,
+}]));
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
 const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
@@ -45,7 +49,7 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
 ---
 
 <!doctype html>
-<html lang="zh-CN" style={villageBackgroundStyle}>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -54,11 +58,10 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <meta name="theme-color" content="#edf4e6" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/yuncun-app-192.png" />
     <link rel="apple-touch-icon" href="/icons/yuncun-app-180.png" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title="雲梦世界订阅" href="/rss.xml" />
-    <link rel="stylesheet" href={fontStylesUrl} media="print" onload="this.setAttribute('media','all')" />
-    <noscript><link rel="stylesheet" href={fontStylesUrl} /></noscript>
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
@@ -73,7 +76,7 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     {searchable && searchTags.map((tag) => <meta data-pagefind-filter="tag[content]" content={tag} />)}
     {searchable && searchDate && <meta data-pagefind-sort="date[content]" content={searchDate.toISOString()} />}
     <title>{pageTitle}</title>
-    <script is:inline>
+    <script is:inline define:vars={{ isHomeRoute, homeMapPreloads }}>
       (() => {
         const root = document.documentElement;
         root.classList.add('js');
@@ -86,10 +89,21 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
         const resolved = mode !== 'auto' ? mode : hour >= 5 && hour < 8 ? 'dawn' : hour >= 8 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night';
         root.dataset.time = resolved;
         root.dataset.timeMode = mode;
+        if (isHomeRoute) {
+          const candidate = innerWidth <= 760 ? homeMapPreloads[resolved]?.mobile : homeMapPreloads[resolved]?.desktop;
+          if (candidate) {
+            const preload = document.createElement('link');
+            preload.rel = 'preload';
+            preload.as = 'image';
+            preload.href = candidate;
+            preload.fetchPriority = 'high';
+            document.head.append(preload);
+          }
+        }
       })();
     </script>
   </head>
-  <body class:list={[{ 'home-page': Astro.url.pathname === '/', 'region-route': isRegionRoute, 'workspace-route': isWorkspaceRoute }]}>
+  <body style={villageBackgroundStyle} class:list={[{ 'home-page': Astro.url.pathname === '/', 'region-route': isRegionRoute, 'workspace-route': isWorkspaceRoute }]}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <div class="paper-noise" aria-hidden="true"></div>
     <Header />

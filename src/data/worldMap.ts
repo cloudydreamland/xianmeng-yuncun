@@ -25,6 +25,8 @@ export interface ResponsiveWorldImage {
   avifSrcSet: string;
   webpSrcSet: string;
   fallback: string;
+  cssImage?: string;
+  cssImageMobile?: string;
   sizes: string;
 }
 
@@ -59,6 +61,8 @@ export const worldBackgrounds: Record<ResolvedTimeMode, ResponsiveWorldImage> = 
     avifSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'avif'), width }))),
     webpSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'webp'), width }))),
     fallback: worldCandidate(time, 3840, 'webp'),
+    cssImage: worldCandidate(time, 1920, 'avif'),
+    cssImageMobile: worldCandidate(time, 960, 'avif'),
     sizes: worldSizes,
   }]),
 ) as Record<ResolvedTimeMode, ResponsiveWorldImage>;

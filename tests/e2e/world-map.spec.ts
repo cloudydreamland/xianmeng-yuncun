@@ -16,10 +16,10 @@ test.beforeEach(async ({ page }) => {
 test('首页加载服务端响应式地图并切换到当前时段', async ({ page }) => {
   await page.goto('/');
 
-  const avifSource = page.locator('.world-map__picture source[type="image/avif"]');
-  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-960\.avif/);
-  await expect(avifSource).toHaveAttribute('srcset', /world-detailed-v3-5120\.avif/);
-  await expect(page.locator('.world-map__picture img')).not.toHaveAttribute('src', /4k|mobile-hd/);
+  const picture = page.locator('.world-map__picture');
+  await expect(picture).toHaveAttribute('role', 'img');
+  await expect(picture).toHaveAttribute('style', /--world-map-day:\s*url\("\/images\/world\/day\/world-detailed-v3-1920\.avif"\)/);
+  await expect(picture).toHaveAttribute('style', /--world-map-day-mobile:\s*url\("\/images\/world\/day\/world-detailed-v3-960\.avif"\)/);
 
   await page.waitForTimeout(2_000);
   const loadedWorldImages = await page.evaluate(() => performance
@@ -28,10 +28,8 @@ test('首页加载服务端响应式地图并切换到当前时段', async ({ pa
     .filter((url) => url.includes('/images/world/')));
 
   const uniqueImages = [...new Set(loadedWorldImages)];
-  // 静态站无法在服务端得知访客时区：非白昼时先请求 SSR 的白昼 LCP 图，
-  // hydration 后再切换当前时段，因此最多会出现两张、且每个时段只请求一次。
-  expect(uniqueImages.length).toBeGreaterThanOrEqual(1);
-  expect(uniqueImages.length).toBeLessThanOrEqual(2);
+  // 时段由首屏内联脚本决定，地图以 CSS 背景按当前时段取图，避免水合前后重复下载。
+  expect(uniqueImages).toHaveLength(1);
 });
 
 test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复', async ({ page }) => {
@@ -81,7 +79,8 @@ test('四个时辰同步切换背景与语义文字色，并保持面板文字�
     await page.reload();
 
     await expect(page.locator('html')).toHaveAttribute('data-time', mode);
-    await expect(page.locator('.world-map__picture img')).toHaveAttribute('src', new RegExp(`/world/${mode}/`));
+    await expect.poll(() => page.locator('.world-map__picture').evaluate((element) => getComputedStyle(element).backgroundImage))
+      .toMatch(new RegExp(`/world/${mode}/world-detailed-v3-1920\\.avif`));
 
     const styles = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement);

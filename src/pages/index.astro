@@ -1,7 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import CloudEntrance from '../components/CloudEntrance';
 import IslandTag from '../components/IslandTag';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
@@ -56,13 +55,12 @@ const mapRegions = regions.map((region) => {
 ---
 
 <BaseLayout>
-  <CloudEntrance client:idle={{ timeout: 2500 }} />
   <WorldMap
-    client:idle={{ timeout: 2000 }}
+    client:load
     backgrounds={worldBackgrounds}
     regions={mapRegions}
     timeCopy={timeCopy}
-    imageAlt="雲梦世界全境图：云村居中，雪崖、星渊、风谷、月潭、雨桥与浮屿灯巷环绕在云海之上"
+    imageAlt="雲梦世界全境图：云村居中，雪崖、星渊、风谷、月潭、雨桥与浮屿·灯巷环绕在云海之上"
   />
 
   <div class="home-after-map">
@@ -202,5 +200,5 @@ const mapRegions = regions.map((region) => {
   @media (max-width:900px) { .realm-overview-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:900px) { .home-intro { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
   @media (max-width:600px) { .home-intro { padding-top:52px; } .home-intro__copy,.home-intro__ledger { padding:22px 20px 24px; } .home-intro__actions { display:grid; grid-template-columns:1fr 1fr; } .home-intro__ledger dl { grid-template-columns:repeat(3,1fr); } .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
-  @media (max-width:420px) { .home-intro__actions { grid-template-columns:1fr; } .home-intro__ledger dl { grid-template-columns:1fr; } }
+  @media (max-width:420px) { .home-intro__actions { grid-template-columns:1fr; } }
 </style>
