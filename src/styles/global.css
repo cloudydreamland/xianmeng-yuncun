@@ -1288,8 +1288,8 @@ body.workspace-route::after {
 
 .home-after-map::before {
   background-image: image-set(
-    url('/images/backgrounds/home-heaven-rift-v5-1536.avif') type('image/avif'),
-    url('/images/backgrounds/home-heaven-rift-v5-1536.webp') type('image/webp')
+    url('/images/backgrounds/home-heaven-rift-v6-1536.avif') type('image/avif'),
+    url('/images/backgrounds/home-heaven-rift-v6-1536.webp') type('image/webp')
   );
   background-attachment: fixed;
   background-position: center;
@@ -1364,8 +1364,8 @@ body.workspace-route::after {
   background-image:
     linear-gradient(180deg, rgba(11, 28, 65, .03), rgba(5, 23, 48, .14)),
     image-set(
-      url('/images/backgrounds/workspace-starriver-v5-1536.avif') type('image/avif'),
-      url('/images/backgrounds/workspace-starriver-v5-1536.webp') type('image/webp')
+      url('/images/backgrounds/workspace-starriver-v6-1536.avif') type('image/avif'),
+      url('/images/backgrounds/workspace-starriver-v6-1536.webp') type('image/webp')
     );
   background-position: center;
   background-size: cover;
@@ -1380,6 +1380,42 @@ body.workspace-route::after {
   box-shadow: 4px 4px 0 rgba(15, 37, 63, .36);
 }
 .workspace-route .site-brand small { color: #69705c; }
+
+@media (min-width: 1280px), (min-width: 761px) and (min-resolution: 1.5dppx) {
+  .home-after-map::before {
+    background-image: image-set(
+      url('/images/backgrounds/home-heaven-rift-v6-2560.avif') type('image/avif'),
+      url('/images/backgrounds/home-heaven-rift-v6-2560.webp') type('image/webp')
+    );
+  }
+
+  body.workspace-route::after {
+    background-image:
+      linear-gradient(180deg, rgba(11, 28, 65, .03), rgba(5, 23, 48, .14)),
+      image-set(
+        url('/images/backgrounds/workspace-starriver-v6-2560.avif') type('image/avif'),
+        url('/images/backgrounds/workspace-starriver-v6-2560.webp') type('image/webp')
+      );
+  }
+}
+
+@media (min-width: 2300px), (min-width: 1800px) and (min-resolution: 1.5dppx) {
+  .home-after-map::before {
+    background-image: image-set(
+      url('/images/backgrounds/home-heaven-rift-v6-3840.avif') type('image/avif'),
+      url('/images/backgrounds/home-heaven-rift-v6-3840.webp') type('image/webp')
+    );
+  }
+
+  body.workspace-route::after {
+    background-image:
+      linear-gradient(180deg, rgba(11, 28, 65, .03), rgba(5, 23, 48, .14)),
+      image-set(
+        url('/images/backgrounds/workspace-starriver-v6-3840.avif') type('image/avif'),
+        url('/images/backgrounds/workspace-starriver-v6-3840.webp') type('image/webp')
+      );
+  }
+}
 
 @media (max-width: 760px) {
   .home-after-map::before {

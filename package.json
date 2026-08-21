@@ -12,6 +12,7 @@
     "test:unit": "node --experimental-strip-types --test --test-isolation=none tests/unit/planProgress.test.ts tests/unit/planValidation.test.ts",
     "gallery:prepare": "node scripts/prepare-gallery-image.mjs",
     "media:prepare": "node scripts/prepare-background-images.mjs",
+    "page-bg:prepare": "node scripts/prepare-page-background.mjs",
     "regions:prepare": "node scripts/prepare-region-illustrations.mjs",
     "plan:new": "node scripts/create-plan.mjs"
   },
