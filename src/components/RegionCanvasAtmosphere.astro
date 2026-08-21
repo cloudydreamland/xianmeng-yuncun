@@ -1,0 +1,114 @@
+---
+import RegionCinematicAtmosphere from './RegionCinematicAtmosphere';
+
+interface Props {
+  theme: 'village' | 'wind' | 'star' | 'moon' | 'rain' | 'snow' | 'lantern';
+  image: string;
+}
+
+const { theme, image } = Astro.props;
+---
+
+<div class:list={['region-canvas-atmosphere', `region-canvas-atmosphere--${theme}`]} aria-hidden="true">
+  <div class="region-canvas-atmosphere__art" style={`background-image: url("${image}")`}></div>
+  <RegionCinematicAtmosphere client:only="react" theme={theme} image={image} />
+  <div class="region-canvas-atmosphere__bloom"></div>
+  <div class="region-canvas-atmosphere__veil"></div>
+</div>
+
+<style>
+  .region-canvas-atmosphere {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+    mix-blend-mode: normal;
+    background: #081318;
+  }
+  .region-canvas-atmosphere__art {
+    position: absolute;
+    z-index: 0;
+    inset: -7%;
+    opacity: var(--art-opacity, .9);
+    background-position: var(--art-position, center);
+    background-size: cover;
+    filter:
+      blur(var(--art-blur, 28px))
+      brightness(var(--art-brightness, .48))
+      saturate(var(--art-saturation, .82));
+    transform: scale(1.08);
+  }
+  .region-canvas-atmosphere :global(.region-cinematic-stage),
+  .region-canvas-atmosphere :global(.region-cinematic-canvas) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .region-canvas-atmosphere :global(.region-cinematic-stage) {
+    z-index: 1;
+    opacity: 1;
+  }
+  .region-canvas-atmosphere[data-cinematic-ready='true'] .region-canvas-atmosphere__art {
+    opacity: 0;
+    filter: none;
+    transform: none;
+    background-image: none !important;
+  }
+  .region-canvas-atmosphere__bloom,
+  .region-canvas-atmosphere__veil { position: absolute; inset: 0; }
+  .region-canvas-atmosphere__bloom {
+    z-index: 2;
+    background:
+      radial-gradient(circle at var(--bloom-x, 68%) var(--bloom-y, 28%), var(--bloom-color, rgba(239,255,239,.18)), transparent 34%),
+      radial-gradient(circle at var(--bloom-2-x, 18%) var(--bloom-2-y, 76%), var(--bloom-2-color, rgba(109,190,179,.1)), transparent 30%);
+    mix-blend-mode: screen;
+  }
+  .region-canvas-atmosphere__veil {
+    z-index: 3;
+    background:
+      radial-gradient(ellipse at 50% 42%, transparent 16%, rgba(3,10,15,.08) 58%, rgba(3,10,15,.34) 100%),
+      linear-gradient(180deg, rgba(4,12,18,.1), transparent 38%, rgba(4,12,18,.3));
+  }
+  .region-canvas-atmosphere--village {
+    --art-position: 58% 48%; --art-blur: 24px; --art-brightness: .64; --art-saturation: .68;
+    --bloom-x: 74%; --bloom-y: 17%; --bloom-color: rgba(225,255,240,.2);
+    --bloom-2-color: rgba(99,176,177,.1);
+  }
+  .region-canvas-atmosphere--rain {
+    --art-position: 54% 50%; --art-blur: 22px; --art-brightness: .44; --art-saturation: .72;
+    --bloom-x: 76%; --bloom-y: 20%; --bloom-color: rgba(157,224,240,.16);
+    --bloom-2-x: 12%; --bloom-2-y: 70%; --bloom-2-color: rgba(45,105,151,.12);
+  }
+  .region-canvas-atmosphere--star {
+    --art-position: 64% 46%; --art-blur: 18px; --art-brightness: .36; --art-saturation: .86;
+    --bloom-x: 72%; --bloom-y: 34%; --bloom-color: rgba(160,126,226,.15);
+    --bloom-2-color: rgba(42,91,158,.12);
+  }
+  .region-canvas-atmosphere--wind {
+    --art-position: 60% 48%; --art-blur: 20px; --art-brightness: .45; --art-saturation: .72;
+    --bloom-x: 66%; --bloom-y: 24%; --bloom-color: rgba(190,255,221,.18);
+    --bloom-2-color: rgba(95,192,179,.11);
+  }
+  .region-canvas-atmosphere--moon {
+    --art-position: 58% 45%; --art-blur: 20px; --art-brightness: .4; --art-saturation: .72;
+    --bloom-x: 74%; --bloom-y: 22%; --bloom-color: rgba(193,236,244,.17);
+    --bloom-2-x: 20%; --bloom-2-y: 72%; --bloom-2-color: rgba(104,109,196,.12);
+  }
+  .region-canvas-atmosphere--snow {
+    --art-position: 58% 44%; --art-blur: 22px; --art-brightness: .56; --art-saturation: .55;
+    --bloom-x: 70%; --bloom-y: 18%; --bloom-color: rgba(236,250,255,.2);
+    --bloom-2-color: rgba(134,176,203,.11);
+  }
+  .region-canvas-atmosphere--lantern {
+    --art-position: 62% 46%; --art-blur: 20px; --art-brightness: .4; --art-saturation: .88;
+    --bloom-x: 72%; --bloom-y: 26%; --bloom-color: rgba(255,181,92,.19);
+    --bloom-2-x: 14%; --bloom-2-y: 72%; --bloom-2-color: rgba(210,64,72,.1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .region-canvas-atmosphere :global(.region-cinematic-stage) { display: none; }
+  }
+</style>

@@ -16,7 +16,7 @@
     "plan:new": "node scripts/create-plan.mjs"
   },
   "engines": {
-    "node": ">=22.12 <23",
+    "node": ">=22.16 <25",
     "pnpm": ">=10.14 <11"
   },
   "dependencies": {
@@ -28,6 +28,8 @@
     "animal-island-ui": "^1.2.3",
     "astro": "^7.1.1",
     "classnames": "^2.5.1",
+    "pixi-filters": "^6.1.5",
+    "pixi.js": "^8.19.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

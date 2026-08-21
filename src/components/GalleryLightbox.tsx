@@ -46,7 +46,11 @@ export default function GalleryLightbox({ galleryId, title, images }: Props) {
       trigger.addEventListener('click', listener);
       return { trigger, listener };
     });
-    return () => listeners.forEach(({ trigger, listener }) => trigger.removeEventListener('click', listener));
+    root.dataset.galleryReady = 'true';
+    return () => {
+      delete root.dataset.galleryReady;
+      listeners.forEach(({ trigger, listener }) => trigger.removeEventListener('click', listener));
+    };
   }, [galleryId]);
 
   useEffect(() => {

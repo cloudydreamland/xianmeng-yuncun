@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LocalPlanner from '../../components/LocalPlanner.astro';
+import WorkspaceTools from '../../components/WorkspaceTools.astro';
+import { comparePlans } from '../../utils/planProgress';
+
+const plans = (await getCollection('plans')).sort((a, b) => comparePlans(a.data, b.data));
+const publicActions = plans.flatMap((plan) => plan.data.nextActions.filter((action) => action.status !== '已完成').map((action) => ({ title: action.title, plan: plan.data.title, href: `/world/moon-pool/${plan.data.slug}/`, dueAt: action.dueAt?.toISOString().slice(0, 10) })));
+---
+<BaseLayout title="工作台" description="七境世界的个人本地工作台，用于安排今日重点、私人任务、阅读收集、草稿和周期回顾。">
+  <article class="workspace-page page-shell" data-workspace>
+    <header class="workspace-hero"><div><p class="pixel-kicker">私阁云案 · LOCAL ONLY</p><h1>拢今日诸事，置于一案之间。</h1><p>先展一笺，收散念、定先后、观旧迹；待其成章，再送回七境各自的归处。</p></div><aside class="workspace-privacy pixel-frame"><strong>此案有界</strong><span>案上私笺只存于此间浏览器，不渡云端。宜时常封卷备份，迁席换器时方可复原。</span></aside></header>
+    <WorkspaceTools publicActions={publicActions} />
+    <section class="workspace-tasks" aria-labelledby="workspace-tasks-title"><div class="workspace-section-heading"><p class="pixel-kicker">PRIVATE TASKS · 私务簿</p><h2 id="workspace-tasks-title">案上私务</h2><p>细务仍封存于本机；今日云笺会自动拣出七日之内将至的事项。</p></div><LocalPlanner /></section>
+  </article>
+</BaseLayout>
+<style>
+  .workspace-page { padding:104px 0 110px; color:var(--world-text); }
+  .workspace-hero { display:flex; justify-content:space-between; gap:32px; align-items:end; margin-bottom:34px; padding:34px; border:2px solid #59a7b8; background:rgba(245,253,255,.94); box-shadow:0 8px 0 rgba(47,142,158,.17),inset 0 0 0 2px rgba(255,255,255,.72),0 18px 48px rgba(46,171,194,.16); clip-path:polygon(0 0,calc(100% - 14px) 0,calc(100% - 14px) 6px,calc(100% - 7px) 6px,calc(100% - 7px) 13px,100% 13px,100% 100%,0 100%); }
+  .workspace-hero h1,.workspace-section-heading h2 { margin:0; color:#315b66; font-family:var(--serif); }
+  .workspace-hero h1 { max-width:760px; font-size:clamp(2.6rem,6vw,5.2rem); line-height:1.04; }
+  .workspace-hero p:not(.pixel-kicker) { max-width:680px; color:#58655e; line-height:1.8; }
+  .workspace-privacy { display:grid; gap:8px; width:min(280px,100%); padding:18px; color:#376b70; background:#edfafa; }
+  .workspace-privacy span { color:#6a766d; font-size:.78rem; line-height:1.7; }
+  .workspace-tasks { margin-top:62px; }
+  .workspace-tasks > .workspace-section-heading .pixel-kicker { color:#38777d; }
+  .workspace-tasks > .workspace-section-heading h2 { color:#294f59; text-shadow:0 2px 14px rgba(255,255,255,.76); }
+  .workspace-tasks > .workspace-section-heading > p:last-child { color:#4b6e74; }
+  .workspace-section-heading { margin-bottom:18px; }
+  .workspace-section-heading h2 { font-size:2rem; }
+  .workspace-section-heading > p:last-child { color:#647169; line-height:1.7; }
+  @media (max-width:800px) { .workspace-page { padding:92px 0 80px; } .workspace-hero { display:grid; align-items:start; padding:24px 20px; } .workspace-privacy { width:auto; } }
+</style>

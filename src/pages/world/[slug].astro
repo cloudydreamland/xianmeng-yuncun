@@ -4,22 +4,22 @@ import CloudSearch from '../../components/CloudSearch';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
 import IslandTag from '../../components/IslandTag';
+import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
 import { cloudVillageDestinations, type RegionId } from '../../data/worldMap';
 import { contactEmail, friendLinks, visitorNotes } from '../../data/snowCliff';
 import { existsSync, readFileSync } from 'node:fs';
+import { collectNoteFacets, sortNotes, sortProjects, sortWorks } from '../../utils/contentCatalog';
 
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
-  const notes = (await getCollection('notes', ({ data }) => !data.draft))
-    .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
-  const projects = (await getCollection('projects'))
-    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+  const notes = sortNotes(await getCollection('notes', ({ data }) => !data.draft));
+  const projects = sortProjects(await getCollection('projects'));
   const plans = await getCollection('plans');
-  const works = (await getCollection('works', ({ data }) => !data.draft))
-    .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || (b.data.createdAt ?? b.data.publishedAt).valueOf() - (a.data.createdAt ?? a.data.publishedAt).valueOf());
+  const works = sortWorks(await getCollection('works', ({ data }) => !data.draft));
+  const moments = (await getCollection('moments', ({ data }) => !data.draft)).sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
   return regions.map((region, index) => ({
     params: { slug: region.data.slug },
     props: {
@@ -31,16 +31,16 @@ export async function getStaticPaths() {
       projects,
       plans,
       works,
+      moments,
     },
   }));
 }
 
-const { region, regions, prev, next, notes, projects, plans, works } = Astro.props;
+const { region, regions, prev, next, notes, projects, plans, works, moments = [] } = Astro.props;
 const { Content } = await render(region);
 const illustration = regionIllustrations[region.data.slug as RegionId];
 if (!illustration) throw new Error(`Missing region illustration: ${region.data.slug}`);
-const categories = [...new Set(notes.map(({ data }) => data.category))];
-const tags = [...new Set(notes.flatMap(({ data }) => data.tags))];
+const { categories, tags } = collectNoteFacets(notes);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const cleanMarkdownText = (value: string) => value
   .replace(/<[^>]+>/g, '')
@@ -106,20 +106,26 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   <Fragment slot="story"><Content /></Fragment>
 
   {region.data.slug === 'cloud-village' && (
-    <section class="village-gates" aria-labelledby="village-gates-title">
-      <header class="section-heading"><p class="pixel-kicker">七境入口</p><h2 id="village-gates-title">从云村继续前行</h2><p>云村居中，六境分司其职；真实内容从这里通向各自归处。</p></header>
+    <>
+    {moments.length > 0 && <section class="village-moments" aria-labelledby="village-moments-title">
+      <header class="section-heading"><p class="pixel-kicker">人间小记</p><h2 id="village-moments-title">村中近闻</h2><p>只记愿与来客相逢的日常片羽；未曾启封的私语，仍留在云后。</p></header>
+      <div class="village-moments__list">{moments.map((moment) => <article><time datetime={moment.data.publishedAt.toISOString()}>{moment.data.publishedAt.toLocaleDateString('zh-CN')}</time><div><h3>{moment.data.title}</h3><p>{moment.data.summary}</p><div class="tag-row">{moment.data.tags.map((tag) => <span class="tag-link">#{tag}</span>)}</div></div></article>)}</div>
+    </section>}
+    <section class="village-gates" aria-labelledby="village-gates-title" hidden>
+      <header class="section-heading"><p class="pixel-kicker">七境门扉</p><h2 id="village-gates-title">由此再赴云外</h2><p>云村居中，六境分守四方；循旧径而去，自会抵达文字各自的归处。</p></header>
       <div>{cloudVillageDestinations.map((item, index) => <a href={item.href}><span>0{index + 1}</span><h3>{item.label}</h3><p>{item.meta}</p><strong>进入 →</strong></a>)}</div>
     </section>
+    </>
   )}
 
   {region.data.slug === 'rain-bridge' && (
     <>
       <section class="rain-search" aria-labelledby="rain-search-title">
-        <CloudSearch client:load variant="embedded" heading="在雨桥上展开云镜" description="检索笔记、项目、世界设定与公开履历。" />
+        <CloudSearch client:load variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
       </section>
       <section class="world-directory" aria-labelledby="world-directory-title">
-        <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>开放状态只表示网站功能是否完成，所有区域设定均可阅读。</p></header>
-        <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '已开放' : '酝酿中'}</strong></a>)}</div>
+        <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
+        <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
       </section>
     </>
   )}
@@ -128,7 +134,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'wind-valley' && (
     <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title">
-      <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>学习笔记、技术碎片、随笔与小实验都落在这里，等风翻页。</p></header>
+      <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>札记、术业碎章、尘世随笔与小小试作皆落于此，只候一阵风来翻页。</p></header>
       <div class="filter-panel" aria-label="筛选笔记">
         <div class="filter-group"><strong>内容分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
         <div class="filter-group"><strong>风信标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
@@ -151,8 +157,8 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                   <p>{note.data.description}</p>
                   <details class="note-source">
                     <summary>
-                      <span>源文件结构</span>
-                      <small>{source.outline.length || 1} 个章节 · 约 {source.wordCount} 字</small>
+                      <span>笺中篇目</span>
+                      <small>{source.outline.length || 1} 节 · 约 {source.wordCount} 字</small>
                     </summary>
                     <div class="note-source__inner">
                       <p class="note-source__path">{source.sourcePath}</p>
@@ -165,7 +171,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                           ))}
                         </ol>
                       ) : (
-                        <p class="note-source__empty">这篇笔记暂时没有二级或三级标题，已直接从正文生成内容摘录。</p>
+                        <p class="note-source__empty">此笺未分小节，便从正文中摘取数段，留作引路。</p>
                       )}
                       {source.blocks.length > 0 && (
                         <div class="note-source__blocks" aria-label={`《${note.data.title}》正文结构摘录`}>
@@ -177,6 +183,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                     </div>
                   </details>
                   <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+                  <button class="reading-list-toggle reading-list-toggle--card" type="button" data-reading-list-toggle data-reading-list-id={`note:${note.data.slug}`} data-reading-list-title={note.data.title} data-reading-list-url={`/notes/${note.data.slug}/`} aria-pressed="false">加入稍后阅读</button>
                   <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
                 </Fragment>
               );
@@ -192,6 +199,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             <h2><a href={`/notes/${note.data.slug}/`}>{note.data.title}</a></h2>
             <p>{note.data.description}</p>
             <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+            <button class="reading-list-toggle reading-list-toggle--card" type="button" data-reading-list-toggle data-reading-list-id={`note:${note.data.slug}`} data-reading-list-title={note.data.title} data-reading-list-url={`/notes/${note.data.slug}/`} aria-pressed="false">加入稍后阅读</button>
             <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
               </Fragment>
             )}
@@ -274,9 +282,10 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   {region.data.slug === 'moon-pool' && (
     <>
       <PlanDashboard plans={plans} projects={projects} />
+      <LocalPlanner />
       <section class="moon-projects project-archive" aria-labelledby="moon-projects-title">
-        <header class="section-heading"><p class="pixel-kicker">月下档案</p><h2 id="moon-projects-title">月映册</h2><p>推进台记录当下行动；这里保存已经形成的项目、技术选择与长期复盘。</p></header>
-        <div class="archive-intro"><p>月下档案</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>份实践记录</span></div>
+        <header class="section-heading"><p class="pixel-kicker">月下藏卷</p><h2 id="moon-projects-title">月映册</h2><p>行舟录记今夜将往何方；月映册则收已成之物、术法取舍与经年回望。</p></header>
+        <div class="archive-intro"><p>月下藏卷</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>卷造物旧录</span></div>
         <div class="project-grid">
           {projects.map((project, index) => (
             <article class:list={['project-card', { featured: project.data.featured }]}>
@@ -290,7 +299,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
               <h2 id={project.data.slug}><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h2>
               <p>{project.data.description}</p>
               <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone={project.data.featured ? 'green' : 'brown'} />)}</div>
-              <div class="project-card__links"><a href={`/projects/${project.data.slug}/`}>查看档案 →</a>{project.data.demoUrl && <a href={project.data.demoUrl} target="_blank" rel="noreferrer">查看成品 ↗</a>}{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">源代码 ↗</a>}</div>
+              <div class="project-card__links"><a href={`/projects/${project.data.slug}/`}>展卷细读 →</a>{project.data.demoUrl && <a href={project.data.demoUrl} target="_blank" rel="noreferrer">观其成器 ↗</a>}{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">溯其源流 ↗</a>}</div>
             </article>
           ))}
         </div>
@@ -298,25 +307,21 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
     </>
   )}
 
-  {region.data.slug === 'snow-cliff' && (
+  {region.data.slug === 'snow-cliff' && (contactEmail || friendLinks.length > 0) && (
     <section class="snow-lodge" aria-labelledby="snow-lodge-title">
       <header class="section-heading">
         <p class="pixel-kicker">雪中来客</p>
         <h2 id="snow-lodge-title">白狐酒舍</h2>
-        <p>雪崖先以静态方式开放：友链席位、邮件联系占位与访客须知都在这里，不接入站内留言数据库。</p>
+        <p>只为确有其人的故交留名，也只开启亲自允诺的来路。</p>
       </header>
 
       <div class="snow-lodge__grid">
-        <article class="snow-card snow-card--contact">
+        {contactEmail && <article class="snow-card snow-card--contact">
           <p class="pixel-kicker">一封雪信</p>
-          <h3>邮件联系</h3>
-          <p>首版只保留邮件入口，不展示社交平台、手机号或即时通讯账号。</p>
-          {contactEmail ? (
-            <a class="snow-card__action" href={`mailto:${contactEmail}`}>写信给我</a>
-          ) : (
-            <span class="snow-card__action snow-card__action--disabled" aria-disabled="true">邮箱待开放</span>
-          )}
-        </article>
+          <h3>寄来雪信</h3>
+          <p>可叙来意，可换名帖，也可携一件得意之作，共坐炉边相谈。</p>
+          <a class="snow-card__action" href={`mailto:${contactEmail}`}>折梅寄信</a>
+        </article>}
 
         <article class="snow-card snow-card--notice">
           <p class="pixel-kicker">访客须知</p>
@@ -327,14 +332,13 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
         </article>
       </div>
 
-      <section class="friend-parlor" aria-labelledby="friend-parlor-title">
+      {friendLinks.length > 0 && <section class="friend-parlor" aria-labelledby="friend-parlor-title">
         <header>
           <p class="pixel-kicker">友人席位</p>
-          <h3 id="friend-parlor-title">友链与朋友档案</h3>
-          <p>这里只展示真实确认过的友链；没有确认前，不放示例站点，也不编造朋友信息。</p>
+          <h3 id="friend-parlor-title">故人名帖</h3>
+          <p>名帖所录，皆是已互通来意、愿在雪夜留灯的友人。</p>
         </header>
-        {friendLinks.length > 0 ? (
-          <div class="friend-link-grid">
+        <div class="friend-link-grid">
             {friendLinks.map((friend) => (
               <a class="friend-link-card" href={friend.href} target="_blank" rel="noreferrer">
                 <strong>{friend.name}</strong>
@@ -342,16 +346,17 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                 <span>{friend.tags.join(' · ')}</span>
               </a>
             ))}
-          </div>
-        ) : (
-          <div class="friend-empty">
-            <strong>友人席位正在整理</strong>
-            <p>雪崖已经开门，但友链名册暂时留白。等确认真实站点后，再把朋友们请到炉火旁。</p>
-          </div>
-        )}
-      </section>
+        </div>
+      </section>}
     </section>
   )}
 
   {region.data.slug === 'lantern-lane' && works.length > 0 && <GalleryArchive works={works} />}
 </RegionLayout>
+<style>
+  .village-moments { margin-top: 42px; padding: 30px; border: 2px solid #7d8b7c; background: rgba(241,243,220,.75); }
+  .village-moments__list { display:grid; border-top:2px solid #9ba294; }
+  .village-moments__list article { display:grid; grid-template-columns:130px 1fr; gap:22px; padding:18px 0; border-bottom:1px dashed #aab09f; }
+  .village-moments time { color:#7b867b; font-size:.75rem; } .village-moments h3 { margin:0 0 6px; color:#4f5c50; font-family:var(--serif); } .village-moments p { margin:0; color:#68766b; line-height:1.75; }
+  @media (max-width:600px) { .village-moments { padding:20px 16px; } .village-moments__list article { grid-template-columns:1fr; gap:6px; } }
+</style>

@@ -5,6 +5,8 @@ import CloudEntrance from '../components/CloudEntrance';
 import IslandTag from '../components/IslandTag';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
+import RealmOracleSigil from '../components/RealmOracleSigil.astro';
+import HomeGeometryField from '../components/HomeGeometryField.astro';
 import {
   cloudVillageDestinations,
   timeCopy,
@@ -55,42 +57,79 @@ const mapRegions = regions.map((region) => {
     imageAlt="雲梦世界全境图：云村居中，雪崖、星渊、风谷、月潭、雨桥与浮屿灯巷环绕在云海之上"
   />
 
-  <section id="village-content" class="village-bulletin">
-    <div class="page-shell bulletin-layout">
+  <div class="home-after-map">
+    <HomeGeometryField />
+    <section class="realm-overview page-shell" aria-labelledby="realm-overview-title">
+      <header class="section-heading"><p class="pixel-kicker">七境灵图</p><h1 id="realm-overview-title">七境各司一念，<br />万象皆有归处。</h1><p>循图认路，依境藏心。择一方灵域，便可抵达与之相守的文字、造物与日常。</p></header>
+      <div class="realm-overview-grid">
+        {mapRegions.map((region) => <a class="realm-overview-card" href={region.href}><div class="realm-overview-card__seal"><RealmOracleSigil realm={region.id} size={42} /><span>{region.realm}</span></div><h2>{region.title}</h2><strong>{region.functionTitle}</strong><p>{region.functionDescription}</p><em>{region.status === 'active' ? '门扉已启' : '灵境将启'} →</em></a>)}
+      </div>
+    </section>
+    <section class="home-workspace-cta page-shell"><div><p class="pixel-kicker">境外云案</p><h2>七境之外，尚有一方独属你的案几。</h2><p>今日诸务、待阅之笺、初生的念头与七日回望，皆可暂寄案上，待你亲手归卷。</p></div><a class="pixel-button pixel-button--primary" href="/workspace/">启案入席 →</a></section>
+    <div class="home-plan-summary-wrap page-shell">
       <PlanSummary plans={plans} />
-      <header class="bulletin-heading cloud-sign">
-        <p class="pixel-kicker">云村近况</p>
-        <h2>云村近况</h2>
-        <p>全境辽阔，真正的学习与造物仍从村中的一页纸、一道代码开始。</p>
-      </header>
-
-      <div class="bulletin-notes">
-        <span class="bulletin-label">风谷新信</span>
-        {recentNotes.map((note, index) => (
-          <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
-            <span class="bulletin-note__pin" aria-hidden="true"></span>
-            <time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time>
-            <small>{note.data.category}</small>
-            <h3>{note.data.title}</h3>
-            <p>{note.data.description}</p>
-            <span class="bulletin-note__action">展笺阅读 →</span>
-          </a>
-        ))}
-      </div>
-
-      <div class="bulletin-projects">
-        <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
-        <span class="bulletin-label">月潭近档</span>
-        {featuredProjects.map((project, index) => (
-          <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
-            <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
-            <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
-            <p>{project.data.description}</p>
-            <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
-            <a class="text-link" href={`/projects/${project.data.slug}/`}>查看月映档案 →</a>
-          </article>
-        ))}
-      </div>
     </div>
-  </section>
+
+    <section id="village-content" class="village-bulletin">
+      <div class="page-shell bulletin-layout">
+        <header class="bulletin-heading cloud-sign">
+          <p class="pixel-kicker">云村近况</p>
+          <h2>云村近况</h2>
+          <p>全境辽阔，真正的学习与造物仍从村中的一页纸、一道代码开始。</p>
+        </header>
+
+        <div class="bulletin-notes">
+          <span class="bulletin-label">风谷新信</span>
+          {recentNotes.map((note, index) => (
+            <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
+              <span class="bulletin-note__pin" aria-hidden="true"></span>
+              <time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time>
+              <small>{note.data.category}</small>
+              <h3>{note.data.title}</h3>
+              <p>{note.data.description}</p>
+              <span class="bulletin-note__action">展笺阅读 →</span>
+            </a>
+          ))}
+        </div>
+
+        <div class="bulletin-projects">
+          <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
+          <span class="bulletin-label">月潭近档</span>
+          {featuredProjects.map((project, index) => (
+            <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
+              <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
+              <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
+              <p>{project.data.description}</p>
+              <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
+              <a class="text-link" href={`/projects/${project.data.slug}/`}>查看月映档案 →</a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
 </BaseLayout>
+
+<style>
+  .village-bulletin { display:none; }
+  .home-plan-summary-wrap { padding-block: 18px 76px; }
+  .realm-overview { padding:94px 0 70px; }
+  .realm-overview .section-heading { width:min(900px,100%); max-width:900px; padding:clamp(24px,3vw,38px); border:1px solid var(--home-heading-border); border-left:5px solid var(--home-accent); background:var(--home-heading-panel); box-shadow:var(--home-panel-shadow); backdrop-filter:blur(16px) saturate(1.08); transition:background .65s ease,border-color .65s ease,box-shadow .65s ease; }
+  .realm-overview h1 { margin:0; color:var(--home-heading); font-family:var(--serif); font-size:clamp(2.2rem,5vw,4.3rem); text-shadow:var(--home-heading-shadow); transition:color .65s ease,text-shadow .65s ease; }
+  .realm-overview .section-heading .pixel-kicker { color:var(--home-accent); letter-spacing:.32em; transition:color .65s ease; }
+  .realm-overview .section-heading > p:last-child { color:var(--home-copy); line-height:1.8; text-shadow:var(--home-copy-shadow); transition:color .65s ease,text-shadow .65s ease; }
+  .realm-overview-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:34px; }
+  .realm-overview-card { display:grid; align-content:start; min-height:230px; padding:21px; border:2px solid #58a4bd; color:#3d5e68; background:rgba(247,253,255,.92); box-shadow:0 6px 0 rgba(47,135,157,.15),inset 0 0 28px rgba(114,220,233,.1); transition:transform .2s ease,box-shadow .2s ease; }
+  .realm-overview-card:hover { transform:translateY(-5px); box-shadow:0 12px 0 rgba(47,135,157,.14),0 18px 38px rgba(26,153,186,.2),inset 0 0 28px rgba(114,220,233,.16); }
+  .realm-overview-card__seal { display:flex; align-items:center; justify-content:space-between; min-height:46px; color:#6d5741; }
+  .realm-overview-card__seal span,.realm-overview-card em { color:#7d856f; font-size:.7rem; font-style:normal; letter-spacing:.18em; }
+  .realm-overview-card__seal :global(.oracle-sigil) { filter:drop-shadow(2px 2px 0 rgba(94,69,39,.12)); transform:rotate(-2deg); }
+  .realm-overview-card h2 { margin:10px 0 7px; color:#514838; font-family:var(--serif); font-size:1.55rem; }
+  .realm-overview-card strong { color:#3e6a53; }
+  .realm-overview-card p { margin:9px 0 16px; font-size:.79rem; line-height:1.65; }
+  .home-workspace-cta { display:flex; align-items:center; justify-content:space-between; gap:22px; margin-block:24px 72px; padding:30px; border:2px solid #58a9bb; background:rgba(241,253,255,.94); box-shadow:0 8px 0 rgba(53,151,166,.16),0 18px 42px rgba(50,168,192,.17); }
+  .home-workspace-cta h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:2rem; }
+  .home-workspace-cta p:not(.pixel-kicker) { margin-bottom:0; color:#617067; }
+  @media (max-width:900px) { .realm-overview-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:600px) { .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } }
+</style>

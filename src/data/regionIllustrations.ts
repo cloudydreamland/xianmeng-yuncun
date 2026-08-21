@@ -15,14 +15,14 @@ const altText: Record<RegionId, string> = {
   'star-abyss': '竹林小径从盛开的白玉兰旁通向幽深星渊，古老星河在远方流淌',
   'moon-pool': '银色月瀑落入镜面潭水，柳岸灯火与小舟安静相映',
   'rain-bridge': '斜雨中的青苔古桥横跨昼夜两岸，撑伞行人走过水洼涟漪',
-  'snow-cliff': '雪崖酒舍的两盏暖灯照着屋内蜷卧的括耳狐，白梅与粉色酒雾映着暮雪',
+  'snow-cliff': '雪崖酒舍的两盏暖灯映着暮雪，白狐铭文沿覆雪山径泛起幽微珠光',
   'lantern-lane': '暮色灯巷沿水道蜿蜒，莲灯、锦鲤灯与凤凰灯在烟火下点亮市集',
 };
 
 function illustration(slug: RegionId): RegionIllustration {
   const highDensity = slug === 'lantern-lane';
   const widths = highDensity ? lanternLaneWidths : defaultWidths;
-  const version = highDensity ? 'v3-hd' : 'v2';
+  const version = highDensity ? 'v4-sharp' : 'v2';
   const candidate = (width: number, format: 'avif' | 'webp') =>
     `/images/regions/${slug}/region-article-${version}-${width}.${format}`;
 

@@ -12,15 +12,26 @@ export async function getStaticPaths() {
       note,
       prev: notes[index + 1],
       next: notes[index - 1],
+      relatedNotes: notes
+        .filter((candidate) => candidate.data.slug !== note.data.slug)
+        .map((candidate) => ({
+          candidate,
+          score: candidate.data.tags.filter((tag) => note.data.tags.includes(tag)).length * 2
+            + Number(candidate.data.category === note.data.category),
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((left, right) => right.score - left.score || right.candidate.data.publishedAt.valueOf() - left.candidate.data.publishedAt.valueOf())
+        .slice(0, 3)
+        .map(({ candidate }) => candidate),
     },
   }));
 }
 
-const { note, prev, next } = Astro.props;
+const { note, prev, next, relatedNotes } = Astro.props;
 const { Content, headings } = await render(note);
 const readingStats = getReadingStats(note.body ?? '');
 ---
 
-<NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next}>
+<NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next} relatedNotes={relatedNotes}>
   <Content />
 </NoteLayout>

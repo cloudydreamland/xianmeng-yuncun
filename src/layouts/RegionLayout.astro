@@ -1,5 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import RegionCanvasAtmosphere from '../components/RegionCanvasAtmosphere.astro';
 
 const {
   title,
@@ -25,14 +26,15 @@ const {
   searchTitle={title}
 >
   <article class={`region-page region-page--${theme}`}>
+    <RegionCanvasAtmosphere theme={theme} image={illustration.fallback} />
     <header class="region-hero page-shell">
-      <a class="back-link" href="/">← 返回雲梦全境</a>
+      <a class="back-link" href="/">← 归览雲梦全境</a>
       <div class="region-hero__copy">
         <p class="pixel-kicker">雲梦地志 · {realm}</p>
         <h1>{title}</h1>
         <p>{summary}</p>
         <span class:list={['region-status', { 'region-status--active': status === 'active' }]}>
-          {status === 'active' ? '此境已开放' : '设定已开放 · 功能酝酿中'}
+          {status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}
         </span>
       </div>
       <figure class="region-visual">
@@ -51,15 +53,15 @@ const {
         <p class="pixel-kicker">此境所司</p>
         <h2>{functionTitle}</h2>
         <p>{functionDescription}</p>
-        <strong>{status === 'active' ? '当前可用' : '首版不放置无效入口'}</strong>
+        <strong>{status === 'active' ? '门扉已启' : '此门尚隐于云中'}</strong>
       </aside>
     </div>
 
     <div class="region-feature page-shell"><slot /></div>
 
     <nav class="region-nav page-shell" aria-label="相邻区域">
-      {prev ? <a href={`/world/${prev.data.slug}/`}><small>上一境</small><strong>{prev.data.title}</strong></a> : <span></span>}
-      {next ? <a href={`/world/${next.data.slug}/`}><small>下一境</small><strong>{next.data.title}</strong></a> : <span></span>}
+      {prev ? <a href={`/world/${prev.data.slug}/`}><small>前一境</small><strong>{prev.data.title}</strong></a> : <span></span>}
+      {next ? <a href={`/world/${next.data.slug}/`}><small>后一境</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>
   </article>
 </BaseLayout>
