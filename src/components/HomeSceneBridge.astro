@@ -1,0 +1,47 @@
+<div class="home-scene-transition" data-home-scene-transition aria-hidden="true">
+  <div class="home-scene-transition__mist home-scene-transition__mist--left"></div>
+  <div class="home-scene-transition__mist home-scene-transition__mist--right"></div>
+  <span class="home-scene-transition__seal">雲</span>
+</div>
+
+<script>
+  const transition = document.querySelector<HTMLElement>('[data-home-scene-transition]');
+  const sceneLinks = document.querySelectorAll<HTMLAnchorElement>('[data-scene-jump]');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let transitioning = false;
+
+  const finishJump = (target: HTMLElement) => {
+    target.focus({ preventScroll: true });
+    transitioning = false;
+    document.documentElement.classList.remove('scene-transitioning');
+    transition?.classList.remove('is-closing', 'is-opening');
+  };
+
+  sceneLinks.forEach((link) => link.addEventListener('click', (event) => {
+    const href = link.getAttribute('href');
+    const target = href?.startsWith('#') ? document.querySelector<HTMLElement>(href) : null;
+    if (!href || !target || transitioning) return;
+
+    event.preventDefault();
+    const moveToTarget = () => {
+      target.scrollIntoView({ behavior: 'auto', block: 'start' });
+      history.pushState(null, '', href);
+    };
+
+    if (!transition || reduceMotion.matches) {
+      moveToTarget();
+      target.focus({ preventScroll: true });
+      return;
+    }
+
+    transitioning = true;
+    document.documentElement.classList.add('scene-transitioning');
+    transition.classList.add('is-closing');
+
+    window.setTimeout(() => {
+      moveToTarget();
+      transition.classList.add('is-opening');
+    }, 320);
+    window.setTimeout(() => finishJump(target), 780);
+  }));
+</script>

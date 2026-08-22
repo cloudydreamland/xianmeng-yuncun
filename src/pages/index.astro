@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CloudEntrance from '../components/CloudEntrance.astro';
+import HomeSceneBridge from '../components/HomeSceneBridge.astro';
 import IslandTag from '../components/IslandTag';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
@@ -57,6 +58,7 @@ const mapRegions = regions.map((region) => {
 
 <BaseLayout>
   <CloudEntrance />
+  <HomeSceneBridge />
   <WorldMap
     client:load
     backgrounds={worldBackgrounds}
@@ -65,7 +67,10 @@ const mapRegions = regions.map((region) => {
     imageAlt="雲梦世界全境图：云村居中，雪崖、星渊、风谷、月潭、雨桥与浮屿·灯巷环绕在云海之上"
   />
 
-  <div class="home-after-map">
+  <div id="home-content" class="home-after-map" tabindex="-1">
+    <a class="scene-jump home-return-map" href="#world-map-top" data-scene-jump aria-label="返回雲梦世界全境地图">
+      <i aria-hidden="true">↑</i><span>返回全境图</span>
+    </a>
     <HomeGeometryField />
     <section class="home-intro page-shell" aria-labelledby="home-intro-title">
       <div class="home-intro__copy pixel-frame">

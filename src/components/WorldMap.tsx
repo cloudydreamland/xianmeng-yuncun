@@ -173,7 +173,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   ) as CSSProperties;
 
   return (
-    <section className="world-map" aria-label="雲梦世界全境地图">
+    <section id="world-map-top" className="world-map" aria-label="雲梦世界全境地图" tabIndex={-1}>
       <div className="world-map__frame">
         <div className="world-map__viewport" ref={viewportRef} tabIndex={0} aria-label="可横向浏览的雲梦全境地图">
           <div className="world-map__canvas">
@@ -222,6 +222,9 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
             </div>
           )}
         </div>
+        <a className="scene-jump world-map__descent" href="#home-content" data-scene-jump aria-label="从全境地图进入云中书页">
+          <span>云中书页</span><i aria-hidden="true">↓</i>
+        </a>
       </div>
 
       <nav className="world-ledger page-shell" aria-label="雲梦地名册">

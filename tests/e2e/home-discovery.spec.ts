@@ -49,8 +49,7 @@ test('窄屏下快速入口保持易点击的单列布局', async ({ page }) => 
   expect(second!.y).toBeGreaterThan(first!.y + first!.height);
 });
 
-test('窄屏首页背景固定在视口内并保持等比裁切', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('首页下半段背景像工作台一样固定在视口内并保持等比裁切', async ({ page }) => {
   await page.goto('/');
 
   const background = await page.locator('.home-after-map').evaluate((element) => {
