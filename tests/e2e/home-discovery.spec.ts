@@ -1,11 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
+const enterHomeContent = async (page: Page) => {
+  await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
+};
+
 test('首页提供清晰的起步路径与近期内容', async ({ page }) => {
   await page.goto('/');
+  await enterHomeContent(page);
 
   await expect(page.getByRole('heading', { level: 1, name: '在七境之间，记录学习、造物与日常。' })).toBeVisible();
   await expect(page.locator('.home-intro__actions a')).toHaveCount(4);
@@ -27,6 +33,7 @@ test('桌面导航收拢七境并保留七个境域入口', async ({ page }) => 
 
 test('随机漫游只会前往站内已有内容', async ({ page }) => {
   await page.goto('/');
+  await enterHomeContent(page);
   const portal = page.locator('[data-random-portal]');
   const destinations = JSON.parse(await portal.getAttribute('data-random-links') ?? '[]') as string[];
 
@@ -39,6 +46,7 @@ test('随机漫游只会前往站内已有内容', async ({ page }) => {
 test('窄屏下快速入口保持易点击的单列布局', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await enterHomeContent(page);
   const actions = page.locator('.home-intro__actions a');
   const first = await actions.nth(0).boundingBox();
   const second = await actions.nth(1).boundingBox();

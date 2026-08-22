@@ -10,15 +10,34 @@ test('地图与首页内容通过云雾转场双向切换', async ({ page }) => 
   const content = page.locator('#home-content');
   const map = page.locator('#world-map-top');
 
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'map');
+  await expect(map).toBeVisible();
+  await expect(content).toBeHidden();
+  await expect.poll(() => page.evaluate(() => ({
+    scrollHeight: document.documentElement.scrollHeight,
+    viewportHeight: window.innerHeight,
+    scrollY: window.scrollY,
+  }))).toEqual(expect.objectContaining({ scrollY: 0 }));
+  const lockedMap = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1);
+  expect(lockedMap).toBe(true);
+  await page.mouse.wheel(0, 1_200);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
   await expect(transition).toBeVisible();
   await expect(page).toHaveURL(/#home-content$/);
   await expect(transition).toBeHidden({ timeout: 2_000 });
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
+  await expect(map).toBeHidden();
+  await expect(content).toBeVisible();
   await expect.poll(async () => Math.abs((await content.boundingBox())?.y ?? 999)).toBeLessThan(2);
 
   await page.getByRole('link', { name: '返回雲梦世界全境地图' }).click();
   await expect(page).toHaveURL(/#world-map-top$/);
   await expect(transition).toBeHidden({ timeout: 2_000 });
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'map');
+  await expect(content).toBeHidden();
+  await expect(map).toBeVisible();
   await expect.poll(async () => Math.abs((await map.boundingBox())?.y ?? 999)).toBeLessThan(2);
 });
 
@@ -29,6 +48,7 @@ test('减少动态效果时箭头立即完成场景切换', async ({ page }) => 
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
   await expect(page).toHaveURL(/#home-content$/);
   await expect(page.locator('[data-home-scene-transition]')).toBeHidden();
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
 });
 
 test('手机端下行箭头不遮挡时辰按钮', async ({ page }) => {

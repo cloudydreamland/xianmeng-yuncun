@@ -10,6 +10,16 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let transitioning = false;
 
+  type HomeScene = 'map' | 'content';
+
+  const sceneFromHash = (): HomeScene => window.location.hash === '#home-content' ? 'content' : 'map';
+
+  const showScene = (scene: HomeScene, href?: string) => {
+    document.documentElement.dataset.homeScene = scene;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (href) history.pushState({ homeScene: scene }, '', href);
+  };
+
   const finishJump = (target: HTMLElement) => {
     target.focus({ preventScroll: true });
     transitioning = false;
@@ -23,10 +33,8 @@
     if (!href || !target || transitioning) return;
 
     event.preventDefault();
-    const moveToTarget = () => {
-      target.scrollIntoView({ behavior: 'auto', block: 'start' });
-      history.pushState(null, '', href);
-    };
+    const nextScene: HomeScene = href === '#home-content' ? 'content' : 'map';
+    const moveToTarget = () => showScene(nextScene, href);
 
     if (!transition || reduceMotion.matches) {
       moveToTarget();
@@ -44,4 +52,6 @@
     }, 320);
     window.setTimeout(() => finishJump(target), 780);
   }));
+
+  window.addEventListener('popstate', () => showScene(sceneFromHash()));
 </script>

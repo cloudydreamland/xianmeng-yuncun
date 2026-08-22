@@ -6,6 +6,8 @@ test.beforeEach(async ({ page }) => {
 
 test('首页展示重点计划摘要并直达推进详情', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
   const summary = page.locator('.home-plan-summary');
   await expect(summary).toBeVisible();
   await expect(summary.getByRole('heading', { name: '此刻正在做什么' })).toBeVisible();

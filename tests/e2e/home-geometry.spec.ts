@@ -6,6 +6,8 @@ test.beforeEach(async ({ page }) => {
 
 test('首页几何粒子使用视口画布并启动点线动画', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
   const field = page.locator('[data-home-geometry]');
   const canvas = field.locator('canvas');
 

@@ -88,14 +88,21 @@ test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复',
   await expect(page.locator('.world-drawer')).not.toHaveAttribute('open', '');
 });
 
-test('移动端地图可横向浏览并保留七境地名册', async ({ page }) => {
+test('移动端地图锁定整屏、可横向浏览并保留七境入口', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
   await expect(page.locator('.world-marker__title')).toHaveCount(7);
   await expect(page.locator('.world-ledger a')).toHaveCount(7);
-  await expect(page.locator('.world-ledger')).toBeVisible();
+  await expect(page.locator('.world-ledger')).toBeHidden();
   await expect(page.locator('.world-map__viewport')).toHaveCSS('overflow-x', 'auto');
+  const dimensions = await page.evaluate(() => ({
+    mapHeight: document.querySelector('.world-map')!.getBoundingClientRect().height,
+    viewportHeight: window.innerHeight,
+    pageHeight: document.documentElement.scrollHeight,
+  }));
+  expect(dimensions.mapHeight).toBe(dimensions.viewportHeight);
+  expect(dimensions.pageHeight).toBeLessThanOrEqual(dimensions.viewportHeight + 1);
 });
 
 test('四个时辰同步切换背景与语义文字色，并保持面板文字稳定', async ({ page }) => {
@@ -144,7 +151,7 @@ test('四个时辰同步切换背景与语义文字色，并保持面板文字�
   expect(panelColors.size).toBe(1);
 });
 
-test('首页场景从全境地图之后开始，并随地图时辰同步变色', async ({ page }) => {
+test('首页内容与地图互斥显示，并随地图时辰同步变色', async ({ page }) => {
   const modes = ['dawn', 'day', 'dusk', 'night'] as const;
   const sceneFilters = new Set<string>();
   await page.goto('/');
@@ -153,13 +160,9 @@ test('首页场景从全境地图之后开始，并随地图时辰同步变色',
     await page.evaluate((value) => localStorage.setItem('yuncun-time-mode', value), mode);
     await page.reload();
 
-    const map = page.locator('.world-map');
     const scene = page.locator('.home-after-map');
-    const [mapBox, sceneBox] = await Promise.all([map.boundingBox(), scene.boundingBox()]);
-
-    expect(mapBox).not.toBeNull();
-    expect(sceneBox).not.toBeNull();
-    expect(sceneBox!.y).toBeGreaterThanOrEqual(mapBox!.y + mapBox!.height - 1);
+    await expect(page.locator('.world-map')).toBeVisible();
+    await expect(scene).toBeHidden();
     await expect(page.locator('html')).toHaveAttribute('data-time', mode);
 
     const style = await scene.evaluate((element) => {
