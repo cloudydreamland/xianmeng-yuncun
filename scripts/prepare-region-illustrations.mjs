@@ -26,7 +26,7 @@ for (const slug of regions) {
   const inputName = highDensity
     ? 'lantern-lane-article-v3-hd-4k.webp'
     : `${slug}-article-v2-anime.png`;
-  const outputPrefix = highDensity ? 'region-article-v3-hd' : 'region-article-v2';
+  const outputPrefix = highDensity ? 'region-article-v4-sharp' : 'region-article-v2';
   const input = path.join(root, 'media-originals', 'regions', inputName);
   const outputDir = path.join(root, 'public', 'images', 'regions', slug);
   await fs.mkdir(outputDir, { recursive: true });

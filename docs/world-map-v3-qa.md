@@ -6,7 +6,7 @@
 
 - 母图：`media-originals/world/{dawn,day,dusk,night}/world-detailed-v3-8k.webp`
 - 网页衍生图：`public/images/world/{dawn,day,dusk,night}/world-detailed-v3-{1440,1920,2560,3840,5120}.avif/webp`
-- 回滚资产：保留 `world-detailed-v2-*`，不要删除。
+- 回滚依据：旧版网页衍生图不再放在 `public/`；需要对比或回滚时从 Git 历史恢复，母图继续保存在 `media-originals/`。
 
 ## 对比检查
 

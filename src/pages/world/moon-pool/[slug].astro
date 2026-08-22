@@ -75,7 +75,7 @@ const statusCopy = { overdue: '已逾期', upcoming: '七天内', later: '', und
 
     <section class="plan-log prose" aria-labelledby="plan-log-title"><h2 id="plan-log-title">行舟手记</h2><Content /></section>
 
-    <nav class="article-nav" aria-label="相邻计划">
+    <nav class="article-nav" aria-label="相邻计划" data-pagefind-ignore>
       {prev ? <a href={`/world/moon-pool/${prev.data.slug}/`}><small>前一叶舟</small><strong>{prev.data.title}</strong></a> : <span></span>}
       {next ? <a href={`/world/moon-pool/${next.data.slug}/`}><small>后一叶舟</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>

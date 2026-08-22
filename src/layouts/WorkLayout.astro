@@ -105,7 +105,7 @@ const licenseLabel = license === 'cc-by-nc-4.0' ? 'CC BY-NC 4.0' : '保留所有
     </section>
     <GalleryLightbox client:idle={{ timeout: 2500 }} galleryId={galleryId} title={title} images={lightboxImages} />
 
-    <nav class="article-nav" aria-label="相邻作品">
+    <nav class="article-nav" aria-label="相邻作品" data-pagefind-ignore>
       {prev ? <a href={`/world/lantern-lane/${prev.data.slug}/`}><small>前一卷灯影</small><strong>{prev.data.title}</strong></a> : <span></span>}
       {next ? <a href={`/world/lantern-lane/${next.data.slug}/`}><small>后一卷灯影</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>

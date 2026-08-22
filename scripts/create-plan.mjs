@@ -7,7 +7,7 @@ const title = titleParts.join(' ').trim();
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 if (!slug || !slugPattern.test(slug)) {
-  console.error('用法：npm run plan:new -- <slug> "<标题>"；slug 只能包含小写字母、数字和短横线。');
+  console.error('用法：pnpm plan:new -- <slug> "<标题>"；slug 只能包含小写字母、数字和短横线。');
   process.exit(1);
 }
 if (!title) {

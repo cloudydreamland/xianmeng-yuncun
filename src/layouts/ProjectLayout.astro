@@ -59,7 +59,7 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
     )}
 
     {linkedPlans.length > 0 && (
-      <section class="project-plan-links" aria-labelledby="project-plan-links-title">
+      <section class="project-plan-links" aria-labelledby="project-plan-links-title" data-pagefind-ignore>
         <header><p class="pixel-kicker">水上近事</p><h2 id="project-plan-links-title">与此旧卷相系的行舟</h2></header>
         <div>
           {linkedPlans.map((plan) => {
@@ -77,7 +77,7 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
 
     <div class="project-detail__body prose"><slot /></div>
 
-    <nav class="article-nav" aria-label="相邻项目">
+    <nav class="article-nav" aria-label="相邻项目" data-pagefind-ignore>
       {prev ? <a href={`/projects/${prev.data.slug}/`}><small>前一卷</small><strong>{prev.data.title}</strong></a> : <span></span>}
       {next ? <a href={`/projects/${next.data.slug}/`}><small>后一卷</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>

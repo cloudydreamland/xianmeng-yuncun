@@ -59,7 +59,7 @@ const {
 
     <div class="region-feature page-shell"><slot /></div>
 
-    <nav class="region-nav page-shell" aria-label="相邻区域">
+    <nav class="region-nav page-shell" aria-label="相邻区域" data-pagefind-ignore>
       {prev ? <a href={`/world/${prev.data.slug}/`}><small>前一境</small><strong>{prev.data.title}</strong></a> : <span></span>}
       {next ? <a href={`/world/${next.data.slug}/`}><small>后一境</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>

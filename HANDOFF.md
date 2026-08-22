@@ -1,6 +1,6 @@
 # “雲梦世界”交接总览
 
-> 最后核对：2026-07-20
+> 最后核对：2026-08-22
 > 正式分支：`main`
 > 正式站：<https://xianmeng-yuncun.pages.dev/>
 > 仓库：<https://github.com/cloudydreamland/xianmeng-yuncun>
@@ -10,7 +10,8 @@
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 正式网站 | ✅ 已上线 | Cloudflare Pages 从 `main` 自动部署，七境全境地图已生效 |
-| 本地与生产构建 | ✅ 通过 | Astro/TypeScript 0 错误，21 个页面，Pagefind 索引正常 |
+| 本地与生产构建 | ✅ 通过 | Astro/TypeScript 0 错误，构建与 Pagefind 索引正常 |
+| 自动化回归 | ✅ 通过 | 单元测试 10/10、Chromium 端到端测试 65/65 |
 | 首页四时地图 | ✅ 完成 | 四时同构图片、七个动森丝带地名、hash 深链与卷轴抽屉 |
 | 笔记与阅读工具 | ✅ 完成 | 分类／标签 URL、搜索、目录、进度、代码复制、阅读时间 |
 | 项目系统 | ✅ 完成 | 项目列表、项目详情、slug、封面、外部链接和搜索直达 |
@@ -22,18 +23,18 @@
 
 ## 下一步做什么
 
-### P0：验收浮屿·灯巷
+### P0：建立真实内容节奏
 
-1. 两件授权插画已入库，并已移除 EXIF/GPS、补齐替代文本与必要署名。
-2. 灯巷状态已从 `planned` 改为 `active`。
-3. 执行构建和 Playwright 回归，通过 Cloudflare PR 预览后再合并。
-4. 后续个人收藏可省略未知创作日期与过程信息，但不得移除已有署名或水印。
+1. 发布一篇真实项目复盘，说明目标、实现、取舍与下一步；不要用占位内容凑数量。
+2. 用工作台连续维护至少一周计划，确认日常使用中哪些字段和筛选真正有价值。
+3. 每次内容更新后抽查搜索结果，确保正文命中不被目录、相关推荐或区域归档污染。
 
 ### P1：后续体验扩展
 
-- 根据用户反馈继续精修全境地图和灯巷浏览体验。
+- 根据真实访问和使用反馈继续精修全境地图、灯巷与计划工作台。
 - 云灵桌宠应作为独立 React 模块，不改变现有内容路由。
 - 天气、环境音、评论和用户系统应分别设计，不要一次性堆进首页。
+- 新增功能前先保持构建、10 项单元测试与 65 项 Chromium 回归全部通过。
 
 ## 外部服务与账户关系
 
@@ -51,15 +52,15 @@
 
 ## 本地启动
 
-需要 Node.js 24.16.x 和 npm 11.13.x。详细说明见 `docs/ENVIRONMENT.md`。
+需要 Node.js 24.16.x 和 pnpm 10.14.x。详细说明见 `docs/ENVIRONMENT.md`。
 
 ```powershell
 git clone https://github.com/cloudydreamland/xianmeng-yuncun.git
 cd xianmeng-yuncun
 git switch main
 git pull
-npm install
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 浏览器打开终端显示的地址，通常是 `http://localhost:4321`。
@@ -67,11 +68,11 @@ npm run dev
 生产验证：
 
 ```powershell
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
-`npm run build` 会生成 Astro 静态站，并在 `dist/pagefind` 生成搜索索引。开发模式没有完整 Pagefind 索引属于正常现象。
+`pnpm build` 会生成 Astro 静态站，并在 `dist/pagefind` 生成搜索索引。开发模式没有完整 Pagefind 索引属于正常现象。
 
 ## 主要代码位置
 
@@ -83,7 +84,7 @@ npm run preview
 - `media-originals/`：不参与静态部署的 4K 母图，未来同步到 R2。
 - `public/images/world/`：首页四时 960／1440／1920 响应式地图；`public/images/village/` 提供同规格的内页背景。
 
-替换四时图片时，必须保持七境位置一致，在 `media-originals/` 更新母图后运行 `npm run media:prepare`，并使用新的文件版本号。正文内容不要被 AI 自动改写。
+替换四时图片时，必须保持七境位置一致，在 `media-originals/` 更新母图后运行 `pnpm media:prepare`，并使用新的文件版本号。正文内容不要被 AI 自动改写。
 
 ## 已知技术取舍
 
@@ -94,7 +95,7 @@ npm run preview
 ## 每次交付检查
 
 - [ ] 从最新 `main` 新建功能分支，没有直接覆盖无关用户修改。
-- [ ] `npm run build` 为 0 错误。
+- [ ] `pnpm build` 为 0 错误，`pnpm test:unit` 与 `pnpm test:e2e` 全部通过。
 - [ ] 桌面和手机的四时背景、七境地名和卷轴抽屉正常。
 - [ ] 灯巷作品草稿、图片隐私元数据和创作标注符合要求。
 - [ ] 搜索、筛选、阅读工具、项目详情和 404 正常。

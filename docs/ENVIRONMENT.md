@@ -1,6 +1,6 @@
 # 本地开发环境说明
 
-本文档是雲梦世界项目在 Windows 本机上的统一环境基线。项目只使用 npm 管理依赖，不需要安装 pnpm，也不要混用 pnpm、Yarn 或 Bun。
+本文档是雲梦世界项目在 Windows 本机上的统一环境基线。项目只使用 pnpm 管理依赖，不要混用 npm、Yarn 或 Bun。
 
 ## 1. 标准环境
 
@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | 操作系统 | Windows 10/11 | 命令示例使用 PowerShell |
 | Node.js | 24.16.x | `package.json` 要求 `>=24.16 <25` |
-| npm | 11.13.x | Node.js 自带，`package.json` 要求 `>=11.13 <12` |
-| 项目框架 | Astro 7 | 依赖由 `package-lock.json` 锁定 |
+| pnpm | 10.14.x | `package.json` 与 CI 固定为 10.14.x |
+| 项目框架 | Astro 7 | 依赖由 `pnpm-lock.yaml` 锁定 |
 
 仓库中的 `.node-version` 为 `24.16.0`。支持该文件的版本管理器会自动选择对应 Node.js 版本。
 
@@ -17,10 +17,10 @@
 
 ```powershell
 node --version
-npm --version
+pnpm --version
 ```
 
-预期结果分别以 `v24.16.` 和 `11.13.` 开头。如果版本不一致，请先安装或切换 Node.js 24.16.x，再安装依赖。
+预期结果分别以 `v24.16.` 和 `10.14.` 开头。如果版本不一致，请先安装或切换 Node.js 24.16.x，并通过 Corepack 准备仓库声明的 pnpm 版本。
 
 ## 2. 首次安装
 
@@ -30,24 +30,26 @@ npm --version
 cd D:\personal_web
 ```
 
-已有 `package-lock.json` 时，推荐使用下面的可复现安装：
+启用 Corepack 并使用锁文件进行可复现安装：
 
 ```powershell
-npm ci
+corepack enable
+corepack prepare pnpm@10.14.0 --activate
+pnpm install --frozen-lockfile
 ```
 
-`npm ci` 会严格按照锁文件安装，并重新生成 `node_modules`。只有在主动增加、删除或升级依赖时才使用：
+只有在主动增加、删除或升级依赖时才使用：
 
 ```powershell
-npm install
+pnpm install
 ```
 
-不要提交 `node_modules/`。需要提交 `package.json` 和 `package-lock.json`，二者共同定义项目环境。
+不要提交 `node_modules/`。需要提交 `package.json` 和 `pnpm-lock.yaml`，二者共同定义项目环境。
 
 ## 3. 启动开发服务器
 
 ```powershell
-npm run dev
+pnpm dev
 ```
 
 启动成功后，终端会显示本地地址，默认是：
@@ -61,7 +63,7 @@ http://localhost:4321/
 如果 4321 已被占用，Astro 会显示新的端口。也可以主动指定端口：
 
 ```powershell
-npm run dev -- --port 4322
+pnpm dev -- --port 4322
 ```
 
 ## 4. 构建与生产预览
@@ -69,49 +71,49 @@ npm run dev -- --port 4322
 执行完整的类型检查、静态构建和 Pagefind 搜索索引生成：
 
 ```powershell
-npm run build
+pnpm build
 ```
 
 构建产物位于 `dist/`。用接近生产环境的方式预览：
 
 ```powershell
-npm run preview
+pnpm preview
 ```
 
-预览地址通常也是 `http://localhost:4321/`。开发模式不生成完整 Pagefind 索引，因此全文搜索应以 `npm run build` 后的预览结果为准。
+预览地址通常也是 `http://localhost:4321/`。开发模式不生成完整 Pagefind 索引，因此全文搜索应以 `pnpm build` 后的预览结果为准。
 
 ## 5. 检查与测试
 
 ```powershell
 # Astro/TypeScript 检查
-npm run check
+pnpm check
 
 # Node 单元测试
-npm run test:unit
+pnpm test:unit
 
 # 首次运行端到端测试前安装 Chromium
-npx playwright install chromium
+pnpm exec playwright install chromium
 
 # Playwright 端到端测试
-npm run test:e2e
+pnpm test:e2e
 ```
 
-CI 使用同一套 Node.js 24.16.0 + npm 工作流，并通过 `npm ci` 安装锁定依赖。
+CI 使用同一套 Node.js 24.16.0 + pnpm 10.14.0 工作流，并通过 `pnpm install --frozen-lockfile` 安装锁定依赖。
 
 ## 6. 项目脚本
 
 | 命令 | 用途 |
 | --- | --- |
-| `npm run dev` | 启动 Astro 开发服务器 |
-| `npm run build` | 检查、构建并生成搜索索引 |
-| `npm run preview` | 本地预览 `dist/` |
-| `npm run check` | 执行 Astro/TypeScript 检查 |
-| `npm run test:unit` | 运行单元测试 |
-| `npm run test:e2e` | 运行浏览器端到端测试 |
-| `npm run plan:new -- <slug> "<标题>"` | 新建推进计划模板 |
-| `npm run gallery:prepare -- <输入> <输出> <photo或art>` | 处理作品图片 |
-| `npm run media:prepare` | 重新生成世界背景响应式图片 |
-| `npm run regions:prepare` | 重新生成地区插图 |
+| `pnpm dev` | 启动 Astro 开发服务器 |
+| `pnpm build` | 检查、构建并生成搜索索引 |
+| `pnpm preview` | 本地预览 `dist/` |
+| `pnpm check` | 执行 Astro/TypeScript 检查 |
+| `pnpm test:unit` | 运行单元测试 |
+| `pnpm test:e2e` | 运行浏览器端到端测试 |
+| `pnpm plan:new -- <slug> "<标题>"` | 新建推进计划模板 |
+| `pnpm gallery:prepare -- <输入> <输出> <photo或art>` | 处理作品图片 |
+| `pnpm media:prepare` | 重新生成世界背景响应式图片 |
+| `pnpm regions:prepare` | 重新生成地区插图 |
 
 ## 7. 环境变量
 
@@ -129,41 +131,37 @@ CI 使用同一套 Node.js 24.16.0 + npm 工作流，并通过 `npm ci` 安装�
 
 ### 终端停在开发服务器输出
 
-只要页面可以访问，这不是卡死。`npm run dev` 是常驻进程，按 `Ctrl+C` 才会退出。
+只要页面可以访问，这不是卡死。`pnpm dev` 是常驻进程，按 `Ctrl+C` 才会退出。
 
 ### 出现 `Cannot find module` 或安装结果异常
 
-通常是旧 pnpm 目录、安装中断或 Node.js 版本不一致造成的。确认 Node/npm 版本后执行：
+通常是依赖目录安装中断、锁文件变化或 Node.js 版本不一致造成的。确认 Node/pnpm 版本后执行：
 
 ```powershell
-npm ci
+pnpm install --frozen-lockfile
 ```
 
-该命令会按 `package-lock.json` 重建依赖，不要再运行 `pnpm install`。
-
-### 出现 `Unknown project config "auto-install-peers"`
-
-这是旧 pnpm 配置被 npm 读取时产生的警告。迁移后的 `.npmrc` 已移除该配置；如果仍看到它，请确认当前目录是最新代码，并检查用户级 `%USERPROFILE%\.npmrc` 是否还包含同名配置。
+该命令会按 `pnpm-lock.yaml` 校验并安装依赖；不要改用 npm 生成第二份锁文件。
 
 ### 端口被占用
 
 改用其他端口：
 
 ```powershell
-npm run dev -- --port 4322
+pnpm dev -- --port 4322
 ```
 
 ### 切换分支后依赖发生变化
 
-当 `package-lock.json` 有变化时重新执行 `npm ci`，避免沿用旧依赖树。
+当 `pnpm-lock.yaml` 有变化时重新执行 `pnpm install --frozen-lockfile`，避免沿用旧依赖树。
 
 ## 9. 部署环境
 
 Cloudflare Pages 使用以下配置：
 
 - Node.js：`24.16.0`
-- 安装命令：`npm ci`
-- 构建命令：`npm run build`
+- 安装命令：`pnpm install --frozen-lockfile`
+- 构建命令：`pnpm build`
 - 输出目录：`dist`
 
 正式部署时设置 `PUBLIC_SITE_URL`。图片 CDN 变量按需配置，留空时会使用仓库内的本地响应式图片。

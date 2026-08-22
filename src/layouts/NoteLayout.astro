@@ -51,7 +51,7 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
     <div class="article-grid">
       <div class="prose" data-note-prose><slot /></div>
       {headings.length > 0 && (
-        <aside class="note-toc" aria-label="文章目录">
+        <aside class="note-toc" aria-label="文章目录" data-pagefind-ignore>
           <span>卷中目录</span>
           {visibleHeadings.map((heading: { slug: string; text: string; depth: number }) => (
             <a href={`#${heading.slug}`} class:list={[`depth-${heading.depth}`]}>{heading.text}</a>
@@ -60,12 +60,12 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
       )}
     </div>
     {relatedNotes.length > 0 && (
-      <section class="related-notes" aria-labelledby="related-notes-title">
+      <section class="related-notes" aria-labelledby="related-notes-title" data-pagefind-ignore>
         <header><p class="pixel-kicker">风中回声</p><h2 id="related-notes-title">与这篇笔记相连</h2></header>
         <div>{relatedNotes.map((note) => <a href={`/notes/${note.data.slug}/`}><span>{note.data.category}</span><strong>{note.data.title}</strong><p>{note.data.description}</p></a>)}</div>
       </section>
     )}
-    <nav class="article-nav" aria-label="相邻文章">
+    <nav class="article-nav" aria-label="相邻文章" data-pagefind-ignore>
       {prev ? <a href={`/notes/${prev.data.slug}/`}><small>上一篇</small><strong>{prev.data.title}</strong></a> : <span></span>}
       {next ? <a href={`/notes/${next.data.slug}/`}><small>下一篇</small><strong>{next.data.title}</strong></a> : <span></span>}
     </nav>

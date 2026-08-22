@@ -10,8 +10,8 @@ import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
 import { cloudVillageDestinations, type RegionId } from '../../data/worldMap';
 import { contactEmail, friendLinks, visitorNotes } from '../../data/snowCliff';
-import { existsSync, readFileSync } from 'node:fs';
 import { collectNoteFacets, sortNotes, sortProjects, sortWorks } from '../../utils/contentCatalog';
+import { readContentSource } from '../../utils/contentSource';
 
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
@@ -49,14 +49,6 @@ const cleanMarkdownText = (value: string) => value
   .replace(/[`*_~>#-]/g, '')
   .replace(/\s+/g, ' ')
   .trim();
-const readNoteSource = (id: string) => {
-  const candidates = [
-    new URL(`../../content/notes/${id}.mdx`, import.meta.url),
-    new URL(`../../content/notes/${id}.md`, import.meta.url),
-  ];
-  const file = candidates.find((candidate) => existsSync(candidate));
-  return file ? readFileSync(file, 'utf8') : '';
-};
 const extractSourceBlocks = (source = '') => {
   const body = source.replace(/^---[\s\S]*?---\s*/, '');
   const blocks: string[] = [];
@@ -85,7 +77,7 @@ const extractSourceBlocks = (source = '') => {
 };
 const noteSourceCards = await Promise.all(notes.map(async (note) => {
   const { headings } = await render(note);
-  const source = readNoteSource(note.id);
+  const source = readContentSource('notes', note.id);
   const outline = headings
     .filter((heading) => heading.depth >= 2 && heading.depth <= 3)
     .map((heading) => ({ depth: heading.depth, slug: heading.slug, text: heading.text }));
@@ -120,10 +112,10 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'rain-bridge' && (
     <>
-      <section class="rain-search" aria-labelledby="rain-search-title">
+      <section class="rain-search" aria-labelledby="rain-search-title" data-pagefind-ignore>
         <CloudSearch client:visible variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
       </section>
-      <section class="world-directory" aria-labelledby="world-directory-title">
+      <section class="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
         <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
       </section>
@@ -133,7 +125,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   {region.data.slug === 'star-abyss' && <GrowthConstellation />}
 
   {region.data.slug === 'wind-valley' && (
-    <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title">
+    <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title" data-pagefind-ignore>
       <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>札记、术业碎章、尘世随笔与小小试作皆落于此，只候一阵风来翻页。</p></header>
       <div class="filter-panel" aria-label="筛选笔记">
         <div class="filter-group"><strong>内容分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
@@ -281,9 +273,9 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'moon-pool' && (
     <>
-      <PlanDashboard plans={plans} projects={projects} />
-      <LocalPlanner />
-      <section class="moon-projects project-archive" aria-labelledby="moon-projects-title">
+      <div data-pagefind-ignore><PlanDashboard plans={plans} projects={projects} /></div>
+      <div data-pagefind-ignore><LocalPlanner /></div>
+      <section class="moon-projects project-archive" aria-labelledby="moon-projects-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">月下藏卷</p><h2 id="moon-projects-title">月映册</h2><p>行舟录记今夜将往何方；月映册则收已成之物、术法取舍与经年回望。</p></header>
         <div class="archive-intro"><p>月下藏卷</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>卷造物旧录</span></div>
         <div class="project-grid">
@@ -351,7 +343,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
     </section>
   )}
 
-  {region.data.slug === 'lantern-lane' && works.length > 0 && <GalleryArchive works={works} />}
+  {region.data.slug === 'lantern-lane' && works.length > 0 && <div data-pagefind-ignore><GalleryArchive works={works} /></div>}
 </RegionLayout>
 <style>
   .village-moments { margin-top: 42px; padding: 30px; border: 2px solid #7d8b7c; background: rgba(241,243,220,.75); }

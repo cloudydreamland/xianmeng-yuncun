@@ -12,11 +12,11 @@ test('首页展示重点计划摘要并直达推进详情', async ({ page }) => 
   await expect(summary).toBeVisible();
   await expect(summary.getByRole('heading', { name: '此刻正在做什么' })).toBeVisible();
   await expect(summary.getByRole('link', { name: /雲梦世界持续建设/ })).toHaveAttribute('href', '/world/moon-pool/yuncun-next-stage/');
-  await expect(summary.getByText('里程碑完成 75%')).toBeVisible();
+  await expect(summary.getByText('里程碑完成 83%')).toBeVisible();
 });
 
 test('月潭推进台计算近期行动并同步筛选 URL 与历史记录', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-07-22T04:00:00.000Z'));
+  await page.clock.setFixedTime(new Date('2026-08-22T04:00:00.000Z'));
   await page.goto('/world/moon-pool/');
 
   const dashboard = page.locator('[data-plan-dashboard]');
@@ -41,7 +41,7 @@ test('月潭推进台计算近期行动并同步筛选 URL 与历史记录', asy
 test('计划详情展示进度、项目关联并可从项目档案返回', async ({ page }) => {
   await page.goto('/world/moon-pool/yuncun-next-stage/');
   await expect(page.getByRole('heading', { level: 1, name: '雲梦世界持续建设' })).toBeVisible();
-  await expect(page.getByRole('progressbar', { name: /里程碑进度/ })).toHaveAttribute('aria-valuenow', '75');
+  await expect(page.getByRole('progressbar', { name: /里程碑进度/ })).toHaveAttribute('aria-valuenow', '83');
   await expect(page.getByRole('link', { name: '展读造物旧录 →' })).toHaveAttribute('href', '/projects/yuncun-blog/');
 
   await page.goto('/projects/yuncun-blog/');

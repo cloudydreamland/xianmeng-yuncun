@@ -174,7 +174,7 @@ export default function CloudSearch({
       </header>
       <label className="search-field">
         <span aria-hidden="true">⌕</span>
-        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleInputKeyDown} placeholder="让云镜照见一段文字……" autoComplete="off" spellCheck={false} />
+        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleInputKeyDown} placeholder="让云镜照见一段文字……" aria-label="搜索雲梦世界内容" autoComplete="off" spellCheck={false} />
         <kbd>⌘ K</kbd>
       </label>
       <div className="search-filters" aria-label="筛选搜索结果">

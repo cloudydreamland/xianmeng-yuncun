@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import NoteLayout from '../../layouts/NoteLayout.astro';
+import { readContentSource } from '../../utils/contentSource';
 import { getReadingStats } from '../../utils/readingStats';
 
 export async function getStaticPaths() {
@@ -29,7 +30,7 @@ export async function getStaticPaths() {
 
 const { note, prev, next, relatedNotes } = Astro.props;
 const { Content, headings } = await render(note);
-const readingStats = getReadingStats(note.body ?? '');
+const readingStats = getReadingStats(readContentSource('notes', note.id));
 ---
 
 <NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next} relatedNotes={relatedNotes}>

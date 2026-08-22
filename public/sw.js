@@ -1,30 +1,62 @@
-const CACHE_NAME = 'yuncun-shell-v3';
-const APP_SHELL = ['/', '/workspace/', '/manifest.webmanifest'];
+const CACHE_PREFIX = 'yuncun-';
+const CACHE_VERSION = 'v4';
+const SHELL_CACHE = `${CACHE_PREFIX}shell-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-${CACHE_VERSION}`;
+const APP_SHELL = ['/', '/workspace/', '/offline.html', '/manifest.webmanifest'];
+const MAX_RUNTIME_ENTRIES = 80;
+
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  await Promise.all(keys.slice(0, Math.max(0, keys.length - maxEntries)).map((key) => cache.delete(key)));
+}
+
+async function storeResponse(request, response) {
+  if (!response || !response.ok || response.status !== 200) return;
+  const cache = await caches.open(RUNTIME_CACHE);
+  await cache.put(request, response.clone());
+  await trimCache(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
+}
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('yuncun-shell-') && key !== CACHE_NAME).map((key) => caches.delete(key)))));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== SHELL_CACHE && key !== RUNTIME_CACHE)
+      .map((key) => caches.delete(key)),
+  )));
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
-  if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).then((response) => {
-      if (response.ok) {
-        const copy = response.clone();
-        event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin || request.headers.has('range')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        event.waitUntil(storeResponse(request, response));
+        return response;
+      } catch {
+        return (await caches.match(request)) || (await caches.match('/offline.html'));
       }
-      return response;
-    }).catch(() => caches.match(event.request).then((cached) => cached || caches.match('/workspace/'))));
+    })());
     return;
   }
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-    if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
-    return response;
-  })));
+
+  if (!['style', 'script', 'font', 'image'].includes(request.destination)) return;
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    const network = fetch(request).then((response) => {
+      event.waitUntil(storeResponse(request, response));
+      return response;
+    }).catch(() => cached || Response.error());
+    return cached || network;
+  })());
 });

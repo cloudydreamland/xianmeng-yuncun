@@ -9,7 +9,7 @@
     "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
     "test:e2e": "playwright test",
-    "test:unit": "node --experimental-strip-types --test --test-isolation=none tests/unit/planProgress.test.ts tests/unit/planValidation.test.ts",
+    "test:unit": "node --experimental-strip-types --test --test-isolation=none tests/unit/*.test.ts",
     "gallery:prepare": "node scripts/prepare-gallery-image.mjs",
     "media:prepare": "node scripts/prepare-background-images.mjs",
     "page-bg:prepare": "node scripts/prepare-page-background.mjs",
@@ -17,7 +17,7 @@
     "plan:new": "node scripts/create-plan.mjs"
   },
   "engines": {
-    "node": ">=22.16 <25",
+    "node": ">=24.16 <25",
     "pnpm": ">=10.14 <11"
   },
   "dependencies": {
