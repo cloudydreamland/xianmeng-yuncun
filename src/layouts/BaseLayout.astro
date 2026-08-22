@@ -80,6 +80,11 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
       (() => {
         const root = document.documentElement;
         root.classList.add('js');
+        let entranceSeen = false;
+        try {
+          entranceSeen = sessionStorage.getItem('yuncun-entered') === 'true';
+        } catch {}
+        root.dataset.entranceSeen = entranceSeen ? 'true' : 'false';
         let mode = 'auto';
         try {
           const stored = localStorage.getItem('yuncun-time-mode');
@@ -92,6 +97,7 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
         if (isHomeRoute) {
           const candidate = innerWidth <= 760 ? homeMapPreloads[resolved]?.mobile : homeMapPreloads[resolved]?.desktop;
           if (candidate) {
+            window['__yuncunCriticalImage'] = candidate;
             const preload = document.createElement('link');
             preload.rel = 'preload';
             preload.as = 'image';
@@ -109,7 +115,7 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <Header />
     <SearchPanel />
     <ReadingList />
-    <main id="main-content" data-pagefind-body={searchable ? true : undefined}><slot /></main>
+    <main id="main-content" tabindex="-1" data-pagefind-body={searchable ? true : undefined}><slot /></main>
     <Footer />
     <div id="yunling-pet-root" aria-hidden="true"></div>
     <script>

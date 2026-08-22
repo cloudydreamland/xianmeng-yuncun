@@ -1,0 +1,136 @@
+<div
+  class="cloud-entrance"
+  data-cloud-entrance
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="cloud-entrance-title"
+  aria-describedby="cloud-entrance-status"
+  aria-busy="true"
+>
+  <div class="cloud-entrance__mist cloud-entrance__mist--left" aria-hidden="true"></div>
+  <div class="cloud-entrance__mist cloud-entrance__mist--right" aria-hidden="true"></div>
+  <div class="cloud-entrance__copy">
+    <span>雲梦世界 · YUNMENG</span>
+    <strong id="cloud-entrance-title" data-entrance-title>山河正在显影</strong>
+    <p id="cloud-entrance-status" data-entrance-status>正在叩启云门，载入此刻山河……</p>
+    <div
+      class="cloud-entrance__progress"
+      role="progressbar"
+      aria-label="首页关键资源加载进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="3"
+      data-entrance-progress
+    >
+      <i data-entrance-progress-bar></i>
+      <span><b data-entrance-progress-value>3</b>%</span>
+    </div>
+    <small data-entrance-detail>正在载入首屏地图与界面</small>
+    <button class="animal-like-button cloud-entrance__enter" type="button" data-entrance-enter hidden>入境</button>
+  </div>
+</div>
+
+<script>
+  const entrance = document.querySelector<HTMLElement>('[data-cloud-entrance]');
+  const root = document.documentElement;
+
+  if (entrance && root.dataset.entranceSeen === 'true') {
+    entrance.hidden = true;
+  } else if (entrance) {
+    const progress = entrance.querySelector<HTMLElement>('[data-entrance-progress]');
+    const progressBar = entrance.querySelector<HTMLElement>('[data-entrance-progress-bar]');
+    const progressValue = entrance.querySelector<HTMLElement>('[data-entrance-progress-value]');
+    const title = entrance.querySelector<HTMLElement>('[data-entrance-title]');
+    const status = entrance.querySelector<HTMLElement>('[data-entrance-status]');
+    const detail = entrance.querySelector<HTMLElement>('[data-entrance-detail]');
+    const enter = entrance.querySelector<HTMLButtonElement>('[data-entrance-enter]');
+    const runtimeWindow = window as Window & { __yuncunCriticalImage?: string };
+    const startedAt = performance.now();
+    let displayed = 3;
+    let target = 58;
+    let ready = false;
+
+    root.classList.add('entrance-active');
+
+    const paintProgress = (value: number) => {
+      const rounded = Math.max(0, Math.min(100, Math.round(value)));
+      progress?.setAttribute('aria-valuenow', String(rounded));
+      if (progressBar) progressBar.style.transform = `scaleX(${rounded / 100})`;
+      if (progressValue) progressValue.textContent = String(rounded);
+    };
+
+    const renderProgress = () => {
+      const distance = target - displayed;
+      if (Math.abs(distance) > .08) displayed += Math.max(.12, distance * .055);
+      else displayed = target;
+      paintProgress(displayed);
+      if (!ready || displayed < 100) requestAnimationFrame(renderProgress);
+    };
+
+    const waitForWindowLoad = () => document.readyState === 'complete'
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => window.addEventListener('load', () => resolve(), { once: true }));
+
+    const waitForCriticalImage = async () => {
+      const source = runtimeWindow.__yuncunCriticalImage;
+      if (!source) return;
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = source;
+      if (!image.complete) await new Promise<void>((resolve) => {
+        image.addEventListener('load', () => resolve(), { once: true });
+        image.addEventListener('error', () => resolve(), { once: true });
+      });
+      try {
+        await image.decode();
+      } catch {}
+    };
+
+    const minimumDisplay = new Promise<void>((resolve) => window.setTimeout(resolve, 720));
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+    const updateWhenDone = (task: Promise<unknown>, nextTarget: number, copy: string) => task.finally(() => {
+      target = Math.max(target, nextTarget);
+      if (detail) detail.textContent = copy;
+    });
+
+    const criticalTasks = Promise.allSettled([
+      updateWhenDone(waitForCriticalImage(), 76, '首屏山河已显影'),
+      updateWhenDone(fontsReady, 84, '界面文字已就位'),
+      updateWhenDone(waitForWindowLoad(), 94, '交互与样式已就位'),
+      updateWhenDone(minimumDisplay, 96, '正在开启云门'),
+    ]);
+    const timeout = new Promise<'timeout'>((resolve) => window.setTimeout(() => resolve('timeout'), 15_000));
+
+    requestAnimationFrame(renderProgress);
+    Promise.race([criticalTasks.then(() => 'ready' as const), timeout]).then((result) => {
+      ready = true;
+      target = 100;
+      displayed = 100;
+      paintProgress(100);
+      if (title) title.textContent = result === 'timeout' ? '山门已候君来' : '云门开，山河现';
+      if (status) status.textContent = result === 'timeout' ? '云雾稍重，山门仍可通行。' : '首屏已就绪，静候入境。';
+      if (detail) detail.textContent = result === 'timeout'
+        ? '部分远景将于入境后继续显影'
+        : `首屏已就绪 · ${Math.max(1, Math.round(performance.now() - startedAt))}ms`;
+      entrance.setAttribute('aria-busy', 'false');
+      window.setTimeout(() => {
+        if (enter) {
+          enter.hidden = false;
+          enter.focus({ preventScroll: true });
+        }
+      }, 220);
+    });
+
+    enter?.addEventListener('click', () => {
+      try {
+        sessionStorage.setItem('yuncun-entered', 'true');
+      } catch {}
+      entrance.classList.add('is-leaving');
+      root.classList.remove('entrance-active');
+      window.setTimeout(() => {
+        entrance.hidden = true;
+        document.querySelector<HTMLElement>('#main-content')?.focus({ preventScroll: true });
+      }, 760);
+    });
+  }
+</script>

@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
+});
+
 test('首页提供清晰的起步路径与近期内容', async ({ page }) => {
   await page.goto('/');
 

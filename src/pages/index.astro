@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import CloudEntrance from '../components/CloudEntrance.astro';
 import IslandTag from '../components/IslandTag';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
@@ -55,6 +56,7 @@ const mapRegions = regions.map((region) => {
 ---
 
 <BaseLayout>
+  <CloudEntrance />
   <WorldMap
     client:load
     backgrounds={worldBackgrounds}
