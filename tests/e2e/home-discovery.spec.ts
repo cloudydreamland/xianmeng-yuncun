@@ -48,3 +48,15 @@ test('窄屏下快速入口保持易点击的单列布局', async ({ page }) => 
   expect(Math.abs(first!.x - second!.x)).toBeLessThan(2);
   expect(second!.y).toBeGreaterThan(first!.y + first!.height);
 });
+
+test('窄屏首页背景固定在视口内并保持等比裁切', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const background = await page.locator('.home-after-map').evaluate((element) => {
+    const style = getComputedStyle(element, '::before');
+    return { position: style.position, size: style.backgroundSize };
+  });
+
+  expect(background).toEqual({ position: 'fixed', size: 'cover' });
+});

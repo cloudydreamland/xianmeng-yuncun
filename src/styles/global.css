@@ -1441,12 +1441,14 @@ body.workspace-route::after {
 
 @media (max-width: 760px) {
   .home-after-map::before {
+    position: fixed;
     background-image: image-set(
       url('/images/backgrounds/home-heaven-rift-v5-960.avif') type('image/avif'),
       url('/images/backgrounds/home-heaven-rift-v5-960.webp') type('image/webp')
     );
     background-attachment: scroll;
-    background-position: center top;
+    background-position: center;
+    background-size: cover;
   }
   body.workspace-route::after {
     background-image:
