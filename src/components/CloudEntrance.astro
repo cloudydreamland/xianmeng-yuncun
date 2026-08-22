@@ -68,7 +68,7 @@
       if (Math.abs(distance) > .08) displayed += Math.max(.12, distance * .055);
       else displayed = target;
       paintProgress(displayed);
-      if (!ready || displayed < 100) requestAnimationFrame(renderProgress);
+      if (!ready || Math.abs(target - displayed) > .08) requestAnimationFrame(renderProgress);
     };
 
     const waitForWindowLoad = () => document.readyState === 'complete'
@@ -76,8 +76,11 @@
       : new Promise<void>((resolve) => window.addEventListener('load', () => resolve(), { once: true }));
 
     const waitForCriticalImage = async () => {
-      const source = runtimeWindow.__yuncunCriticalImage;
-      if (!source) return;
+      const picture = document.querySelector<HTMLElement>('.world-map__picture');
+      const computedBackground = picture ? getComputedStyle(picture).backgroundImage : '';
+      const cssSource = computedBackground.match(/url\(["']?(.*?)["']?\)/)?.[1];
+      const source = cssSource || runtimeWindow.__yuncunCriticalImage;
+      if (!source) throw new Error('缺少首屏地图资源');
       const image = new Image();
       image.decoding = 'async';
       image.src = source;
@@ -85,9 +88,10 @@
         image.addEventListener('load', () => resolve(), { once: true });
         image.addEventListener('error', () => resolve(), { once: true });
       });
-      try {
-        await image.decode();
-      } catch {}
+      if (!image.naturalWidth) throw new Error('首屏地图载入失败');
+      await image.decode();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      if (picture) picture.dataset.mapReady = 'true';
     };
 
     const minimumDisplay = new Promise<void>((resolve) => window.setTimeout(resolve, 720));
@@ -97,25 +101,30 @@
       if (detail) detail.textContent = copy;
     });
 
-    const criticalTasks = Promise.allSettled([
+    const criticalTasks = Promise.all([
       updateWhenDone(waitForCriticalImage(), 76, '首屏山河已显影'),
       updateWhenDone(fontsReady, 84, '界面文字已就位'),
       updateWhenDone(waitForWindowLoad(), 94, '交互与样式已就位'),
       updateWhenDone(minimumDisplay, 96, '正在开启云门'),
     ]);
-    const timeout = new Promise<'timeout'>((resolve) => window.setTimeout(() => resolve('timeout'), 15_000));
+    const slowNotice = window.setTimeout(() => {
+      if (ready) return;
+      target = Math.max(target, 96);
+      if (title) title.textContent = '山河仍在显影';
+      if (status) status.textContent = '手机网络较慢，请再稍候片刻。';
+      if (detail) detail.textContent = '大地图加载完成后将自动开启云门';
+    }, 12_000);
 
     requestAnimationFrame(renderProgress);
-    Promise.race([criticalTasks.then(() => 'ready' as const), timeout]).then((result) => {
+    criticalTasks.then(() => {
+      window.clearTimeout(slowNotice);
       ready = true;
       target = 100;
       displayed = 100;
       paintProgress(100);
-      if (title) title.textContent = result === 'timeout' ? '山门已候君来' : '云门开，山河现';
-      if (status) status.textContent = result === 'timeout' ? '云雾稍重，山门仍可通行。' : '首屏已就绪，静候入境。';
-      if (detail) detail.textContent = result === 'timeout'
-        ? '部分远景将于入境后继续显影'
-        : `首屏已就绪 · ${Math.max(1, Math.round(performance.now() - startedAt))}ms`;
+      if (title) title.textContent = '云门开，山河现';
+      if (status) status.textContent = '首屏已就绪，静候入境。';
+      if (detail) detail.textContent = `首屏已就绪 · ${Math.max(1, Math.round(performance.now() - startedAt))}ms`;
       entrance.setAttribute('aria-busy', 'false');
       window.setTimeout(() => {
         if (enter) {
@@ -123,9 +132,26 @@
           enter.focus({ preventScroll: true });
         }
       }, 220);
+    }).catch(() => {
+      window.clearTimeout(slowNotice);
+      ready = true;
+      target = 96;
+      if (title) title.textContent = '山河显影未成';
+      if (status) status.textContent = '大地图载入失败，请重新叩启云门。';
+      if (detail) detail.textContent = '请检查网络后重新加载';
+      entrance.setAttribute('aria-busy', 'false');
+      if (enter) {
+        enter.textContent = '重新加载';
+        enter.dataset.action = 'reload';
+        enter.hidden = false;
+      }
     });
 
     enter?.addEventListener('click', () => {
+      if (enter.dataset.action === 'reload') {
+        window.location.reload();
+        return;
+      }
       entrance.classList.add('is-leaving');
       root.classList.remove('entrance-active');
       window.setTimeout(() => {

@@ -93,12 +93,15 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
         root.dataset.time = resolved;
         root.dataset.timeMode = mode;
         if (isHomeRoute) {
-          const density = Math.min(devicePixelRatio || 1, 2);
-          const requiredWidth = innerWidth * density;
+          const density = devicePixelRatio || 1;
           const images = homeMapPreloads[resolved];
           const candidate = innerWidth <= 760
-            ? requiredWidth > 960 ? images?.mobileRetina : images?.mobile
-            : requiredWidth > 2560 ? images?.desktopUltra : requiredWidth > 1920 ? images?.desktopLarge : images?.desktop;
+            ? density >= 2 ? images?.mobileRetina : images?.mobile
+            : innerWidth >= 2300 || density >= 1.75
+              ? images?.desktopUltra
+              : innerWidth >= 1600 || density >= 1.25
+                ? images?.desktopLarge
+                : images?.desktop;
           if (candidate) {
             window['__yuncunCriticalImage'] = candidate;
             const preload = document.createElement('link');
