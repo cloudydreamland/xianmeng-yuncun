@@ -207,5 +207,5 @@ const mapRegions = regions.map((region) => {
   @media (max-width:900px) { .realm-overview-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:900px) { .home-intro { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
   @media (max-width:600px) { .home-intro { padding-top:158px; } .home-intro__copy,.home-intro__ledger { padding:22px 20px 24px; } .home-intro__actions { display:grid; grid-template-columns:1fr 1fr; } .home-intro__ledger dl { grid-template-columns:repeat(3,1fr); } .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
-  @media (max-width:420px) { .home-intro__actions { grid-template-columns:1fr; } }
+  @media (max-width:420px) { .home-intro__actions,.home-intro__ledger dl { grid-template-columns:1fr; } .home-intro__ledger dl div { min-height:72px; } }
 </style>

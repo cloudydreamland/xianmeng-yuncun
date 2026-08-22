@@ -338,4 +338,20 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
   .workspace-backup { padding:25px 28px; border:2px solid #6da7b0; background:rgba(246,252,255,.94); } .backup-import { cursor:pointer; } .backup-import input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
   .workspace-muted { color:#56645c; font-size:.78rem; line-height:1.7; }
   @media (max-width:800px) { .focus-card,.today-columns,.capture-layout,.review-layout { grid-template-columns:1fr; } .today-metrics { grid-template-columns:repeat(2,1fr); } .reading-capture { grid-template-columns:1fr; } .workspace-reading__item > div { grid-template-columns:1fr; } }
+  @media (max-width:520px) {
+    .workspace-today,.workspace-reading,.workspace-capture,.workspace-review,.workspace-backup { margin-top:34px; padding:18px 14px; }
+    .workspace-today__header { align-items:start; flex-direction:column; gap:8px; }
+    .focus-card { gap:16px; padding:15px; }
+    .focus-card form { display:grid; grid-template-columns:1fr; }
+    .focus-card input { min-width:0; }
+    .today-metrics { gap:8px; }
+    .today-metrics article { padding:13px 12px; }
+    .today-list li,.workspace-action { grid-template-columns:1fr; }
+    .reading-capture .pixel-button { width:100%; }
+    .workspace-reading__item { padding:13px; }
+    .capture-form,.capture-output { min-width:0; padding:16px 14px; }
+    .capture-output { min-height:280px; }
+    .review-summary { grid-template-columns:1fr; }
+    .capture-actions .pixel-button,.review-actions .pixel-button,.backup-actions .pixel-button,.backup-import { flex:1 1 100%; width:100%; text-align:center; }
+  }
 </style>
