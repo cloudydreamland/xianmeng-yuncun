@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
+  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
 test('首页几何粒子使用视口画布并启动点线动画', async ({ page }) => {

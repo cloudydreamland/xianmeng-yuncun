@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.sessionStorage.setItem('yuncun-entered', 'true');
+    window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true');
     if (!window.sessionStorage.getItem('yuncun-reading-list-test-ready')) {
       window.localStorage.removeItem('yuncun-reading-list-v1');
       window.sessionStorage.setItem('yuncun-reading-list-test-ready', 'true');

@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
+  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
 test('灯巷按公开作品状态展示画廊或酝酿说明', async ({ page }) => {

@@ -168,7 +168,10 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   const mapBackgroundStyle = Object.fromEntries(
     Object.entries(backgrounds).flatMap(([time, image]) => [
       [`--world-map-${time}`, `url("${image.cssImage ?? image.fallback}")`],
+      [`--world-map-${time}-large`, `url("${image.cssImageLarge ?? image.cssImage ?? image.fallback}")`],
+      [`--world-map-${time}-ultra`, `url("${image.cssImageUltra ?? image.cssImageLarge ?? image.fallback}")`],
       [`--world-map-${time}-mobile`, `url("${image.cssImageMobile ?? image.cssImage ?? image.fallback}")`],
+      [`--world-map-${time}-mobile-retina`, `url("${image.cssImageMobileRetina ?? image.cssImageMobile ?? image.cssImage ?? image.fallback}")`],
     ]),
   ) as CSSProperties;
 

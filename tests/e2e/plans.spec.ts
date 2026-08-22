@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
+  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
 test('首页展示重点计划摘要并直达推进详情', async ({ page }) => {

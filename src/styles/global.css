@@ -200,7 +200,7 @@ img { max-width: 100%; display: block; }
 .hero__scroll span { display: block; width: 1px; height: 32px; background: currentColor; animation: scroll-pulse 1.8s ease-in-out infinite; }
 
 .cloud-entrance { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; overflow: hidden; padding: 24px; background: #eaf7f8; transition: opacity 0.6s ease, visibility 0.6s ease; }
-.cloud-entrance[hidden], html[data-entrance-seen='true'] .cloud-entrance { display: none; }
+.cloud-entrance[hidden] { display: none; }
 html.entrance-active, html.entrance-active body { overflow: hidden; }
 .cloud-entrance.is-leaving { opacity: 0; pointer-events: none; }
 .cloud-entrance__mist { position: absolute; top: -15%; bottom: -15%; width: 68%; filter: drop-shadow(0 20px 40px rgba(121, 159, 166, 0.15)); transition: transform 0.95s cubic-bezier(0.65, 0, 0.35, 1); }
@@ -850,16 +850,22 @@ html.entrance-active, html.entrance-active body { overflow: hidden; }
 .world-map__viewport:focus-visible { box-shadow: inset 0 0 0 4px #efd778; }
 .world-map__canvas { position: relative; aspect-ratio: 16 / 9; min-width: 980px; overflow: hidden; }
 .world-map__picture, .world-map__noscript { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.world-map__picture { background-image: var(--world-map-day); background-position: center; background-size: cover; animation: atlas-arrive .8s ease both; }
-html[data-time="dawn"] .world-map__picture { background-image: var(--world-map-dawn); }
-html[data-time="day"] .world-map__picture { background-image: var(--world-map-day); }
-html[data-time="dusk"] .world-map__picture { background-image: var(--world-map-dusk); }
-html[data-time="night"] .world-map__picture { background-image: var(--world-map-night); }
+.world-map__picture { background-image: var(--world-map-current, var(--world-map-day)); background-position: center; background-size: cover; animation: atlas-arrive .8s ease both; }
+html[data-time="dawn"] .world-map__picture { --world-map-current: var(--world-map-dawn); --world-map-current-large: var(--world-map-dawn-large); --world-map-current-ultra: var(--world-map-dawn-ultra); --world-map-current-mobile: var(--world-map-dawn-mobile); --world-map-current-mobile-retina: var(--world-map-dawn-mobile-retina); }
+html[data-time="day"] .world-map__picture { --world-map-current: var(--world-map-day); --world-map-current-large: var(--world-map-day-large); --world-map-current-ultra: var(--world-map-day-ultra); --world-map-current-mobile: var(--world-map-day-mobile); --world-map-current-mobile-retina: var(--world-map-day-mobile-retina); }
+html[data-time="dusk"] .world-map__picture { --world-map-current: var(--world-map-dusk); --world-map-current-large: var(--world-map-dusk-large); --world-map-current-ultra: var(--world-map-dusk-ultra); --world-map-current-mobile: var(--world-map-dusk-mobile); --world-map-current-mobile-retina: var(--world-map-dusk-mobile-retina); }
+html[data-time="night"] .world-map__picture { --world-map-current: var(--world-map-night); --world-map-current-large: var(--world-map-night-large); --world-map-current-ultra: var(--world-map-night-ultra); --world-map-current-mobile: var(--world-map-night-mobile); --world-map-current-mobile-retina: var(--world-map-night-mobile-retina); }
+@media (min-width: 1600px), (min-width: 761px) and (min-resolution: 1.25dppx) {
+  .world-map__picture { background-image: var(--world-map-current-large, var(--world-map-current)); }
+}
+@media (min-width: 2300px), (min-width: 761px) and (min-resolution: 1.75dppx) {
+  .world-map__picture { background-image: var(--world-map-current-ultra, var(--world-map-current-large)); }
+}
 @media (max-width: 760px) {
-  html[data-time="dawn"] .world-map__picture { background-image: var(--world-map-dawn-mobile); }
-  html[data-time="day"] .world-map__picture { background-image: var(--world-map-day-mobile); }
-  html[data-time="dusk"] .world-map__picture { background-image: var(--world-map-dusk-mobile); }
-  html[data-time="night"] .world-map__picture { background-image: var(--world-map-night-mobile); }
+  .world-map__picture { background-image: var(--world-map-current-mobile, var(--world-map-current)); }
+}
+@media (max-width: 760px) and (min-resolution: 2dppx) {
+  .world-map__picture { background-image: var(--world-map-current-mobile-retina, var(--world-map-current-mobile)); }
 }
 .world-map__vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(circle at 50% 46%, transparent 38%, rgba(16, 36, 42, .2) 100%), linear-gradient(180deg, rgba(8, 22, 28, .58), transparent 18%, transparent 78%, rgba(10, 26, 34, .16)); }
 

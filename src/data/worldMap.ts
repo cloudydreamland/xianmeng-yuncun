@@ -26,7 +26,10 @@ export interface ResponsiveWorldImage {
   webpSrcSet: string;
   fallback: string;
   cssImage?: string;
+  cssImageLarge?: string;
+  cssImageUltra?: string;
   cssImageMobile?: string;
+  cssImageMobileRetina?: string;
   sizes: string;
 }
 
@@ -62,7 +65,10 @@ export const worldBackgrounds: Record<ResolvedTimeMode, ResponsiveWorldImage> = 
     webpSrcSet: imageSrcSet(worldWidths.map((width) => ({ url: worldCandidate(time, width, 'webp'), width }))),
     fallback: worldCandidate(time, 3840, 'webp'),
     cssImage: worldCandidate(time, 1920, 'avif'),
+    cssImageLarge: worldCandidate(time, 2560, 'avif'),
+    cssImageUltra: worldCandidate(time, 3840, 'avif'),
     cssImageMobile: worldCandidate(time, 960, 'avif'),
+    cssImageMobileRetina: worldCandidate(time, 1440, 'avif'),
     sizes: worldSizes,
   }]),
 ) as Record<ResolvedTimeMode, ResponsiveWorldImage>;

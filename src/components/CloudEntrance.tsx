@@ -1,24 +1,14 @@
 import { useEffect, useState } from 'react';
 
-const SESSION_KEY = 'yuncun-entered';
-
 export default function CloudEntrance() {
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const visited = window.sessionStorage.getItem(SESSION_KEY) === 'true';
-
-    if (reduceMotion || visited) return;
-
     setVisible(true);
-    const timer = window.setTimeout(() => dismiss(), 1400);
-    return () => window.clearTimeout(timer);
   }, []);
 
   function dismiss() {
-    window.sessionStorage.setItem(SESSION_KEY, 'true');
     setLeaving(true);
     window.setTimeout(() => setVisible(false), 520);
   }

@@ -10,7 +10,7 @@ test('world map image is present in the server-rendered HTML', async ({ request 
 });
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-entered', 'true'));
+  await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
 test('首页加载服务端响应式地图并切换到当前时段', async ({ page }) => {
@@ -19,6 +19,8 @@ test('首页加载服务端响应式地图并切换到当前时段', async ({ pa
   const picture = page.locator('.world-map__picture');
   await expect(picture).toHaveAttribute('role', 'img');
   await expect(picture).toHaveAttribute('style', /--world-map-day:\s*url\("\/images\/world\/day\/world-detailed-v3-1920\.avif"\)/);
+  await expect(picture).toHaveAttribute('style', /--world-map-day-large:\s*url\("\/images\/world\/day\/world-detailed-v3-2560\.avif"\)/);
+  await expect(picture).toHaveAttribute('style', /--world-map-day-ultra:\s*url\("\/images\/world\/day\/world-detailed-v3-3840\.avif"\)/);
   await expect(picture).toHaveAttribute('style', /--world-map-day-mobile:\s*url\("\/images\/world\/day\/world-detailed-v3-960\.avif"\)/);
 
   await page.waitForTimeout(2_000);
@@ -30,6 +32,37 @@ test('首页加载服务端响应式地图并切换到当前时段', async ({ pa
   const uniqueImages = [...new Set(loadedWorldImages)];
   // 时段由首屏内联脚本决定，地图以 CSS 背景按当前时段取图，避免水合前后重复下载。
   expect(uniqueImages).toHaveLength(1);
+});
+
+test('截图对应的高分屏选择足够清晰的大地图资源', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: 'http://127.0.0.1:4321',
+    viewport: { width: 1800, height: 1010 },
+    deviceScaleFactor: 1.4,
+  });
+  await context.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
+  const page = await context.newPage();
+
+  try {
+    await page.goto('/');
+    await expect.poll(() => page.locator('.world-map__picture').evaluate((element) => getComputedStyle(element).backgroundImage))
+      .toMatch(/world-detailed-v3-2560\.avif/);
+
+    const metrics = await page.evaluate(() => ({
+      cssWidth: window.innerWidth,
+      density: window.devicePixelRatio,
+      physicalWidth: window.innerWidth * window.devicePixelRatio,
+      loadedWorldImages: [...new Set(performance.getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .filter((url) => url.includes('/images/world/')))],
+    }));
+
+    expect(metrics.physicalWidth).toBeCloseTo(2520, 0);
+    expect(metrics.loadedWorldImages).toHaveLength(1);
+    expect(metrics.loadedWorldImages[0]).toContain('world-detailed-v3-2560.avif');
+  } finally {
+    await context.close();
+  }
 });
 
 test('首页只显示七个动森地名并支持 hash、Escape 与焦点恢复', async ({ page }) => {

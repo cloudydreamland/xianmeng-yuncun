@@ -33,8 +33,12 @@
 <script>
   const entrance = document.querySelector<HTMLElement>('[data-cloud-entrance]');
   const root = document.documentElement;
+  let skipForAutomation = false;
+  try {
+    skipForAutomation = sessionStorage.getItem('yuncun-test-skip-entrance') === 'true';
+  } catch {}
 
-  if (entrance && root.dataset.entranceSeen === 'true') {
+  if (entrance && skipForAutomation) {
     entrance.hidden = true;
   } else if (entrance) {
     const progress = entrance.querySelector<HTMLElement>('[data-entrance-progress]');
@@ -122,9 +126,6 @@
     });
 
     enter?.addEventListener('click', () => {
-      try {
-        sessionStorage.setItem('yuncun-entered', 'true');
-      } catch {}
       entrance.classList.add('is-leaving');
       root.classList.remove('entrance-active');
       window.setTimeout(() => {

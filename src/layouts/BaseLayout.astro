@@ -36,7 +36,10 @@ const isWorkspaceRoute = Astro.url.pathname.startsWith('/workspace/');
 const isHomeRoute = Astro.url.pathname === '/';
 const homeMapPreloads = Object.fromEntries(Object.entries(worldBackgrounds).map(([time, asset]) => [time, {
   mobile: asset.cssImageMobile,
+  mobileRetina: asset.cssImageMobileRetina,
   desktop: asset.cssImage,
+  desktopLarge: asset.cssImageLarge,
+  desktopUltra: asset.cssImageUltra,
 }]));
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
@@ -80,11 +83,6 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
       (() => {
         const root = document.documentElement;
         root.classList.add('js');
-        let entranceSeen = false;
-        try {
-          entranceSeen = sessionStorage.getItem('yuncun-entered') === 'true';
-        } catch {}
-        root.dataset.entranceSeen = entranceSeen ? 'true' : 'false';
         let mode = 'auto';
         try {
           const stored = localStorage.getItem('yuncun-time-mode');
@@ -95,7 +93,12 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
         root.dataset.time = resolved;
         root.dataset.timeMode = mode;
         if (isHomeRoute) {
-          const candidate = innerWidth <= 760 ? homeMapPreloads[resolved]?.mobile : homeMapPreloads[resolved]?.desktop;
+          const density = Math.min(devicePixelRatio || 1, 2);
+          const requiredWidth = innerWidth * density;
+          const images = homeMapPreloads[resolved];
+          const candidate = innerWidth <= 760
+            ? requiredWidth > 960 ? images?.mobileRetina : images?.mobile
+            : requiredWidth > 2560 ? images?.desktopUltra : requiredWidth > 1920 ? images?.desktopLarge : images?.desktop;
           if (candidate) {
             window['__yuncunCriticalImage'] = candidate;
             const preload = document.createElement('link');
