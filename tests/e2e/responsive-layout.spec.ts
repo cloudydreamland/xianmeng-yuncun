@@ -111,3 +111,16 @@ test('手机主要导航与地图控件保持至少 44px 触控高度', async ({
     expect(height).toBeGreaterThanOrEqual(44);
   }
 });
+
+test('手机端加密云卷区分访问密钥与同步密码且不横向溢出', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/workspace/');
+
+  const accessToken = page.getByLabel('访问密钥');
+  const passphrase = page.getByLabel('同步密码');
+  await expect(accessToken).toBeVisible();
+  await expect(passphrase).toBeVisible();
+  await expect(page.getByText('保存访问密钥，用于自动同步')).toBeVisible();
+  await expect(page.locator('.sync-center__setup')).toHaveCSS('grid-template-columns', /\d+(\.\d+)?px/);
+  await assertNoPageOverflow(page);
+});

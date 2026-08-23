@@ -1,11 +1,9 @@
 import type { D1Database, PagesHandler } from '../_types.ts';
-import { verifyAccessRequest } from '../_lib/access.ts';
+import { verifySyncAccess } from '../_lib/syncAccess.ts';
 
 interface Env {
   YUNCUN_DB?: D1Database;
-  CF_ACCESS_TEAM_DOMAIN?: string;
-  CF_ACCESS_AUD?: string;
-  SYNC_ALLOWED_EMAIL?: string;
+  SYNC_ACCESS_TOKEN_HASH?: string;
 }
 
 interface SyncRow {
@@ -42,7 +40,7 @@ async function checksum(value: string): Promise<string> {
 
 async function authenticate(request: Request, env: Env) {
   try {
-    return await verifyAccessRequest(request, env);
+    return await verifySyncAccess(request, env);
   } catch {
     return null;
   }

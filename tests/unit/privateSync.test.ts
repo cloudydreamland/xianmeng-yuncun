@@ -1,29 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearAccessKeyCacheForTests, verifyAccessRequest } from '../../functions/_lib/access.ts';
+import { hashSyncAccessToken, verifySyncAccess } from '../../functions/_lib/syncAccess.ts';
 import { decryptSyncSnapshot, deriveSyncKey, encryptSyncSnapshot, readEnvelopeSalt } from '../../src/utils/syncCrypto.ts';
 import { applySyncSnapshot, mergeSyncSnapshots, type SyncSnapshot } from '../../src/utils/syncData.ts';
 
-function base64Url(value: Uint8Array | string): string {
-  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
-  return Buffer.from(bytes).toString('base64url');
-}
-
-test('Cloudflare Access JWT 验证签名、受众与邮箱允许名单', async () => {
-  clearAccessKeyCacheForTests();
-  const pair = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
-  const publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
-  Object.assign(publicJwk, { kid: 'test-key', alg: 'RS256', use: 'sig' });
-  const domain = 'https://example.cloudflareaccess.com';
-  const header = base64Url(JSON.stringify({ alg: 'RS256', kid: 'test-key' }));
-  const payload = base64Url(JSON.stringify({ iss: domain, aud: ['sync-audience'], email: 'owner@example.com', exp: Math.floor(Date.now() / 1000) + 600 }));
-  const signature = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', pair.privateKey, new TextEncoder().encode(`${header}.${payload}`)));
-  const request = new Request('https://site.example/api/sync', { headers: { 'cf-access-jwt-assertion': `${header}.${payload}.${base64Url(signature)}` } });
-  const fetcher = async () => Response.json({ keys: [publicJwk] });
-  const identity = await verifyAccessRequest(request, { CF_ACCESS_TEAM_DOMAIN: domain, CF_ACCESS_AUD: 'sync-audience', SYNC_ALLOWED_EMAIL: 'owner@example.com' }, fetcher);
-  assert.equal(identity.email, 'owner@example.com');
-  assert.match(identity.owner, /^[a-f0-9]{64}$/);
-  await assert.rejects(() => verifyAccessRequest(request, { CF_ACCESS_TEAM_DOMAIN: domain, CF_ACCESS_AUD: 'sync-audience', SYNC_ALLOWED_EMAIL: 'other@example.com' }, fetcher));
+test('同步访问密钥只与服务端 SHA-256 哈希比对', async () => {
+  const token = 'yuncun_test_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const hash = await hashSyncAccessToken(token);
+  const request = new Request('https://site.example/api/sync', { headers: { authorization: `Bearer ${token}` } });
+  assert.deepEqual(await verifySyncAccess(request, { SYNC_ACCESS_TOKEN_HASH: hash }), { owner: 'primary' });
+  await assert.rejects(() => verifySyncAccess(new Request('https://site.example/api/sync'), { SYNC_ACCESS_TOKEN_HASH: hash }));
+  await assert.rejects(() => verifySyncAccess(new Request('https://site.example/api/sync', { headers: { authorization: 'Bearer wrong-token-that-is-still-long-enough-123456789' } }), { SYNC_ACCESS_TOKEN_HASH: hash }));
+  await assert.rejects(() => verifySyncAccess(request, {}));
 });
 
 test('同步快照使用口令派生钥匙并通过 AES-GCM 往返', async () => {
