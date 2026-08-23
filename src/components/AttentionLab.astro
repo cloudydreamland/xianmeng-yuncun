@@ -1,0 +1,119 @@
+---
+const tokens = [
+  { text: '云', vector: [1.0, 0.2] },
+  { text: '村', vector: [0.9, 0.35] },
+  { text: '收', vector: [0.15, 0.95] },
+  { text: '纳', vector: [0.2, 1.0] },
+  { text: '笔', vector: [0.55, 0.75] },
+  { text: '记', vector: [0.48, 0.82] },
+];
+---
+
+<section class="attention-lab" aria-labelledby="attention-lab-title" data-attention-lab data-pagefind-ignore>
+  <header class="section-heading">
+    <p class="pixel-kicker">星渊 · 可交互试验</p>
+    <h2 id="attention-lab-title">一句话里的目光，<br />会落向哪里？</h2>
+    <p>选择一个查询词，观察缩放点积与 Softmax 如何把注意力分配给整句话。这里使用固定二维向量，不调用外部模型或接口。</p>
+  </header>
+  <div class="attention-lab__panel pixel-frame">
+    <div class="attention-lab__controls">
+      <fieldset>
+        <legend>选择正在观察的词</legend>
+        <div class="attention-token-row">
+          {tokens.map((token, index) => <button type="button" data-focus-token data-index={index} data-vector={JSON.stringify(token.vector)} aria-pressed={index === 0}>{token.text}</button>)}
+        </div>
+      </fieldset>
+      <label>
+        <span>注意力温度 <output data-temperature-output>1.00</output></span>
+        <input type="range" min="50" max="200" step="10" value="100" data-temperature />
+        <small>温度越低，权重越集中；越高，分布越平缓。</small>
+      </label>
+      <p class="attention-lab__formula"><code>softmax((Q · Kᵀ) / √2 / T)</code></p>
+    </div>
+    <div class="attention-lab__result">
+      <p data-attention-summary aria-live="polite"></p>
+      <div class="attention-bars">
+        {tokens.map((token) => (
+          <div class="attention-bar" data-attention-row data-vector={JSON.stringify(token.vector)}>
+            <strong>{token.text}</strong>
+            <div role="progressbar" aria-label={`词语“${token.text}”获得的注意力`} aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+            <output>0%</output>
+          </div>
+        ))}
+      </div>
+      <aside><strong>怎样读这个结果？</strong><p>它演示的是注意力计算过程，而不是词义判断器。真实 Transformer 会从训练中学习更高维的 Q、K、V，并在多个注意力头中形成不同关系。</p></aside>
+    </div>
+  </div>
+</section>
+
+<script>
+  const lab = document.querySelector<HTMLElement>('[data-attention-lab]');
+  if (lab) {
+    const buttons = [...lab.querySelectorAll<HTMLButtonElement>('[data-focus-token]')];
+    const rows = [...lab.querySelectorAll<HTMLElement>('[data-attention-row]')];
+    const temperature = lab.querySelector<HTMLInputElement>('[data-temperature]');
+    const temperatureOutput = lab.querySelector<HTMLOutputElement>('[data-temperature-output]');
+    const summary = lab.querySelector<HTMLElement>('[data-attention-summary]');
+    let focusIndex = 0;
+    const vector = (element: HTMLElement) => JSON.parse(element.dataset.vector || '[0,0]') as number[];
+    const render = () => {
+      const query = vector(buttons[focusIndex]);
+      const currentTemperature = Number(temperature?.value || 100) / 100;
+      const scores = rows.map((row) => vector(row).reduce((sum, value, index) => sum + value * (query[index] || 0), 0) / Math.sqrt(query.length) / currentTemperature);
+      const max = Math.max(...scores);
+      const exponentials = scores.map((score) => Math.exp(score - max));
+      const total = exponentials.reduce((sum, value) => sum + value, 0);
+      const weights = exponentials.map((value) => value / total);
+      rows.forEach((row, index) => {
+        const percentage = weights[index] * 100;
+        const progress = row.querySelector<HTMLElement>('[role="progressbar"]');
+        const bar = row.querySelector<HTMLElement>('i');
+        const output = row.querySelector<HTMLOutputElement>('output');
+        progress?.setAttribute('aria-valuenow', percentage.toFixed(1));
+        if (bar) bar.style.width = `${percentage}%`;
+        if (output) output.value = `${percentage.toFixed(1)}%`;
+      });
+      const strongest = weights.indexOf(Math.max(...weights));
+      if (summary) summary.textContent = `以“${buttons[focusIndex].textContent}”为查询时，当前最高权重落在“${rows[strongest].querySelector('strong')?.textContent}”。六项权重之和为 100%。`;
+      if (temperatureOutput) temperatureOutput.value = currentTemperature.toFixed(2);
+    };
+    buttons.forEach((button, index) => button.addEventListener('click', () => {
+      focusIndex = index;
+      buttons.forEach((item, itemIndex) => item.setAttribute('aria-pressed', String(itemIndex === focusIndex)));
+      render();
+    }));
+    temperature?.addEventListener('input', render);
+    render();
+  }
+</script>
+
+<style>
+  .attention-lab { margin-top:72px; }
+  .attention-lab > .section-heading { max-width:850px; padding:clamp(22px,4vw,36px); border:1px solid rgba(164,178,218,.55); border-left:5px solid #9f8bdf; background:rgba(10,18,37,.82); box-shadow:8px 8px 0 rgba(8,13,28,.28); backdrop-filter:blur(8px); }
+  .attention-lab > .section-heading h2 { color:#f4ecd2; text-shadow:0 2px 16px rgba(0,0,0,.45); }
+  .attention-lab > .section-heading .pixel-kicker { color:#c7b7ff; }
+  .attention-lab > .section-heading > p:last-child { color:#c5d1e7; text-shadow:0 1px 10px rgba(0,0,0,.45); }
+  .attention-lab__panel { display:grid; grid-template-columns:minmax(270px,.72fr) minmax(0,1.28fr); gap:26px; margin-top:28px; padding:clamp(22px,4vw,38px); color:#dce6f8; border-color:#626b8f; background:linear-gradient(145deg,rgba(24,32,62,.98),rgba(17,26,50,.98)); box-shadow:9px 9px 0 rgba(18,22,42,.32); }
+  .attention-lab fieldset { margin:0; padding:0; border:0; }
+  .attention-lab legend,.attention-lab label > span { display:block; margin-bottom:12px; color:#c7d4ee; font-weight:900; }
+  .attention-token-row { display:flex; flex-wrap:wrap; gap:8px; }
+  .attention-token-row button { width:44px; height:44px; border:2px solid #7784ad; color:#dfe8ff; background:#253254; font-family:var(--serif); font-size:1.1rem; cursor:pointer; }
+  .attention-token-row button[aria-pressed="true"] { border-color:#efd67e; color:#252b43; background:#efd67e; box-shadow:0 0 18px rgba(239,214,126,.28); }
+  .attention-lab__controls label { display:block; margin-top:28px; }
+  .attention-lab__controls input { width:100%; accent-color:#c7aeff; }
+  .attention-lab__controls small { display:block; margin-top:8px; color:#98a8c9; line-height:1.6; }
+  .attention-lab__formula { margin:24px 0 0; }
+  .attention-lab__formula code { display:inline-block; padding:10px 12px; color:#ecdfff; background:#10172d; }
+  .attention-lab__result > p { min-height:3em; margin-top:0; color:#d7e2fa; line-height:1.7; }
+  .attention-bars { display:grid; gap:11px; }
+  .attention-bar { display:grid; grid-template-columns:28px minmax(0,1fr) 52px; align-items:center; gap:10px; }
+  .attention-bar > strong { color:#f0e5ad; font-family:var(--serif); }
+  .attention-bar [role="progressbar"] { height:16px; overflow:hidden; border:1px solid #7380a7; background:#111a32; }
+  .attention-bar i { display:block; width:0; height:100%; background:linear-gradient(90deg,#7d6bc7,#74bad0,#efd37c); transition:width .3s ease; }
+  .attention-bar output { color:#aebddb; font-size:.7rem; text-align:right; }
+  .attention-lab__result aside { margin-top:24px; padding:16px 18px; border-left:4px solid #8c7cc8; color:#aebbd5; background:rgba(9,15,32,.56); }
+  .attention-lab__result aside strong { color:#e7ddff; }
+  .attention-lab__result aside p { margin:6px 0 0; font-size:.75rem; line-height:1.7; }
+  @media (max-width:760px) { .attention-lab__panel { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:reduce) { .attention-bar i { transition:none; } }
+</style>

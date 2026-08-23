@@ -12,6 +12,7 @@ const notes = defineCollection({
     publishedAt: z.coerce.date(),
     updatedAt: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
+    related: z.array(slug).default([]),
     category: z.string(),
     draft: z.boolean().default(false),
     cover: z.string().optional(),
@@ -26,6 +27,7 @@ const projects = defineCollection({
     slug,
     description: z.string(),
     period: z.string(),
+    updatedAt: z.coerce.date().optional(),
     status: z.enum(['构想中', '进行中', '已完成', '持续维护']),
     stack: z.array(z.string()).default([]),
     featured: z.boolean().default(false),
@@ -33,6 +35,18 @@ const projects = defineCollection({
     demoUrl: z.url().optional(),
     cover: z.string().optional(),
     coverAlt: z.string().optional(),
+    caseStudy: z.object({
+      role: z.string(),
+      challenge: z.string(),
+      constraints: z.array(z.string()).default([]),
+      decisions: z.array(z.string()).default([]),
+      outcomes: z.array(z.object({
+        value: z.string(),
+        label: z.string(),
+        detail: z.string().optional(),
+      })).default([]),
+      lessons: z.array(z.string()).default([]),
+    }).optional(),
   }),
 });
 

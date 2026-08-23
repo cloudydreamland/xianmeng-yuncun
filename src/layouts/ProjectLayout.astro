@@ -8,12 +8,14 @@ const {
   title,
   description,
   period,
+  updatedAt,
   status,
   stack = [],
   repoUrl,
   demoUrl,
   cover,
   coverAlt,
+  caseStudy,
   prev,
   next,
   linkedPlans: rawLinkedPlans = [],
@@ -58,6 +60,30 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
       </figure>
     )}
 
+    {caseStudy && (
+      <section class="project-case-study" aria-labelledby="project-case-study-title">
+        <header>
+          <p class="pixel-kicker">成器实录</p>
+          <h2 id="project-case-study-title">这项工作如何被做出来</h2>
+          {updatedAt && <p>案例核对于 <time datetime={updatedAt.toISOString()}>{new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(updatedAt)}</time></p>}
+        </header>
+        <div class="project-case-study__brief">
+          <div><span>我的职责</span><strong>{caseStudy.role}</strong></div>
+          <div><span>核心问题</span><p>{caseStudy.challenge}</p></div>
+        </div>
+        {caseStudy.outcomes.length > 0 && (
+          <dl class="project-case-study__outcomes">
+            {caseStudy.outcomes.map((outcome: { value: string; label: string; detail?: string }) => <div><dt>{outcome.label}</dt><dd>{outcome.value}</dd>{outcome.detail && <small>{outcome.detail}</small>}</div>)}
+          </dl>
+        )}
+        <div class="project-case-study__columns">
+          {caseStudy.constraints.length > 0 && <section><h3>现实限制</h3><ul>{caseStudy.constraints.map((item: string) => <li>{item}</li>)}</ul></section>}
+          {caseStudy.decisions.length > 0 && <section><h3>关键取舍</h3><ul>{caseStudy.decisions.map((item: string) => <li>{item}</li>)}</ul></section>}
+          {caseStudy.lessons.length > 0 && <section><h3>再来一次</h3><ul>{caseStudy.lessons.map((item: string) => <li>{item}</li>)}</ul></section>}
+        </div>
+      </section>
+    )}
+
     {linkedPlans.length > 0 && (
       <section class="project-plan-links" aria-labelledby="project-plan-links-title" data-pagefind-ignore>
         <header><p class="pixel-kicker">水上近事</p><h2 id="project-plan-links-title">与此旧卷相系的行舟</h2></header>
@@ -85,6 +111,25 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
 </BaseLayout>
 
 <style>
+  .project-case-study { max-width:980px; margin:-30px auto 62px; padding:clamp(24px,4vw,40px); border:3px solid #596c61; color:#56645c; background:#f3f1dc; box-shadow:8px 8px 0 rgba(54,67,59,.2); }
+  .project-case-study > header { display:flex; align-items:end; justify-content:space-between; gap:20px; margin-bottom:24px; }
+  .project-case-study h2 { margin:0; color:#4e493d; font-family:var(--serif); font-size:clamp(1.8rem,3vw,2.5rem); }
+  .project-case-study > header > p:last-child { color:#78837c; font-size:.7rem; }
+  .project-case-study__brief { display:grid; grid-template-columns:minmax(190px,.7fr) minmax(0,1.3fr); gap:14px; }
+  .project-case-study__brief > div { padding:18px; border:2px solid #7b887f; background:#fff9e8; }
+  .project-case-study__brief span { display:block; margin-bottom:7px; color:#718078; font-size:.68rem; font-weight:900; letter-spacing:.12em; }
+  .project-case-study__brief strong { color:#3f624e; font-family:var(--serif); font-size:1.25rem; }
+  .project-case-study__brief p { margin:0; line-height:1.75; }
+  .project-case-study__outcomes { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0 0; }
+  .project-case-study__outcomes div { padding:18px; border:2px solid #718179; background:#e4eddd; }
+  .project-case-study__outcomes dt { color:#6f7d75; font-size:.68rem; font-weight:900; }
+  .project-case-study__outcomes dd { margin:5px 0 2px; color:#3e624d; font-family:var(--serif); font-size:1.7rem; font-weight:900; }
+  .project-case-study__outcomes small { color:#6f7d75; line-height:1.5; }
+  .project-case-study__columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:16px; }
+  .project-case-study__columns section { padding:18px; border-top:4px solid #73867a; background:rgba(255,250,232,.74); }
+  .project-case-study__columns h3 { margin:0 0 10px; color:#4d5145; font-family:var(--serif); }
+  .project-case-study__columns ul { margin:0; padding-left:1.1rem; }
+  .project-case-study__columns li { margin:8px 0; font-size:.76rem; line-height:1.65; }
   .project-plan-links { max-width: 920px; margin: -30px auto 62px; padding: 25px 28px; border: 3px solid #657169; color: #56635b; background: #edf0de; box-shadow: 6px 6px 0 rgba(54,67,59,.24); }
   .project-plan-links header { margin-bottom: 18px; }
   .project-plan-links h2 { margin: 0; color: #514838; font-family: var(--serif); font-size: 1.5rem; }
@@ -95,5 +140,6 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
   .project-plan-links a > strong { margin: 6px 0 12px; color: #4e4a3d; font-family: var(--serif); }
   .project-plan-links a > div { height: 8px; overflow: hidden; margin-bottom: 7px; border: 1px solid #657269; background: #d7ded0; }
   .project-plan-links i { display: block; height: 100%; background: #78a083; }
-  @media (max-width: 600px) { .project-plan-links { padding: 21px 18px; } .project-plan-links > div { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .project-case-study > header { align-items:start; flex-direction:column; } .project-case-study__brief,.project-case-study__columns { grid-template-columns:1fr; } }
+  @media (max-width: 600px) { .project-case-study,.project-plan-links { padding:21px 18px; } .project-case-study__outcomes,.project-plan-links > div { grid-template-columns:1fr; } }
 </style>

@@ -8,6 +8,7 @@ import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
 import RealmOracleSigil from '../components/RealmOracleSigil.astro';
 import HomeGeometryField from '../components/HomeGeometryField.astro';
+import CloudJourneyGuide from '../components/CloudJourneyGuide.astro';
 import {
   cloudVillageDestinations,
   timeCopy,
@@ -95,6 +96,8 @@ const mapRegions = regions.map((region) => {
         <a href="/rss.xml">以 RSS 接收新风信 →</a>
       </aside>
     </section>
+
+    <CloudJourneyGuide />
 
     <section class="realm-overview page-shell" aria-labelledby="realm-overview-title">
       <header class="section-heading"><p class="pixel-kicker">七境灵图</p><h2 id="realm-overview-title">七境各司一念，<br />万象皆有归处。</h2><p>循图认路，依境藏心。择一方灵域，便可抵达与之相守的文字、造物与日常。</p></header>

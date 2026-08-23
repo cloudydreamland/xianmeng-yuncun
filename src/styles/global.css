@@ -887,6 +887,8 @@ html[data-time="night"] .world-map__picture { --world-map-current: var(--world-m
 .world-marker[aria-expanded="true"] .world-marker__title { filter: var(--map-label-filter) brightness(1.08); transform: translateY(-3px) scale(1.08); }
 .world-marker:hover .world-marker__title, .world-marker:focus-visible .world-marker__title { filter: var(--map-label-filter) brightness(1.08); transform: translateY(-3px) scale(1.06); }
 .world-marker:focus-visible { border-radius: 4px; outline: 3px solid #f4dc7b; outline-offset: 3px; }
+.world-marker--visited::after { position:absolute; right:-2px; bottom:-2px; width:10px; height:10px; border:2px solid #f8f2d7; border-radius:50%; background:#4f9a70; box-shadow:0 0 0 2px rgba(48,92,67,.34); content:''; }
+.world-ledger a.visited em { color:#2f7653; }
 
 .world-time-dial { position: absolute; z-index: 8; top: 96px; right: 18px; color: var(--panel-text-primary); }
 .world-time-dial__toggle { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 3px solid #3c4943; color: var(--panel-text-primary); background: rgba(255, 249, 226, .94); box-shadow: 4px 4px 0 rgba(32, 48, 42, .55); cursor: pointer; font-weight: 900; }
@@ -1675,6 +1677,14 @@ body.workspace-route::after {
 }
 .desktop-nav .desktop-realm-menu__panel .realm-nav-link { justify-content: flex-start; min-height: 38px; padding: 7px 9px; }
 .desktop-realm-menu__panel .realm-nav-link:last-child { grid-column: 1 / -1; }
+.desktop-life-menu__panel { width:350px; }
+.desktop-nav .desktop-life-menu__panel .life-nav-link { display:grid; grid-template-columns:30px 1fr; align-items:center; gap:8px; min-height:48px; padding:7px 9px; border:0; border-radius:0; color:#4e544c; background:transparent; box-shadow:none; cursor:pointer; font:inherit; text-align:left; }
+.desktop-nav .desktop-life-menu__panel .life-nav-link:hover { color:#34483f; background:#d9e6cd; }
+.life-nav-link > span:first-child,.life-menu-mark { display:grid; place-items:center; width:25px; height:25px; border:2px solid #66786d; color:#456052; background:#f5e7b5; font-family:var(--serif); font-size:.72rem; font-weight:900; }
+.desktop-life-menu__panel .life-nav-link > span:last-child { display:grid; gap:1px; }
+.desktop-life-menu__panel .life-nav-link strong { font-size:.7rem; }
+.desktop-life-menu__panel .life-nav-link small { color:#7b827b; font-size:.56rem; }
+.desktop-life-menu__panel .life-nav-link--workspace { grid-column:1/-1; }
 .js .nav-search {
   height: 34px;
   gap: 6px;
@@ -2383,12 +2393,15 @@ html[data-time='night'] .prose { color: #46564f; background: #fffaf0; }
 @media (max-width: 900px) {
   .site-header { width: calc(100vw - 28px); height: 76px; }
   .mobile-nav summary { border: 3px solid var(--pixel-line); border-radius: 0; background: #fff4d5; box-shadow: 3px 3px 0 rgba(45,57,49,.6); }
-  .mobile-nav nav { top: 54px; width: 210px; padding: 8px; border: 3px solid var(--pixel-line); border-radius: 0; background: #fff9e8; box-shadow: 5px 5px 0 rgba(45,57,49,.6); }
+  .mobile-nav nav { top: 54px; width: 230px; max-height:calc(100svh - 82px); padding: 8px; overflow-y:auto; overscroll-behavior:contain; border: 3px solid var(--pixel-line); border-radius: 0; background: #fff9e8; box-shadow: 5px 5px 0 rgba(45,57,49,.6); }
   .mobile-nav nav a,
   .js .mobile-search { border-radius: 0; color: var(--pixel-ink); }
   .js .mobile-reading-list { border-radius: 0; color: var(--pixel-ink); }
   .mobile-nav nav a:hover { background: #b9d9ae; }
   .mobile-nav nav .realm-nav-link { display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:8px; padding-block:7px; color:#584533; }
+  .mobile-nav nav .life-nav-link { display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:8px; padding:7px 9px; color:#584533; }
+  .mobile-nav nav .life-nav-link > span:first-child { width:23px; height:23px; }
+  .mobile-nav__group { padding:10px 10px 5px; color:#7c705f; font-size:.58rem; letter-spacing:.13em; }
   .mobile-nav nav .realm-nav-link small { color:#94826f; font-size:.58rem; letter-spacing:.12em; }
 
   .bulletin-layout { grid-template-columns: 1fr; gap: 48px; }

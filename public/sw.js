@@ -1,8 +1,8 @@
 const CACHE_PREFIX = 'yuncun-';
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const SHELL_CACHE = `${CACHE_PREFIX}shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-${CACHE_VERSION}`;
-const APP_SHELL = ['/', '/workspace/', '/offline.html', '/manifest.webmanifest'];
+const APP_SHELL = ['/', '/workspace/', '/world/cloud-village/', '/world/rain-bridge/', '/world/star-abyss/', '/world/moon-pool/', '/world/snow-cliff/', '/world/lantern-lane/', '/offline.html', '/manifest.webmanifest'];
 const MAX_RUNTIME_ENTRIES = 80;
 
 async function trimCache(cacheName, maxEntries) {

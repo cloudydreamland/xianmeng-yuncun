@@ -1,0 +1,46 @@
+<section class="habit-tracker" id="habits" aria-labelledby="habit-tracker-title" data-habit-tracker data-pagefind-ignore>
+  <header class="section-heading"><p class="pixel-kicker">SNOW CLIFF · 习惯</p><h2 id="habit-tracker-title">朝夕印记</h2><p>不追求复杂数字，只留下今天是否照顾了自己。默认留在本机，也可随加密云卷同行。</p></header>
+  <div class="habit-tracker__panel pixel-frame">
+    <form data-habit-form><label><span>新增习惯</span><input name="name" required maxlength="40" autocomplete="off" placeholder="例如：散步 20 分钟" /></label><button class="pixel-button pixel-button--primary" type="submit">加入今日</button></form>
+    <div class="habit-tracker__week" data-habit-week aria-label="最近七天"></div>
+    <div class="habit-tracker__list" data-habit-list></div>
+    <p class="habit-tracker__empty" data-habit-empty>还没有习惯。先从一件十分钟能完成的小事开始。</p>
+  </div>
+</section>
+
+<script>
+  import { LIFE_KEYS,LIFE_UPDATED_EVENT,announceLifeUpdate,lifeId,localDateKey,readStored,writeStored } from '../utils/lifeStore';
+  const root=document.querySelector<HTMLElement>('[data-habit-tracker]');
+  if(root){
+    const readHabits=()=>readStored<any[]>(localStorage,LIFE_KEYS.habits,[]).filter((item)=>item&&item.id&&!item.archived);
+    const readLog=()=>readStored<Record<string,string[]>>(localStorage,LIFE_KEYS.habitLog,{});
+    const save=(habits:any[],log=readLog())=>{writeStored(localStorage,LIFE_KEYS.habits,habits);writeStored(localStorage,LIFE_KEYS.habitLog,log);announceLifeUpdate('habits');};
+    const days=()=>Array.from({length:7},(_,index)=>{const date=new Date();date.setDate(date.getDate()-(6-index));return{key:localDateKey(date),label:new Intl.DateTimeFormat('zh-CN',{weekday:'short'}).format(date),day:date.getDate()};});
+    const render=()=>{const habits=readHabits();const log=readLog();const today=localDateKey();const list=root.querySelector<HTMLElement>('[data-habit-list]');const empty=root.querySelector<HTMLElement>('[data-habit-empty]');
+      const week=root.querySelector<HTMLElement>('[data-habit-week]');week?.replaceChildren(...days().map((day)=>{const cell=document.createElement('span');const completed=(log[day.key]||[]).filter((id)=>habits.some((habit)=>habit.id===id)).length;cell.className=day.key===today?'is-today':'';cell.innerHTML=`<small>${day.label}</small><strong>${day.day}</strong><i>${completed}/${habits.length}</i>`;return cell;}));
+      list?.replaceChildren(...habits.map((habit)=>{const article=document.createElement('article');const done=(log[today]||[]).includes(habit.id);article.className=done?'is-done':'';const toggle=document.createElement('button');toggle.type='button';toggle.setAttribute('aria-pressed',String(done));toggle.innerHTML=`<span>${done?'✓':'○'}</span><strong>${habit.name}</strong><small>${done?'今日已点亮':'轻触完成今天'}</small>`;toggle.addEventListener('click',()=>{const now=readLog();const ids=new Set(now[today]||[]);done?ids.delete(habit.id):ids.add(habit.id);now[today]=[...ids];save(readHabits(),now);render();});const remove=document.createElement('button');remove.type='button';remove.className='habit-remove';remove.textContent='移除';remove.addEventListener('click',()=>{if(confirm(`移除“${habit.name}”？历史打卡仍会保留。`)){habit.archived=true;const all=readStored<any[]>(localStorage,LIFE_KEYS.habits,[]);const target=all.find((item)=>item.id===habit.id);if(target)target.archived=true;save(all);render();}});article.append(toggle,remove);return article;}));if(empty)empty.hidden=habits.length>0;};
+    root.querySelector<HTMLFormElement>('[data-habit-form]')?.addEventListener('submit',(event)=>{event.preventDefault();const form=event.currentTarget as HTMLFormElement;const data=new FormData(form);const name=String(data.get('name')||'').trim();if(!name)return;const habits=readStored<any[]>(localStorage,LIFE_KEYS.habits,[]);habits.push({id:lifeId('habit'),name,createdAt:new Date().toISOString(),archived:false});save(habits);form.reset();render();});
+    render();window.addEventListener('storage',render);window.addEventListener(LIFE_UPDATED_EVENT,render);
+  }
+</script>
+
+<style>
+  .habit-tracker { margin-top:68px; }
+  .habit-tracker>.section-heading { max-width:820px; padding:28px; border-left:5px solid #bcdbe0; color:#e6f5f4; background:rgba(20,45,52,.88); }
+  .habit-tracker>.section-heading h2 { color:#fff5d5; }
+  .habit-tracker__panel { margin-top:20px; padding:clamp(20px,4vw,34px); border-color:#6d8582; background:rgba(244,250,244,.96); }
+  .habit-tracker form { display:grid; grid-template-columns:1fr auto; align-items:end; gap:12px; }
+  .habit-tracker form label { display:grid; gap:7px; color:#49635d; font-size:.7rem; font-weight:900; }
+  .habit-tracker form input { min-height:46px; padding:10px 12px; border:2px solid #728b85; color:#405750; background:#fffdf2; font:inherit; }
+  .habit-tracker__week { display:grid; grid-template-columns:repeat(7,1fr); gap:7px; margin:22px 0; }
+  .habit-tracker__week span { display:grid; place-items:center; gap:3px; padding:9px 4px; border:1px solid #9aaba6; color:#61756f; background:#edf3eb; }
+  .habit-tracker__week span.is-today { border:2px solid #56786e; background:#d9e8d6; }
+  .habit-tracker__week small,.habit-tracker__week i { font-size:.58rem; font-style:normal; }
+  .habit-tracker__list { display:grid; gap:9px; }
+  .habit-tracker__list article { display:grid; grid-template-columns:1fr auto; border:2px solid #7c918a; background:#fff9e7; }
+  .habit-tracker__list article.is-done { background:#dfeadb; }
+  .habit-tracker__list article>button:first-child { display:grid; grid-template-columns:34px 1fr; gap:2px 10px; align-items:center; padding:13px; border:0; color:#3f5b52; background:transparent; cursor:pointer; text-align:left; }
+  .habit-tracker__list article>button span { grid-row:1/3; font-size:1.5rem; }.habit-tracker__list article>button small{color:#72827c;font-size:.6rem}.habit-remove{border:0;border-left:1px dashed #9aa8a2;color:#8a5c50;background:transparent;cursor:pointer}
+  .habit-tracker__empty { padding:25px; border:2px dashed #899a94; color:#6d7c77; text-align:center; }
+  @media(max-width:600px){.habit-tracker form{grid-template-columns:1fr}.habit-tracker__week{gap:3px}.habit-tracker__week span{padding:7px 2px}.habit-tracker__list article{grid-template-columns:1fr}.habit-remove{min-height:38px;border-left:0;border-top:1px dashed #9aa8a2}}
+</style>

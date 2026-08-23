@@ -1,0 +1,27 @@
+---
+import { journeyStopByPath, TRAIL_STORAGE_KEY } from '../data/cloudJourneys';
+
+const pathname = Astro.url.pathname;
+const pathWithoutTrailingSlash = pathname === '/' ? pathname : pathname.replace(/\/$/, '');
+const stop = journeyStopByPath.get(pathname)
+  ?? journeyStopByPath.get(pathWithoutTrailingSlash)
+  ?? journeyStopByPath.get(`${pathWithoutTrailingSlash}/`);
+---
+
+{stop && (
+  <script is:inline define:vars={{ stop, storageKey: TRAIL_STORAGE_KEY }}>
+    (() => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const current = raw ? JSON.parse(raw) : [];
+        const entries = Array.isArray(current) ? current.filter((entry) => entry?.path !== stop.path) : [];
+        entries.unshift({ ...stop, visitedAt: new Date().toISOString() });
+        const next = entries.slice(0, 40);
+        localStorage.setItem(storageKey, JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent('yuncun:trail-update', { detail: next }));
+      } catch {
+        // 足迹只是渐进增强；存储不可用时不影响页面阅读。
+      }
+    })();
+  </script>
+)}

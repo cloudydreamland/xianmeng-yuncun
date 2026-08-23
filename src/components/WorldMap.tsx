@@ -7,6 +7,7 @@ import type {
   ResolvedTimeMode,
   TimeMode,
 } from '../data/worldMap';
+import { TRAIL_STORAGE_KEY } from '../data/cloudJourneys';
 
 export interface WorldMapItem {
   href: string;
@@ -78,6 +79,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
   const [resolvedTime, setResolvedTime] = useState<ResolvedTimeMode>('day');
   const [selectedId, setSelectedId] = useState<RegionId | null>(null);
   const [timeMenuOpen, setTimeMenuOpen] = useState(false);
+  const [visitedPaths, setVisitedPaths] = useState<Set<string>>(() => new Set());
 
   const regionIds = useMemo(() => new Set(regions.map(({ id }) => id)), [regions]);
   const selectedRegion = regions.find(({ id }) => id === selectedId) ?? null;
@@ -117,6 +119,24 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
       window.removeEventListener('popstate', syncLocation);
     };
   }, [regionIds]);
+
+  useEffect(() => {
+    const syncTrail = () => {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(TRAIL_STORAGE_KEY) || '[]');
+        setVisitedPaths(new Set(Array.isArray(parsed) ? parsed.map((entry) => entry?.path).filter(Boolean) : []));
+      } catch {
+        setVisitedPaths(new Set());
+      }
+    };
+    syncTrail();
+    window.addEventListener('storage', syncTrail);
+    window.addEventListener('yuncun:trail-update', syncTrail);
+    return () => {
+      window.removeEventListener('storage', syncTrail);
+      window.removeEventListener('yuncun:trail-update', syncTrail);
+    };
+  }, []);
 
   useEffect(() => {
     if (timeMode !== 'auto') return;
@@ -188,9 +208,9 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                 <a
                   key={region.id}
                   href={`#${region.id}`}
-                  className={`world-marker world-marker--${region.id} world-marker--label-${region.labelSide}`}
+                  className={`world-marker world-marker--${region.id} world-marker--label-${region.labelSide}${visitedPaths.has(region.href) ? ' world-marker--visited' : ''}`}
                   style={{ left: `${region.x}%`, top: `${region.y}%` }}
-                  aria-label={`查看${region.title}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}`}
+                  aria-label={`查看${region.title}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}${visitedPaths.has(region.href) ? '，已经到访' : ''}`}
                   aria-expanded={selectedId === region.id}
                   onClick={(event) => openRegion(event, region.id)}
                 >
@@ -232,8 +252,8 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
 
       <nav className="world-ledger page-shell" aria-label="雲梦地名册">
         {regions.map((region) => (
-          <a key={region.id} href={`#${region.id}`} onClick={(event) => openRegion(event, region.id)}>
-            <span>{region.realm}</span><strong>{region.title}</strong><em>{region.status === 'active' ? '门扉已启' : '云雾未散'}</em>
+          <a key={region.id} className={visitedPaths.has(region.href) ? 'visited' : ''} href={`#${region.id}`} onClick={(event) => openRegion(event, region.id)}>
+            <span>{region.realm}</span><strong>{region.title}</strong><em>{visitedPaths.has(region.href) ? '留有足迹' : region.status === 'active' ? '门扉已启' : '云雾未散'}</em>
           </a>
         ))}
       </nav>

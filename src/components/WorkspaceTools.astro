@@ -120,6 +120,8 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
     focus: 'yuncun-workspace-focus-v1',
     capture: 'yuncun-capture-draft-v1',
     backup: 'yuncun-backup-meta-v1',
+    inbox: 'yuncun-life-inbox-v1', habits: 'yuncun-life-habits-v1', habitLog: 'yuncun-life-habit-log-v1', focusLog: 'yuncun-life-focus-log-v1',
+    checklists: 'yuncun-life-checklists-v1', expiries: 'yuncun-life-expiries-v1', expenses: 'yuncun-life-expenses-v1', inventory: 'yuncun-life-inventory-v1', journal: 'yuncun-life-journal-v1',
   } as const;
   const root = document.querySelector<HTMLElement>('[data-workspace]');
   const tools = document.querySelector<HTMLElement>('[data-workspace-tools]');
@@ -281,14 +283,14 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
     const backupStatus = root.querySelector<HTMLElement>('[data-backup-status]');
     const renderBackupMeta = () => { const meta = parse<{ lastExportAt?: string }>(KEYS.backup, {}); if (backupStatus && meta.lastExportAt) backupStatus.textContent = `上次导出：${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(meta.lastExportAt))}`; };
     root.querySelector('[data-backup-export]')?.addEventListener('click', () => {
-      const exportedAt = new Date().toISOString(); const payload = { version: 1, site: 'yuncun-workspace', exportedAt, data: { plans: parse<unknown>(KEYS.plans, []), reading: parse<unknown>(KEYS.reading, []), focus: parse<unknown>(KEYS.focus, null), capture: parse<unknown>(KEYS.capture, null) } };
+      const exportedAt = new Date().toISOString(); const payload = { version: 2, site: 'yuncun-workspace', exportedAt, data: { plans: parse<unknown>(KEYS.plans, []), reading: parse<unknown>(KEYS.reading, []), focus: parse<unknown>(KEYS.focus, null), capture: parse<unknown>(KEYS.capture, null), inbox: parse<unknown>(KEYS.inbox, []), habits: parse<unknown>(KEYS.habits, []), habitLog: parse<unknown>(KEYS.habitLog, {}), focusLog: parse<unknown>(KEYS.focusLog, []), checklists: parse<unknown>(KEYS.checklists, []), expiries: parse<unknown>(KEYS.expiries, []), expenses: parse<unknown>(KEYS.expenses, []), inventory: parse<unknown>(KEYS.inventory, []), journal: parse<unknown>(KEYS.journal, []) } };
       download(JSON.stringify(payload, null, 2), `yuncun-backup-${today}.json`, 'application/json;charset=utf-8'); store(KEYS.backup, { lastExportAt: exportedAt }); renderBackupMeta();
     });
     root.querySelector<HTMLInputElement>('[data-backup-import]')?.addEventListener('change', async (event) => {
       const input = event.currentTarget as HTMLInputElement; const file = input.files?.[0]; if (!file) return;
       try {
         const payload = JSON.parse(await file.text()) as { version?: number; site?: string; data?: Record<string, unknown> };
-        if (payload.version !== 1 || payload.site !== 'yuncun-workspace' || !payload.data) throw new Error('Invalid backup');
+        if (![1, 2].includes(payload.version || 0) || payload.site !== 'yuncun-workspace' || !payload.data) throw new Error('Invalid backup');
         if (!Array.isArray(payload.data.plans) || !Array.isArray(payload.data.reading)) throw new Error('Invalid collections');
         const safeReading = payload.data.reading.filter((item): item is ReadingItem => {
           if (!item || typeof item !== 'object') return false;
@@ -299,7 +301,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
         if (safeReading.length !== payload.data.reading.length) throw new Error('Unsafe reading URL');
         payload.data.reading = safeReading;
         if (!window.confirm('恢复备份会覆盖当前浏览器里的私人任务、阅读备注、今日重点和草稿。继续吗？')) { input.value = ''; return; }
-        const mapping = { plans: KEYS.plans, reading: KEYS.reading, focus: KEYS.focus, capture: KEYS.capture } as const;
+        const mapping = { plans: KEYS.plans, reading: KEYS.reading, focus: KEYS.focus, capture: KEYS.capture, inbox: KEYS.inbox, habits: KEYS.habits, habitLog: KEYS.habitLog, focusLog: KEYS.focusLog, checklists: KEYS.checklists, expiries: KEYS.expiries, expenses: KEYS.expenses, inventory: KEYS.inventory, journal: KEYS.journal } as const;
         (Object.keys(mapping) as Array<keyof typeof mapping>).forEach((name) => { const value = payload.data?.[name]; if (value === undefined || value === null) localStorage.removeItem(mapping[name]); else store(mapping[name], value); });
         window.location.reload();
       } catch { if (backupStatus) backupStatus.textContent = '无法恢复：文件不是有效的雲梦工作台备份。'; input.value = ''; }

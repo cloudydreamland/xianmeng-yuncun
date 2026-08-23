@@ -3,12 +3,38 @@ title: 闲梦 · 云村
 slug: yuncun-blog
 description: 一座持续生长的个人数字世界，用来记录学习笔记、技术实践与开源项目。
 period: 2026.07 — 至今
+updatedAt: 2026-08-22
 status: 持续维护
 stack: [Astro, TypeScript, React, MDX]
 featured: true
 repoUrl: https://github.com/cloudydreamland/xianmeng-yuncun
 cover: /images/yuncun-cloudwall-v2-1600.webp
 coverAlt: 白云环绕的云村主视觉与远处青山
+caseStudy:
+  role: 独立完成产品定位、视觉设计、内容建模、前端开发与质量验证
+  challenge: 在保留像素绘本世界观的同时，让笔记、项目与计划仍然容易找到、容易阅读，并能在静态托管环境长期维护。
+  constraints:
+    - 不依赖数据库、账户系统或持续运行的后端服务
+    - 首页拥有大幅四时地图，但必须控制首屏图片与脚本开销
+    - 动画、键盘导航、移动端触控和无 JavaScript 场景都要有可用路径
+  decisions:
+    - 以 Astro 内容集合承载真实资料，用少量 React Islands 处理必要交互
+    - 让七境对应稳定的内容职责，同时保留搜索、RSS 与普通链接作为直接入口
+    - 将搜索质量、阅读统计、离线策略和关键交互纳入自动化回归
+  outcomes:
+    - value: "26"
+      label: 静态页面
+      detail: 构建阶段生成并由 Pagefind 建立中文索引
+    - value: 75+
+      label: 自动化检查
+      detail: 单元、可访问性与 Chromium 端到端回归
+    - value: "0"
+      label: 构建诊断
+      detail: 最近一次交付保持错误与警告为零
+  lessons:
+    - 视觉完成度不能替代真实内容，后续更新应优先补项目证据与学习记录
+    - 世界观地名需要配合明确导览，第一次访问的人不应先猜每个区域的用途
+    - 大图和环境动画要遵守渐进增强，核心内容始终应由普通 HTML 链接抵达
 ---
 
 ## 项目定位

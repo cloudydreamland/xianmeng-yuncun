@@ -1,0 +1,33 @@
+<script>
+  import { synchronizeLifeData } from '../utils/syncClient';
+  import { readSyncMeta } from '../utils/syncData';
+  import { LIFE_UPDATED_EVENT } from '../utils/lifeStore';
+
+  let timer: number | undefined;
+  let retryTimer: number | undefined;
+
+  const run = async () => {
+    const meta = readSyncMeta(localStorage);
+    if (!meta.enabled || !meta.auto || !navigator.onLine) return;
+    const result = await synchronizeLifeData({ createIfMissing: true });
+    if (result.code === 'conflict') await synchronizeLifeData({ createIfMissing: true });
+    if (result.code === 'offline' || result.code === 'error') {
+      window.clearTimeout(retryTimer);
+      retryTimer = window.setTimeout(run, 60_000);
+    }
+  };
+
+  const queue = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(run, 1_500);
+  };
+
+  window.addEventListener('online', run);
+  window.addEventListener(LIFE_UPDATED_EVENT, queue);
+  window.addEventListener('yuncun-local-plans-updated', queue);
+  window.addEventListener('yuncun-reading-list-updated', queue);
+  window.addEventListener('yuncun-sync-dirty', queue);
+  window.addEventListener('storage', (event) => { if (event.key?.startsWith('yuncun-')) queue(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') run(); });
+  window.setTimeout(run, 700);
+</script>

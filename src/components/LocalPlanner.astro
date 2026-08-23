@@ -1,9 +1,9 @@
 <section class="local-planner" data-local-planner aria-labelledby="local-planner-title">
   <header class="local-planner__heading">
     <div>
-      <p class="pixel-kicker">只属于这台设备</p>
+      <p class="pixel-kicker">私人日程</p>
       <h3 id="local-planner-title">我的本地日程</h3>
-      <p>在这里记录私人计划和笔记。内容只保存在当前浏览器，不会上传、公开或进入站内搜索。</p>
+      <p>默认保存在当前浏览器；启用加密云卷后，可在自己的设备间同步。</p>
     </div>
     <button type="button" class="pixel-button pixel-button--primary" data-local-plan-new>＋ 新建日程</button>
   </header>
@@ -41,11 +41,16 @@
           </select>
         </label>
       </div>
+      <div class="local-plan-dialog__row">
+        <label><span>时间</span><input name="time" type="time" /></label>
+        <label><span>重复</span><select name="recurrence"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select></label>
+      </div>
+      <label><span>提醒</span><select name="reminderMinutes"><option value="0">到点提醒</option><option value="10">提前 10 分钟</option><option value="30">提前 30 分钟</option><option value="60">提前 1 小时</option><option value="1440">提前 1 天</option><option value="-1">不提醒</option></select></label>
       <label>
         <span>笔记</span>
         <textarea name="notes" maxlength="2000" rows="7" placeholder="写下安排、想法、链接或复盘……"></textarea>
       </label>
-      <p class="local-plan-dialog__privacy">仅存储在当前浏览器。清理浏览器网站数据后，这些内容也会被删除。</p>
+      <p class="local-plan-dialog__privacy">提醒需要填写日期和时间；系统通知需在提醒中心授权。</p>
       <footer>
         <button type="button" class="pixel-button" data-local-plan-cancel>取消</button>
         <button type="submit" class="pixel-button pixel-button--primary">保存到本地</button>
@@ -63,6 +68,9 @@
     notes: string;
     completed: boolean;
     completedAt?: string;
+    time?: string;
+    recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+    reminderMinutes?: number;
     createdAt: string;
     updatedAt: string;
   }
@@ -90,6 +98,9 @@
         && (item.priority === 'high' || item.priority === 'medium' || item.priority === 'low')
         && typeof item.notes === 'string'
         && typeof item.completed === 'boolean'
+        && (item.time === undefined || typeof item.time === 'string')
+        && (item.recurrence === undefined || ['none', 'daily', 'weekly', 'monthly'].includes(String(item.recurrence)))
+        && (item.reminderMinutes === undefined || typeof item.reminderMinutes === 'number')
         && (item.completedAt === undefined || typeof item.completedAt === 'string')
         && typeof item.createdAt === 'string'
         && typeof item.updatedAt === 'string';
@@ -176,7 +187,9 @@
         title.textContent = plan.title;
         const date = document.createElement('time');
         date.dateTime = plan.date;
-        date.textContent = formatDate(plan.date);
+        const recurrenceLabels = { daily: '每天', weekly: '每周', monthly: '每月', none: '' } as const;
+        const scheduleMeta = [formatDate(plan.date), plan.time, recurrenceLabels[plan.recurrence || 'none']].filter(Boolean).join(' · ');
+        date.textContent = scheduleMeta;
         const notes = document.createElement('p');
         notes.className = 'local-plan-card__notes';
         notes.textContent = plan.notes || '没有附加笔记。';
@@ -204,11 +217,17 @@
         date: HTMLInputElement;
         priority: HTMLSelectElement;
         notes: HTMLTextAreaElement;
+        time: HTMLInputElement;
+        recurrence: HTMLSelectElement;
+        reminderMinutes: HTMLSelectElement;
       };
       fields.id.value = plan?.id || '';
       fields.title.value = plan?.title || '';
       fields.date.value = plan?.date || '';
       fields.priority.value = plan?.priority || 'medium';
+      fields.time.value = plan?.time || '';
+      fields.recurrence.value = plan?.recurrence || 'none';
+      fields.reminderMinutes.value = String(plan?.reminderMinutes ?? 0);
       fields.notes.value = plan?.notes || '';
       formTitle.textContent = plan ? '编辑日程' : '新建日程';
       dialog.showModal();
@@ -232,6 +251,9 @@
         title: String(data.get('title') || '').trim(),
         date: String(data.get('date') || ''),
         priority: priorityValue === 'high' || priorityValue === 'low' ? priorityValue : 'medium',
+        time: String(data.get('time') || ''),
+        recurrence: ['daily', 'weekly', 'monthly'].includes(String(data.get('recurrence'))) ? String(data.get('recurrence')) as LocalPlan['recurrence'] : 'none',
+        reminderMinutes: Number(data.get('reminderMinutes') ?? 0),
         notes: String(data.get('notes') || '').trim(),
         completed: existing?.completed || false,
         completedAt: existing?.completedAt,
@@ -253,7 +275,16 @@
       if (!plan) return;
       if (button.dataset.localPlanAction === 'edit') openForm(plan);
       if (button.dataset.localPlanAction === 'toggle') {
-        plan.completed = !plan.completed;
+        const completingRecurring = !plan.completed && plan.date && plan.recurrence && plan.recurrence !== 'none';
+        if (completingRecurring) {
+          const nextDate = new Date(`${plan.date}T12:00:00`);
+          if (plan.recurrence === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+          if (plan.recurrence === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+          if (plan.recurrence === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+          const offset = nextDate.getTimezoneOffset() * 60_000;
+          plan.date = new Date(nextDate.valueOf() - offset).toISOString().slice(0, 10);
+          plan.completed = false;
+        } else plan.completed = !plan.completed;
         plan.updatedAt = new Date().toISOString();
         plan.completedAt = plan.completed ? plan.updatedAt : undefined;
         savePlans();

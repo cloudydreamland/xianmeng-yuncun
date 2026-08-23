@@ -7,32 +7,48 @@ import { getReadingStats } from '../../utils/readingStats';
 export async function getStaticPaths() {
   const notes = (await getCollection('notes', ({ data }) => !data.draft))
     .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
-  return notes.map((note, index) => ({
+  const noteBySlug = new Map(notes.map((note) => [note.data.slug, note]));
+  return notes.map((note, index) => {
+    const explicit = note.data.related.map((slug) => {
+      const target = noteBySlug.get(slug);
+      if (!target) throw new Error(`笔记 ${note.data.slug} 关联了不存在的笔记：${slug}`);
+      return target;
+    });
+    const backlinks = notes.filter((candidate) => candidate.data.related.includes(note.data.slug));
+    const used = new Set([note.data.slug, ...explicit.map(({ data }) => data.slug), ...backlinks.map(({ data }) => data.slug)]);
+    const automatic = notes
+      .filter((candidate) => !used.has(candidate.data.slug))
+      .map((candidate) => ({
+        candidate,
+        score: candidate.data.tags.filter((tag) => note.data.tags.includes(tag)).length * 2
+          + Number(candidate.data.category === note.data.category),
+      }))
+      .filter(({ score }) => score > 0)
+      .sort((left, right) => right.score - left.score || right.candidate.data.publishedAt.valueOf() - left.candidate.data.publishedAt.valueOf())
+      .slice(0, 3)
+      .map(({ candidate }) => candidate);
+    const connections = [
+      ...explicit.map((connectedNote) => ({ note: connectedNote, kind: '引路', description: '本文主动指向' })),
+      ...backlinks.filter(({ data }) => !explicit.some((item) => item.data.slug === data.slug)).map((connectedNote) => ({ note: connectedNote, kind: '回望', description: '这篇笔记提到本文' })),
+      ...automatic.map((connectedNote) => ({ note: connectedNote, kind: '同题', description: '共享分类或标签' })),
+    ].slice(0, 6);
+    return {
     params: { slug: note.data.slug },
     props: {
       note,
       prev: notes[index + 1],
       next: notes[index - 1],
-      relatedNotes: notes
-        .filter((candidate) => candidate.data.slug !== note.data.slug)
-        .map((candidate) => ({
-          candidate,
-          score: candidate.data.tags.filter((tag) => note.data.tags.includes(tag)).length * 2
-            + Number(candidate.data.category === note.data.category),
-        }))
-        .filter(({ score }) => score > 0)
-        .sort((left, right) => right.score - left.score || right.candidate.data.publishedAt.valueOf() - left.candidate.data.publishedAt.valueOf())
-        .slice(0, 3)
-        .map(({ candidate }) => candidate),
+      connections,
     },
-  }));
+  };
+  });
 }
 
-const { note, prev, next, relatedNotes } = Astro.props;
+const { note, prev, next, connections } = Astro.props;
 const { Content, headings } = await render(note);
 const readingStats = getReadingStats(readContentSource('notes', note.id));
 ---
 
-<NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next} relatedNotes={relatedNotes}>
+<NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next} connections={connections}>
   <Content />
 </NoteLayout>

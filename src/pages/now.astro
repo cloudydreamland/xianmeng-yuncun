@@ -1,0 +1,105 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import IslandTag from '../components/IslandTag';
+import { calculatePlanProgress, comparePlans } from '../utils/planProgress';
+
+const notes = await getCollection('notes', ({ data }) => !data.draft);
+const projects = await getCollection('projects');
+const plans = (await getCollection('plans')).sort((left, right) => comparePlans(left.data, right.data));
+const activePlans = plans.filter(({ data }) => data.status === '进行中');
+const recentEntries = [
+  ...notes.map((note) => ({
+    type: '笔记',
+    title: note.data.title,
+    description: note.data.description,
+    href: `/notes/${note.data.slug}/`,
+    date: note.data.updatedAt ?? note.data.publishedAt,
+  })),
+  ...projects.filter(({ data }) => data.updatedAt).map((project) => ({
+    type: '项目',
+    title: project.data.title,
+    description: project.data.description,
+    href: `/projects/${project.data.slug}/`,
+    date: project.data.updatedAt!,
+  })),
+  ...plans.map((plan) => ({
+    type: '计划',
+    title: plan.data.title,
+    description: plan.data.summary,
+    href: `/world/moon-pool/${plan.data.slug}/`,
+    date: plan.data.updatedAt,
+  })),
+].sort((a, b) => b.date.valueOf() - a.date.valueOf()).slice(0, 8);
+const latestDate = recentEntries[0]?.date;
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+---
+
+<BaseLayout title="此刻与近况" description="雲梦世界最近更新的内容、正在推进的公开计划，以及下一步准备完成的事情。">
+  <div class="now-page page-shell">
+    <header class="now-hero pixel-frame">
+      <p class="pixel-kicker">Now · 云村近况</p>
+      <h1>不是一份永远正确的简介，<br />只是此刻真实的方向。</h1>
+      <p>这里直接从公开内容和月潭计划生成，减少另一份需要手工同步的状态。{latestDate && <>最近核对于 <time datetime={latestDate.toISOString()}>{formatDate(latestDate)}</time>。</>}</p>
+      <div><a class="pixel-button pixel-button--primary" href="/journeys/">选择云游路线 →</a><a class="pixel-button" href="/world/moon-pool/">查看完整推进台</a></div>
+    </header>
+
+    <section class="now-section" aria-labelledby="now-focus-title">
+      <header class="section-heading"><p class="pixel-kicker">正在推进</p><h2 id="now-focus-title">月潭中的行舟</h2><p>只展示公开计划。私人行程和未公开事项不会进入仓库或页面。</p></header>
+      <div class="now-plan-grid">
+        {activePlans.map((plan) => {
+          const progress = calculatePlanProgress(plan.data.milestones);
+          const actions = plan.data.nextActions.filter(({ status }) => status !== '已完成').slice(0, 3);
+          return <article>
+            <div><span>{plan.data.area}</span><strong>{plan.data.priority}优先</strong></div>
+            <h3><a href={`/world/moon-pool/${plan.data.slug}/`}>{plan.data.title}</a></h3>
+            <p>{plan.data.summary}</p>
+            <div class="now-plan-progress" role={progress === null ? undefined : 'progressbar'} aria-label={`${plan.data.title}里程碑进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress ?? 0}><i style={`width:${progress ?? 0}%`}></i></div>
+            <small>{progress === null ? '尚未拆解里程碑' : `里程碑完成 ${progress}%`}</small>
+            {actions.length > 0 && <ul>{actions.map((action) => <li><span>{action.status}</span>{action.title}</li>)}</ul>}
+            <div class="tag-row">{plan.data.tags.map((tag) => <IslandTag label={tag} tone="green" />)}</div>
+          </article>;
+        })}
+      </div>
+    </section>
+
+    <section class="now-section now-updates" aria-labelledby="now-updates-title">
+      <header class="section-heading"><p class="pixel-kicker">最近变化</p><h2 id="now-updates-title">新添与新修的页面</h2><p>按内容的发布日期或最近修订时间排列。</p></header>
+      <ol>
+        {recentEntries.map((entry) => <li><time datetime={entry.date.toISOString()}>{formatDate(entry.date)}</time><span>{entry.type}</span><div><a href={entry.href}>{entry.title}</a><p>{entry.description}</p></div></li>)}
+      </ol>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .now-page { padding-top:164px; padding-bottom:90px; }
+  .now-hero { padding:clamp(26px,5vw,52px); background:rgba(239,247,229,.95); }
+  .now-hero h1 { max-width:900px; margin:8px 0 18px; color:#4d493e; font-family:var(--serif); font-size:clamp(2.4rem,5vw,4.8rem); line-height:1.1; }
+  .now-hero > p:not(.pixel-kicker) { max-width:760px; color:#5d6e64; line-height:1.8; }
+  .now-hero > div { display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; }
+  .now-section { padding-top:72px; }
+  .now-section .section-heading { max-width:760px; }
+  .now-section .section-heading h2 { margin:0; color:#514838; font-family:var(--serif); font-size:clamp(2rem,4vw,3.4rem); }
+  .now-section .section-heading > p:last-child { color:#65736b; line-height:1.75; }
+  .now-plan-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:28px; }
+  .now-plan-grid article { padding:26px; border:3px solid #647369; background:#f6f3dd; box-shadow:7px 7px 0 rgba(53,66,58,.18); }
+  .now-plan-grid article > div:first-child { display:flex; justify-content:space-between; color:#718078; font-size:.68rem; }
+  .now-plan-grid h3 { margin:12px 0 9px; font-family:var(--serif); font-size:1.45rem; }
+  .now-plan-grid h3 a { color:#3f624d; }
+  .now-plan-grid article > p { color:#637168; line-height:1.7; }
+  .now-plan-progress { height:10px; overflow:hidden; border:2px solid #718077; background:#d7ded1; }
+  .now-plan-progress i { display:block; height:100%; background:#75a082; }
+  .now-plan-grid article > small { display:block; margin-top:7px; color:#68766e; }
+  .now-plan-grid ul { margin:18px 0; padding:0; list-style:none; }
+  .now-plan-grid li { display:grid; grid-template-columns:52px 1fr; gap:8px; padding:8px 0; border-top:1px dashed #9ba69e; color:#536159; font-size:.75rem; }
+  .now-plan-grid li span { color:#477058; font-weight:900; }
+  .now-updates ol { margin:28px 0 0; padding:0; list-style:none; border-top:3px solid #6b786f; }
+  .now-updates li { display:grid; grid-template-columns:150px 60px minmax(0,1fr); gap:16px; padding:20px 10px; border-bottom:1px dashed #8e9a91; }
+  .now-updates time,.now-updates li > span { color:#748078; font-size:.7rem; }
+  .now-updates li > span { font-weight:900; }
+  .now-updates a { color:#3f624d; font-family:var(--serif); font-size:1.05rem; font-weight:900; }
+  .now-updates li p { margin:5px 0 0; color:#68756d; font-size:.76rem; line-height:1.65; }
+  @media (max-width:760px) { .now-plan-grid { grid-template-columns:1fr; } .now-updates li { grid-template-columns:1fr; gap:5px; } }
+  @media (max-width:600px) { .now-page { padding-top:144px; } .now-hero { padding:24px 20px; } }
+</style>

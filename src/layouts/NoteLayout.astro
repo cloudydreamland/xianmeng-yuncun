@@ -3,8 +3,9 @@ import BaseLayout from './BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
 import type { CollectionEntry } from 'astro:content';
 
-const { title, slug, description, publishedAt, updatedAt, tags = [], category, cover, coverAlt, headings = [], prev, next, wordCount, readingMinutes, relatedNotes: rawRelatedNotes = [] } = Astro.props;
-const relatedNotes = rawRelatedNotes as CollectionEntry<'notes'>[];
+type NoteConnection = { note: CollectionEntry<'notes'>; kind: '引路' | '回望' | '同题'; description: string };
+const { title, slug, description, publishedAt, updatedAt, tags = [], category, cover, coverAlt, headings = [], prev, next, wordCount, readingMinutes, connections: rawConnections = [] } = Astro.props;
+const connections = rawConnections as NoteConnection[];
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 const visibleHeadings = headings.filter((heading: { depth: number }) => heading.depth <= 3);
 ---
@@ -59,10 +60,10 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
         </aside>
       )}
     </div>
-    {relatedNotes.length > 0 && (
+    {connections.length > 0 && (
       <section class="related-notes" aria-labelledby="related-notes-title" data-pagefind-ignore>
-        <header><p class="pixel-kicker">风中回声</p><h2 id="related-notes-title">与这篇笔记相连</h2></header>
-        <div>{relatedNotes.map((note) => <a href={`/notes/${note.data.slug}/`}><span>{note.data.category}</span><strong>{note.data.title}</strong><p>{note.data.description}</p></a>)}</div>
+        <header><p class="pixel-kicker">风中回声</p><h2 id="related-notes-title">这篇笔记通向哪里</h2><p>“引路”来自作者明确连接，“回望”表示另一篇笔记指向这里，“同题”则由分类与标签补充。</p></header>
+        <div>{connections.map(({ note, kind, description }) => <a href={`/notes/${note.data.slug}/`}><span><em>{kind}</em>{description} · {note.data.category}</span><strong>{note.data.title}</strong><p>{note.data.description}</p></a>)}</div>
       </section>
     )}
     <nav class="article-nav" aria-label="相邻文章" data-pagefind-ignore>
@@ -177,9 +178,11 @@ const visibleHeadings = headings.filter((heading: { depth: number }) => heading.
 <style>
   .related-notes { max-width: 980px; margin: 58px auto; padding: 26px; border: 2px solid #758279; background: rgba(241,243,220,.82); }
   .related-notes h2 { margin: 0; color: #514838; font-family: var(--serif); font-size: 1.7rem; }
+  .related-notes header > p:last-child { color:#6d7a72; font-size:.72rem; line-height:1.65; }
   .related-notes > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-top: 18px; }
   .related-notes a { display: block; padding: 17px; border: 2px solid #8a9489; color: #56645b; background: #fff9e8; }
   .related-notes span { color: #748078; font-size: .68rem; }
+  .related-notes span em { margin-right:6px; padding:2px 5px; color:#3f6d53; border:1px solid #7e9c88; font-style:normal; background:#e5efdc; }
   .related-notes strong { display: block; margin: 6px 0 8px; color: #47614f; font-family: var(--serif); }
   .related-notes p { margin: 0; font-size: .76rem; line-height: 1.65; }
   @media (max-width: 760px) { .related-notes > div { grid-template-columns: 1fr; } }

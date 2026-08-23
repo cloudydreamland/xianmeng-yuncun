@@ -1,0 +1,141 @@
+<button class="quick-capture-fab" type="button" data-quick-capture-open aria-label="打开随手记"><span aria-hidden="true">＋</span><strong>随手记</strong></button>
+
+<dialog class="quick-capture-dialog pixel-frame" data-quick-capture-dialog aria-labelledby="quick-capture-title">
+  <form data-quick-capture-form>
+    <header>
+      <div><p class="pixel-kicker">QUICK CAPTURE · 雨桥</p><h2 id="quick-capture-title">先收下，再慢慢归卷。</h2></div>
+      <button type="button" data-quick-capture-close aria-label="关闭随手记">×</button>
+    </header>
+    <div class="quick-capture-kinds" role="radiogroup" aria-label="记录类型">
+      <label><input type="radio" name="kind" value="task" checked /><span>任务</span></label>
+      <label><input type="radio" name="kind" value="idea" /><span>灵感</span></label>
+      <label><input type="radio" name="kind" value="link" /><span>链接</span></label>
+      <label><input type="radio" name="kind" value="expense" /><span>开销</span></label>
+      <label><input type="radio" name="kind" value="journal" /><span>手记</span></label>
+    </div>
+    <label><span>写下什么</span><input name="title" maxlength="120" required autocomplete="off" placeholder="一句话就够了" /></label>
+    <label data-capture-url hidden><span>链接</span><input name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://" /></label>
+    <label data-capture-amount hidden><span>金额</span><input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" /></label>
+    <div class="quick-capture-row">
+      <label><span>日期</span><input name="date" type="date" /></label>
+      <label><span>归处</span><select name="category"><option>日常</option><option>学习</option><option>工作</option><option>健康</option><option>家庭</option><option>旅行</option></select></label>
+    </div>
+    <label><span>补充</span><textarea name="detail" maxlength="1200" rows="4" placeholder="可留空；需要时再补充"></textarea></label>
+    <footer><span data-quick-capture-status aria-live="polite"></span><button class="pixel-button" type="button" data-quick-capture-close>取消</button><button class="pixel-button pixel-button--primary" type="submit">收进雨桥</button></footer>
+  </form>
+</dialog>
+
+<script>
+  import { LIFE_KEYS, announceLifeUpdate, lifeId, localDateKey, readStored, writeStored } from '../utils/lifeStore';
+
+  interface LocalPlan { id: string; title: string; date: string; priority: 'medium'; notes: string; completed: boolean; createdAt: string; updatedAt: string; }
+  interface InboxItem { id: string; kind: string; title: string; detail: string; category: string; date: string; createdAt: string; handled: boolean; }
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-quick-capture-dialog]');
+  const form = dialog?.querySelector<HTMLFormElement>('[data-quick-capture-form]');
+  const status = dialog?.querySelector<HTMLElement>('[data-quick-capture-status]');
+  const value = (name: string) => String(new FormData(form!).get(name) || '').trim();
+  const openCapture = (kind?: string) => {
+    if (!dialog || !form) return;
+    if (kind) {
+      const radio = form.querySelector<HTMLInputElement>(`input[name="kind"][value="${kind}"]`);
+      if (radio) radio.checked = true;
+    }
+    syncFields();
+    if (!dialog.open) dialog.showModal();
+    window.setTimeout(() => {
+      const titleField = form.elements.namedItem('title');
+      if (titleField instanceof HTMLInputElement) titleField.focus();
+    }, 30);
+  };
+  const syncFields = () => {
+    const kind = value('kind');
+    const url = dialog?.querySelector<HTMLElement>('[data-capture-url]');
+    const amount = dialog?.querySelector<HTMLElement>('[data-capture-amount]');
+    if (url) url.hidden = kind !== 'link';
+    if (amount) amount.hidden = kind !== 'expense';
+  };
+
+  document.querySelectorAll('[data-quick-capture-open]').forEach((button) => button.addEventListener('click', () => openCapture((button as HTMLElement).dataset.captureKind)));
+  document.querySelectorAll('[data-quick-capture-close]').forEach((button) => button.addEventListener('click', () => dialog?.close()));
+  dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  form?.addEventListener('change', syncFields);
+  window.addEventListener('yuncun-open-capture', (event) => openCapture((event as CustomEvent<string>).detail));
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const kind = value('kind'); const title = value('title'); const detail = value('detail'); const category = value('category'); const date = value('date') || localDateKey(); const now = new Date().toISOString();
+    try {
+      if (kind === 'task') {
+        const plans = readStored<LocalPlan[]>(localStorage, LIFE_KEYS.plans, []);
+        plans.push({ id: lifeId('plan'), title, date, priority: 'medium', notes: detail, completed: false, createdAt: now, updatedAt: now });
+        writeStored(localStorage, LIFE_KEYS.plans, plans);
+        window.dispatchEvent(new CustomEvent('yuncun-local-plans-updated'));
+      } else if (kind === 'link') {
+        const rawUrl = value('url'); const url = new URL(rawUrl);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('invalid-url');
+        const items = readStored<any[]>(localStorage, LIFE_KEYS.reading, []);
+        const id = `link:${url.href}`; const existing = items.find((item) => item.id === id);
+        if (existing) Object.assign(existing, { title, note: detail, savedAt: Date.now() });
+        else items.push({ id, title, url: url.href, savedAt: Date.now(), priority: 'later', note: detail });
+        writeStored(localStorage, LIFE_KEYS.reading, items);
+        window.dispatchEvent(new CustomEvent('yuncun-reading-list-updated'));
+      } else if (kind === 'expense') {
+        const amount = Number(value('amount'));
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('invalid-amount');
+        const items = readStored<any[]>(localStorage, LIFE_KEYS.expenses, []);
+        items.push({ id: lifeId('expense'), title, amount, category, date, note: detail, createdAt: now });
+        writeStored(localStorage, LIFE_KEYS.expenses, items);
+      } else if (kind === 'journal') {
+        const items = readStored<any[]>(localStorage, LIFE_KEYS.journal, []);
+        items.unshift({ id: lifeId('journal'), title, body: detail, mood: category, date, createdAt: now });
+        writeStored(localStorage, LIFE_KEYS.journal, items);
+      } else {
+        const items = readStored<InboxItem[]>(localStorage, LIFE_KEYS.inbox, []);
+        items.unshift({ id: lifeId('inbox'), kind, title, detail, category, date, createdAt: now, handled: false });
+        writeStored(localStorage, LIFE_KEYS.inbox, items);
+      }
+      announceLifeUpdate(kind);
+      if (status) status.textContent = '已经收好。';
+      form.reset(); syncFields();
+      window.setTimeout(() => { dialog?.close(); if (status) status.textContent = ''; }, 500);
+    } catch (error) {
+      if (status) status.textContent = error instanceof Error && error.message === 'invalid-url' ? '请填写完整的 http 或 https 链接。' : error instanceof Error && error.message === 'invalid-amount' ? '请填写大于 0 的金额。' : '这次没有保存成功，请稍后重试。';
+    }
+  });
+
+  const shared = new URLSearchParams(location.search);
+  if (shared.has('title') || shared.has('text') || shared.has('url')) {
+    const title = form?.elements.namedItem('title'); const detail = form?.elements.namedItem('detail'); const url = form?.elements.namedItem('url'); const linkRadio = form?.querySelector<HTMLInputElement>('input[value="link"]');
+    const sharedUrl = shared.get('url') || (shared.get('text')?.match(/https?:\/\/\S+/)?.[0] ?? '');
+    if (title instanceof HTMLInputElement) title.value = shared.get('title') || '稍后查看';
+    if (detail instanceof HTMLTextAreaElement) detail.value = shared.get('text') || '';
+    if (url instanceof HTMLInputElement) url.value = sharedUrl;
+    if (sharedUrl && linkRadio) linkRadio.checked = true;
+    openCapture(sharedUrl ? 'link' : 'idea');
+  }
+</script>
+
+<style>
+  .quick-capture-fab { position:fixed; z-index:38; right:22px; bottom:22px; display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 14px 8px 9px; border:3px solid #344840; color:#26473f; background:#f2d274; box-shadow:5px 5px 0 rgba(28,48,43,.48); cursor:pointer; font:inherit; }
+  .quick-capture-fab span { display:grid; place-items:center; width:28px; height:28px; color:#fff; background:#477565; font-size:1.3rem; }
+  .quick-capture-fab strong { font-size:.72rem; letter-spacing:.08em; }
+  .quick-capture-dialog { width:min(640px,calc(100vw - 24px)); max-height:calc(100svh - 24px); padding:0; overflow:auto; border-color:#45645c; color:#46554d; background:#fff9e8; }
+  .quick-capture-dialog::backdrop { background:rgba(8,26,31,.58); backdrop-filter:blur(5px); }
+  .quick-capture-dialog form { display:grid; gap:17px; padding:26px; }
+  .quick-capture-dialog header { display:flex; justify-content:space-between; gap:20px; }
+  .quick-capture-dialog h2 { margin:0; color:#3c594e; font-family:var(--serif); font-size:1.75rem; }
+  .quick-capture-dialog header button { align-self:start; border:0; color:#4d6259; background:transparent; cursor:pointer; font-size:1.8rem; }
+  .quick-capture-kinds { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
+  .quick-capture-kinds label { cursor:pointer; }
+  .quick-capture-kinds input { position:absolute; opacity:0; }
+  .quick-capture-kinds span { display:grid; place-items:center; min-height:42px; border:2px solid #819087; background:#f6efd9; font-size:.72rem; font-weight:900; }
+  .quick-capture-kinds input:checked + span { border-color:#406d5d; color:#fff; background:#527c6b; }
+  .quick-capture-dialog form > label,.quick-capture-row label { display:grid; gap:6px; font-size:.72rem; font-weight:900; }
+  .quick-capture-dialog input,.quick-capture-dialog select,.quick-capture-dialog textarea { width:100%; min-height:44px; padding:9px 11px; border:2px solid #7c8981; color:#3f4d45; background:#fffdf4; font:inherit; }
+  .quick-capture-dialog textarea { resize:vertical; line-height:1.65; }
+  .quick-capture-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .quick-capture-dialog footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+  .quick-capture-dialog footer span { margin-right:auto; color:#527365; font-size:.72rem; }
+  @media(max-width:700px){ .quick-capture-fab { right:14px; bottom:max(14px,env(safe-area-inset-bottom)); } .quick-capture-fab strong { display:none; } .quick-capture-fab { padding:7px; } .quick-capture-kinds { grid-template-columns:repeat(5,minmax(52px,1fr)); overflow-x:auto; } .quick-capture-row { grid-template-columns:1fr; } .quick-capture-dialog form { padding:21px 15px; } }
+</style>

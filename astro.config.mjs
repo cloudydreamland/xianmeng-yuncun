@@ -20,6 +20,7 @@ export default defineConfig({
     },
   },
   vite: {
+    cacheDir: process.env.YUNCUN_VITE_CACHE_DIR || 'node_modules/.vite',
     resolve: {
       alias: {
         picomatch: picomatchCompatPath,

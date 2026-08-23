@@ -3,6 +3,15 @@ import { getCollection, render } from 'astro:content';
 import CloudSearch from '../../components/CloudSearch';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
+import AttentionLab from '../../components/AttentionLab.astro';
+import FocusTimer from '../../components/FocusTimer.astro';
+import HabitTracker from '../../components/HabitTracker.astro';
+import LifeInbox from '../../components/LifeInbox.astro';
+import LifeOrganizer from '../../components/LifeOrganizer.astro';
+import LifeCalendar from '../../components/LifeCalendar.astro';
+import MemoryJournal from '../../components/MemoryJournal.astro';
+import TodayDashboard from '../../components/TodayDashboard.astro';
+import LifeInsights from '../../components/LifeInsights.astro';
 import IslandTag from '../../components/IslandTag';
 import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
@@ -99,6 +108,8 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'cloud-village' && (
     <>
+    <TodayDashboard />
+    <LifeInsights />
     {moments.length > 0 && <section class="village-moments" aria-labelledby="village-moments-title">
       <header class="section-heading"><p class="pixel-kicker">人间小记</p><h2 id="village-moments-title">村中近闻</h2><p>只记愿与来客相逢的日常片羽；未曾启封的私语，仍留在云后。</p></header>
       <div class="village-moments__list">{moments.map((moment) => <article><time datetime={moment.data.publishedAt.toISOString()}>{moment.data.publishedAt.toLocaleDateString('zh-CN')}</time><div><h3>{moment.data.title}</h3><p>{moment.data.summary}</p><div class="tag-row">{moment.data.tags.map((tag) => <span class="tag-link">#{tag}</span>)}</div></div></article>)}</div>
@@ -115,6 +126,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
       <section class="rain-search" aria-labelledby="rain-search-title" data-pagefind-ignore>
         <CloudSearch client:visible variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
       </section>
+      <LifeInbox />
       <section class="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
         <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
@@ -122,7 +134,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
     </>
   )}
 
-  {region.data.slug === 'star-abyss' && <GrowthConstellation />}
+  {region.data.slug === 'star-abyss' && <><FocusTimer /><GrowthConstellation /><AttentionLab /></>}
 
   {region.data.slug === 'wind-valley' && (
     <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title" data-pagefind-ignore>
@@ -274,7 +286,9 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   {region.data.slug === 'moon-pool' && (
     <>
       <div data-pagefind-ignore><PlanDashboard plans={plans} projects={projects} /></div>
+      <LifeCalendar />
       <div data-pagefind-ignore><LocalPlanner /></div>
+      <LifeOrganizer />
       <section class="moon-projects project-archive" aria-labelledby="moon-projects-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">月下藏卷</p><h2 id="moon-projects-title">月映册</h2><p>行舟录记今夜将往何方；月映册则收已成之物、术法取舍与经年回望。</p></header>
         <div class="archive-intro"><p>月下藏卷</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>卷造物旧录</span></div>
@@ -298,6 +312,8 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
       </section>
     </>
   )}
+
+  {region.data.slug === 'snow-cliff' && <HabitTracker />}
 
   {region.data.slug === 'snow-cliff' && (contactEmail || friendLinks.length > 0) && (
     <section class="snow-lodge" aria-labelledby="snow-lodge-title">
@@ -343,6 +359,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
     </section>
   )}
 
+  {region.data.slug === 'lantern-lane' && <MemoryJournal />}
   {region.data.slug === 'lantern-lane' && works.length > 0 && <div data-pagefind-ignore><GalleryArchive works={works} /></div>}
 </RegionLayout>
 <style>

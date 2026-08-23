@@ -1,0 +1,124 @@
+<section class="sync-center" aria-labelledby="sync-center-title" data-sync-center>
+  <header class="sync-center__heading">
+    <div>
+      <p class="pixel-kicker">PRIVATE SYNC · 加密云卷</p>
+      <h2 id="sync-center-title">让案上私务随你同行</h2>
+      <p>生活数据会在本机加密后再送往云端。云端只保存密文；同步密码不会离开你的设备。</p>
+    </div>
+    <span class="sync-center__state" data-sync-state>尚未启用</span>
+  </header>
+
+  <div class="sync-center__setup" data-sync-setup>
+    <label>
+      <span>同步密码</span>
+      <input type="password" minlength="12" autocomplete="current-password" data-sync-passphrase placeholder="至少 12 位，所有设备使用同一密码" />
+    </label>
+    <label class="sync-center__remember"><input type="checkbox" data-sync-remember checked /> <span>在这台设备上记住解锁密钥</span></label>
+    <div class="sync-center__actions">
+      <button class="pixel-button pixel-button--primary" type="button" data-sync-enable>启用并立即同步</button>
+      <button class="pixel-button" type="button" data-sync-now>立即同步</button>
+    </div>
+    <p class="sync-center__warning">请妥善保存密码：它无法从云端找回，遗失后密文也无法解开。</p>
+  </div>
+
+  <div class="sync-center__controls" data-sync-controls hidden>
+    <label><input type="checkbox" data-sync-auto checked /> <span>数据变化后自动同步</span></label>
+    <button class="pixel-button" type="button" data-sync-lock>锁定此设备</button>
+    <button class="pixel-button" type="button" data-sync-disable>停用自动同步</button>
+    <button class="pixel-button sync-center__danger" type="button" data-sync-delete>删除云端副本</button>
+  </div>
+  <p class="sync-center__status" data-sync-status aria-live="polite">尚未与云端建立连接。</p>
+</section>
+
+<script>
+  import { deleteRemoteSync, setSyncEnabled, synchronizeLifeData } from '../utils/syncClient';
+  import { forgetSyncKey } from '../utils/syncCrypto';
+  import { SYNC_META_KEY, readSyncMeta } from '../utils/syncData';
+
+  const center = document.querySelector<HTMLElement>('[data-sync-center]');
+  if (center) {
+    const passphrase = center.querySelector<HTMLInputElement>('[data-sync-passphrase]')!;
+    const remember = center.querySelector<HTMLInputElement>('[data-sync-remember]')!;
+    const auto = center.querySelector<HTMLInputElement>('[data-sync-auto]')!;
+    const setup = center.querySelector<HTMLElement>('[data-sync-setup]')!;
+    const controls = center.querySelector<HTMLElement>('[data-sync-controls]')!;
+    const state = center.querySelector<HTMLElement>('[data-sync-state]')!;
+    const status = center.querySelector<HTMLElement>('[data-sync-status]')!;
+
+    const describe = (code: string, updatedAt?: string) => ({
+      synced: updatedAt ? `同步完成 · ${new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(updatedAt))}` : '同步完成。',
+      locked: '请输入同步密码以解锁。',
+      auth_required: '需要先通过站点身份验证，才能访问私人云卷。',
+      not_configured: '云端存储尚未绑定；本机数据未受影响。',
+      offline: '当前离线，将在恢复网络后重试。',
+      conflict: '另一台设备刚有更新，正在重新合并。',
+      invalid_passphrase: '密码不正确，无法解开云端数据。',
+      error: '同步未完成，请稍后重试。',
+    }[code] || '同步状态未知。');
+
+    const render = () => {
+      const meta = readSyncMeta(localStorage);
+      setup.classList.toggle('is-enabled', meta.enabled);
+      controls.hidden = !meta.enabled;
+      auto.checked = meta.auto;
+      state.textContent = meta.enabled ? '已启用' : '尚未启用';
+      state.classList.toggle('is-active', meta.enabled);
+      if (meta.lastSyncAt) status.textContent = describe('synced', meta.lastSyncAt);
+    };
+
+    const sync = async (enable = false) => {
+      const value = passphrase.value;
+      if (value && value.length < 12) { status.textContent = '同步密码至少需要 12 位。'; passphrase.focus(); return; }
+      status.textContent = '正在加密、合并并同步……';
+      if (enable) setSyncEnabled(true, auto.checked);
+      let result = await synchronizeLifeData({ passphrase: value || undefined, rememberDevice: remember.checked, createIfMissing: true });
+      if (result.code === 'conflict') result = await synchronizeLifeData({ passphrase: value || undefined, rememberDevice: remember.checked, createIfMissing: true });
+      status.textContent = describe(result.code, result.updatedAt);
+      if (result.code === 'synced') passphrase.value = '';
+      if (enable && result.code !== 'synced') setSyncEnabled(false, auto.checked);
+      render();
+    };
+
+    center.querySelector('[data-sync-enable]')?.addEventListener('click', () => sync(true));
+    center.querySelector('[data-sync-now]')?.addEventListener('click', () => sync(false));
+    passphrase.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); sync(!readSyncMeta(localStorage).enabled); } });
+    auto.addEventListener('change', () => { setSyncEnabled(true, auto.checked); status.textContent = auto.checked ? '自动同步已开启。' : '自动同步已暂停，可随时手动同步。'; render(); });
+    center.querySelector('[data-sync-lock]')?.addEventListener('click', async () => {
+      await forgetSyncKey(); passphrase.value = ''; status.textContent = '此设备已锁定，下次同步需要密码。';
+    });
+    center.querySelector('[data-sync-disable]')?.addEventListener('click', () => {
+      setSyncEnabled(false, false); status.textContent = '自动同步已停用，云端副本仍然保留。'; render();
+    });
+    center.querySelector('[data-sync-delete]')?.addEventListener('click', async () => {
+      if (!confirm('确定删除云端加密副本？本机数据不会删除，其他设备将无法再拉取这份副本。')) return;
+      status.textContent = '正在删除云端副本……';
+      const result = await deleteRemoteSync();
+      status.textContent = result.code === 'synced' ? '云端副本已删除，本机数据仍在。' : describe(result.code);
+      render();
+    });
+    window.addEventListener('yuncun-sync-complete', render);
+    window.addEventListener('storage', (event) => { if (event.key === SYNC_META_KEY) render(); });
+    render();
+  }
+</script>
+
+<style>
+  .sync-center { margin-top: 34px; padding: clamp(20px,4vw,32px); border: 3px solid #54757a; color: #405b5e; background: rgba(239,250,247,.97); box-shadow: 7px 7px 0 rgba(25,61,66,.22); }
+  .sync-center__heading { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
+  .sync-center__heading h2 { margin: 0; color: #315c62; font-family: var(--serif); font-size: clamp(1.8rem,4vw,3rem); }
+  .sync-center__heading p:last-child { max-width: 720px; color: #607376; line-height: 1.75; }
+  .sync-center__state { flex: 0 0 auto; padding: 7px 10px; border: 2px solid #7b9293; color: #607575; background: #e7efea; font-size: .68rem; font-weight: 900; }
+  .sync-center__state.is-active { border-color: #397568; color: #fff; background: #397568; }
+  .sync-center__setup { display: grid; grid-template-columns: minmax(240px,1fr) auto; align-items: end; gap: 12px 18px; margin-top: 24px; }
+  .sync-center__setup > label:first-child { display: grid; gap: 7px; color: #48656a; font-size: .72rem; font-weight: 900; }
+  .sync-center__setup input[type='password'] { min-height: 44px; padding: 9px 11px; border: 2px solid #6f898c; color: #344f54; background: #fffdf1; font: inherit; }
+  .sync-center__remember,.sync-center__controls label { display: flex; align-items: center; gap: 8px; color: #536b6e; font-size: .72rem; }
+  .sync-center__actions,.sync-center__controls { display: flex; flex-wrap: wrap; gap: 9px; }
+  .sync-center__actions { grid-column: 1 / -1; }
+  .sync-center__controls { align-items: center; margin-top: 19px; padding-top: 17px; border-top: 1px dashed #819696; }
+  .sync-center__controls label { margin-right: auto; }
+  .sync-center__warning,.sync-center__status { grid-column: 1 / -1; margin: 0; color: #6f7470; font-size: .68rem; line-height: 1.65; }
+  .sync-center__status { margin-top: 15px; color: #48676b; }
+  .sync-center__danger { color: #874b41; border-color: #a9786c; }
+  @media(max-width:700px){ .sync-center__heading { flex-direction: column; } .sync-center__setup { grid-template-columns: 1fr; } .sync-center__remember { min-height: 38px; } .sync-center__actions { grid-column: auto; } .sync-center__actions .pixel-button,.sync-center__controls .pixel-button { flex: 1 1 150px; } }
+</style>

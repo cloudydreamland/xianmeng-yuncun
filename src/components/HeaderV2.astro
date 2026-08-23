@@ -1,5 +1,6 @@
 ---
 import RealmOracleSigil from './RealmOracleSigil.astro';
+import { lifeModules } from '../data/lifeModules';
 
 const pathname = Astro.url.pathname;
 const realms = [
@@ -26,9 +27,17 @@ const realmActive = realms.some(([href]) => active(href));
     </details>
     <a href="/world/wind-valley/" class:list={[{ active: active('/world/wind-valley/') }]}>笔记</a>
     <a href="/world/moon-pool/" class:list={[{ active: active('/world/moon-pool/') }]}>项目</a>
+    <a href="/world/cloud-village/#today" class:list={['nav-today', { active: pathname === '/world/cloud-village/' && Astro.url.hash === '#today' }]}>今日</a>
+    <details class="desktop-realm-menu desktop-life-menu">
+      <summary><span class="life-menu-mark" aria-hidden="true">生</span><span>生活</span><span aria-hidden="true">⌄</span></summary>
+      <div class="desktop-realm-menu__panel desktop-life-menu__panel">
+        {lifeModules.map((item) => <a class="life-nav-link" href={item.href}><span aria-hidden="true">{item.mark}</span><span><strong>{item.label}</strong><small>{item.realmLabel}</small></span></a>)}
+        <a class="life-nav-link life-nav-link--workspace" href="/workspace/"><span aria-hidden="true">案</span><span><strong>完整工作台</strong><small>所有本地私务</small></span></a>
+        <button type="button" class="life-nav-link" data-reminder-open><span aria-hidden="true">铃</span><span><strong>提醒中心</strong><small>到期与错过提醒</small></span></button>
+        <button type="button" class="life-nav-link" data-reading-list-open><span aria-hidden="true">阅</span><span><strong>稍后阅读</strong><small><b data-reading-list-count>0</b> 篇待阅</small></span></button>
+      </div>
+    </details>
     <a href="/about" class:list={[{ active: pathname.startsWith('/about') }]}>关于</a>
-    <a class="nav-workspace" href="/workspace/" class:list={[{ active: pathname.startsWith('/workspace') }]}>工作台</a>
-    <button type="button" class="nav-reading-list" data-reading-list-open aria-label="打开稍后阅读清单"><span aria-hidden="true">▤</span><span>稍后阅读</span><strong data-reading-list-count>0</strong></button>
     <button type="button" class="nav-search" data-search-open aria-label="搜索云村内容"><span aria-hidden="true">⌕</span><span>云镜</span><kbd>⌘K</kbd></button>
   </nav>
   <details class="mobile-nav">
@@ -36,8 +45,11 @@ const realmActive = realms.some(([href]) => active(href));
     <nav aria-label="移动端导航">
       <a href="/">首页</a>
       {realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href}><RealmOracleSigil realm={realm} size={22} /><span>{label}</span><small>古刻灵纹</small></a>)}
+      <strong class="mobile-nav__group">生活工具</strong>
+      {lifeModules.map((item) => <a class="life-nav-link" href={item.href}><span aria-hidden="true">{item.mark}</span><span>{item.label}</span><small>{item.realmLabel}</small></a>)}
       <a href="/about">个人主页</a>
       <a href="/workspace/">工作台</a>
+      <button type="button" class="mobile-reading-list" data-reminder-open>铃 打开提醒中心</button>
       <button type="button" class="mobile-reading-list" data-reading-list-open>▤ 稍后阅读 <strong data-reading-list-count>0</strong></button>
       <button type="button" class="mobile-search" data-search-open>⌕ 打开云镜</button>
     </nav>

@@ -1,0 +1,172 @@
+---
+import { cloudJourneys, TRAIL_STORAGE_KEY } from '../data/cloudJourneys';
+
+interface Props {
+  full?: boolean;
+}
+
+const { full = false } = Astro.props;
+---
+
+<section class:list={['journey-guide', { 'journey-guide--full': full }]} aria-labelledby="journey-guide-title" data-journey-guide>
+  <header class="section-heading journey-guide__heading">
+    <p class="pixel-kicker">云游路线</p>
+    <h2 id="journey-guide-title">不必认全七境，<br />先选一条路出发。</h2>
+    <p>每条路线都由真实内容组成。足迹只保存在当前浏览器，不需要登录，也不会上传。</p>
+  </header>
+
+  <div class="journey-guide__grid">
+    {cloudJourneys.map((journey) => (
+      <article class:list={['journey-card', `journey-card--${journey.tone}`]} data-journey-card data-paths={JSON.stringify(journey.stops.map(({ path }) => path))}>
+        <div class="journey-card__top"><span>{journey.subtitle}</span><small>{journey.duration}</small></div>
+        <h3>{journey.title}</h3>
+        <p>{journey.description}</p>
+        <div class="journey-card__progress" role="progressbar" aria-label={`${journey.title}完成进度`} aria-valuemin="0" aria-valuemax={journey.stops.length} aria-valuenow="0">
+          <i data-journey-progress-bar></i>
+        </div>
+        <strong class="journey-card__progress-copy" data-journey-progress>尚未启程 · 0/{journey.stops.length}</strong>
+        <ol>
+          {journey.stops.map((stop, index) => (
+            <li data-journey-stop data-path={stop.path}>
+              <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <div><a href={stop.path}>{stop.label}</a><small>{stop.realm} · {stop.reason}</small></div>
+              <em data-stop-state>未访</em>
+            </li>
+          ))}
+        </ol>
+        <a class="pixel-button pixel-button--primary journey-card__action" href={journey.stops[0].path} data-journey-action>从第一站启程 →</a>
+      </article>
+    ))}
+  </div>
+
+  {!full && <p class="journey-guide__more"><a href="/journeys/">查看路线与本地足迹总览 →</a></p>}
+
+  {full && (
+    <aside class="trail-ledger pixel-frame" aria-labelledby="trail-ledger-title">
+      <header><div><p class="pixel-kicker">近日行迹</p><h2 id="trail-ledger-title">留在这台设备上的足迹</h2></div><button type="button" data-trail-clear>清除足迹</button></header>
+      <ol data-trail-list><li class="trail-ledger__empty">尚无足迹。任选一条路线，走过的页面会在这里留下记录。</li></ol>
+      <p data-trail-status aria-live="polite"></p>
+    </aside>
+  )}
+</section>
+
+<script is:inline define:vars={{ storageKey: TRAIL_STORAGE_KEY }}>
+  (() => {
+    const root = document.querySelector('[data-journey-guide]');
+    if (!root) return;
+
+    const readTrail = () => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const render = () => {
+      const trail = readTrail();
+      const visited = new Set(trail.map((entry) => entry.path));
+      root.querySelectorAll('[data-journey-card]').forEach((card) => {
+        const paths = JSON.parse(card.dataset.paths || '[]');
+        const completed = paths.filter((path) => visited.has(path)).length;
+        const progress = paths.length ? completed / paths.length : 0;
+        const progressbar = card.querySelector('[role="progressbar"]');
+        const bar = card.querySelector('[data-journey-progress-bar]');
+        const copy = card.querySelector('[data-journey-progress]');
+        const action = card.querySelector('[data-journey-action]');
+        if (progressbar) progressbar.setAttribute('aria-valuenow', String(completed));
+        if (bar) bar.style.width = `${progress * 100}%`;
+        if (copy) copy.textContent = completed === paths.length ? `全程走完 · ${completed}/${paths.length}` : completed ? `已走 ${completed} 站 · ${completed}/${paths.length}` : `尚未启程 · 0/${paths.length}`;
+        const next = paths.find((path) => !visited.has(path)) || paths[0];
+        if (action && next) {
+          action.href = next;
+          action.textContent = completed ? completed === paths.length ? '重新巡游 →' : '继续上次云游 →' : '从第一站启程 →';
+        }
+        card.querySelectorAll('[data-journey-stop]').forEach((item) => {
+          const done = visited.has(item.dataset.path);
+          item.classList.toggle('visited', done);
+          const state = item.querySelector('[data-stop-state]');
+          if (state) state.textContent = done ? '已访' : '未访';
+        });
+      });
+
+      const list = root.querySelector('[data-trail-list]');
+      if (list) {
+        list.replaceChildren();
+        if (!trail.length) {
+          const empty = document.createElement('li');
+          empty.className = 'trail-ledger__empty';
+          empty.textContent = '尚无足迹。任选一条路线，走过的页面会在这里留下记录。';
+          list.append(empty);
+        } else {
+          trail.slice(0, 12).forEach((entry) => {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            const meta = document.createElement('span');
+            link.href = entry.path;
+            link.textContent = entry.label;
+            const visitedAt = new Date(entry.visitedAt);
+            meta.textContent = `${entry.realm} · ${Number.isNaN(visitedAt.valueOf()) ? '曾到访' : visitedAt.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+            item.append(link, meta);
+            list.append(item);
+          });
+        }
+      }
+    };
+
+    root.querySelector('[data-trail-clear]')?.addEventListener('click', () => {
+      try { localStorage.removeItem(storageKey); } catch {}
+      render();
+      const status = root.querySelector('[data-trail-status]');
+      if (status) status.textContent = '这台设备上的云游足迹已清除。';
+      window.dispatchEvent(new CustomEvent('yuncun:trail-update', { detail: [] }));
+    });
+    window.addEventListener('storage', render);
+    window.addEventListener('yuncun:trail-update', render);
+    render();
+  })();
+</script>
+
+<style>
+  .journey-guide { width:min(1180px,calc(100% - 32px)); margin:0 auto; padding:76px 0 68px; }
+  .journey-guide__heading { max-width:760px; }
+  .journey-guide__heading h2 { margin:0; color:#514838; font-family:var(--serif); font-size:clamp(2.1rem,4vw,3.8rem); line-height:1.15; }
+  .journey-guide__heading > p:last-child { max-width:680px; color:#617067; line-height:1.8; }
+  .journey-guide__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:30px; }
+  .journey-card { display:flex; min-width:0; flex-direction:column; padding:24px; border:3px solid #65766c; color:#55665d; background:#f6f4df; box-shadow:7px 7px 0 rgba(53,70,61,.18); }
+  .journey-card--star { border-color:#636687; background:#eef0fb; }
+  .journey-card--lantern { border-color:#987052; background:#fff1d8; }
+  .journey-card__top { display:flex; justify-content:space-between; gap:12px; color:#687970; font-size:.68rem; font-weight:900; letter-spacing:.08em; }
+  .journey-card h3 { margin:12px 0 8px; color:#4f4a3d; font-family:var(--serif); font-size:1.7rem; }
+  .journey-card > p { min-height:54px; margin:0 0 18px; font-size:.78rem; line-height:1.72; }
+  .journey-card__progress { height:10px; overflow:hidden; border:2px solid #68786e; background:#d8dfd5; }
+  .journey-card__progress i { display:block; width:0; height:100%; background:#69a381; transition:width .35s ease; }
+  .journey-card--star .journey-card__progress i { background:#777ab5; }
+  .journey-card--lantern .journey-card__progress i { background:#c48759; }
+  .journey-card__progress-copy { margin:7px 0 16px; color:#5e7065; font-size:.68rem; }
+  .journey-card ol { display:grid; gap:10px; margin:0 0 22px; padding:0; list-style:none; }
+  .journey-card li { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:8px; align-items:start; padding-top:10px; border-top:1px dashed #9ca89f; }
+  .journey-card li > span,.journey-card li > em { color:#89958e; font-size:.65rem; font-style:normal; }
+  .journey-card li a { color:#405d4d; font-family:var(--serif); font-weight:900; }
+  .journey-card li small { display:block; margin-top:4px; color:#718078; font-size:.65rem; line-height:1.5; }
+  .journey-card li.visited > span,.journey-card li.visited > em { color:#2e7954; }
+  .journey-card__action { align-self:flex-start; margin-top:auto; }
+  .journey-guide__more { margin:22px 0 0; text-align:right; }
+  .journey-guide__more a { color:#416956; font-weight:900; }
+  .journey-guide--full { padding-top:164px; }
+  .journey-guide--full .journey-guide__heading { padding:clamp(24px,4vw,40px); border:3px solid #66766c; background:rgba(244,246,225,.95); box-shadow:8px 8px 0 rgba(20,31,43,.25); }
+  .trail-ledger { margin-top:34px; padding:28px; background:rgba(240,247,230,.94); }
+  .trail-ledger header { display:flex; align-items:start; justify-content:space-between; gap:20px; }
+  .trail-ledger h2 { margin:0; color:#514838; font-family:var(--serif); font-size:1.8rem; }
+  .trail-ledger button { min-height:44px; padding:8px 13px; border:2px solid #7b887e; color:#5f6e65; background:#f8f5df; font-weight:900; cursor:pointer; }
+  .trail-ledger ol { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; margin:22px 0 0; padding:0; list-style:none; }
+  .trail-ledger li { display:flex; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px dashed #94a096; }
+  .trail-ledger li a { color:#3f654f; font-weight:900; }
+  .trail-ledger li span { color:#78837c; font-size:.68rem; }
+  .trail-ledger__empty { grid-column:1/-1; color:#748078; }
+  [data-trail-status] { min-height:1.5em; margin:12px 0 0; color:#52725f; font-size:.72rem; }
+  @media (max-width:900px) { .journey-guide__grid { grid-template-columns:1fr; } .journey-card > p { min-height:0; } }
+  @media (max-width:600px) { .journey-guide { width:min(100% - 24px,1180px); padding-block:54px; } .journey-guide--full { padding-top:144px; } .journey-card { padding:20px 17px; } .trail-ledger { padding:22px 18px; } .trail-ledger header { align-items:stretch; flex-direction:column; } .trail-ledger ol { grid-template-columns:1fr; } .trail-ledger li { align-items:start; flex-direction:column; gap:3px; } }
+  @media (prefers-reduced-motion:reduce) { .journey-card__progress i { transition:none; } }
+</style>
