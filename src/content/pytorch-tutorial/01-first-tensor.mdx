@@ -1,0 +1,371 @@
+---
+title: 起步：环境、设备与第一枚 Tensor
+slug: first-tensor
+order: 2
+level: 入门
+description: 从可复现的环境和第一枚张量开始，建立“形状、类型、设备”这三个贯穿 PyTorch 与大模型工程的基本坐标。
+topics: [环境配置, Tensor, shape, device]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 先搭一个不容易坏的 PyTorch 环境
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“先搭一个不容易坏的 PyTorch 环境”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+环境的关键不是“装上了”，而是 Python、PyTorch、CUDA 驱动和项目依赖能被复现。先用虚拟环境隔离项目，再用官方安装页按机器选择命令；不要凭博客复制带固定 CUDA 后缀的旧命令。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+print(torch.__version__)
+print('CUDA available:', torch.cuda.is_available())
+print('CUDA runtime:', torch.version.cuda)
+print('device count:', torch.cuda.device_count())
+```
+
+### 运行结果与观察
+
+命令应打印 PyTorch 版本、`cuda available` 与设备名；CPU 机器显示 `False / cpu` 是正常结果，只有安装目标与硬件一致才算通过。
+
+### 常见错误
+
+- 只看 `nvidia-smi` 就认定 PyTorch 可用；把系统 CUDA、驱动支持的 CUDA 和 PyTorch 自带运行时当成同一件事。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+先记录版本与设备能力，排错时就能区分“代码错误”和“运行环境不匹配”。
+
+### 动手练习
+
+把输出保存到项目 README，并解释每一行对复现实验有什么帮助。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“先搭一个不容易坏的 PyTorch 环境”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [PyTorch 官方安装选择器](https://pytorch.org/get-started/locally/)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+
+---
+
+## Tensor 到底是什么
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“Tensor 到底是什么”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+Tensor 是带有形状、数据类型和设备信息的多维数组。标量是 0 维，向量是 1 维，矩阵是 2 维；语言模型常用 3 维激活 `[batch, sequence, hidden]`，注意力内部还会拆成 4 维 `[batch, heads, sequence, head_dim]`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+scalar = torch.tensor(3.0)
+tokens = torch.tensor([[12, 8, 91], [4, 7, 0]])
+hidden = torch.randn(2, 3, 16)
+for x in (scalar, tokens, hidden):
+    print(x.shape, x.ndim, x.dtype, x.device)
+```
+
+### 运行结果与观察
+
+输出应明确显示每个 Tensor 的 shape、ndim、dtype 与 device；改变一个轴后，只允许与该轴相关的输出变化。若 shape 虽能广播但语义错误，本节仍判定未通过。
+
+### 常见错误
+
+- 把“二维列表”机械等同于矩阵语义；忽略 token id 应是整数、模型激活通常是浮点数。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+不要只打印值。调试大模型时，先打印 `shape / dtype / device` 往往比阅读整段张量更有效。
+
+### 动手练习
+
+创建形状为 `[2, 5, 32]` 的随机隐藏状态，并用一句话解释三个轴。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>先把每个轴写成语义：例如 `[B,T,C]` 分别是批次、序列和隐藏维；再用 `assert tensor.shape == (...)` 固化预期。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+
+---
+
+## 创建、复制与共享内存
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“创建、复制与共享内存”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`torch.tensor` 通常复制输入；`torch.from_numpy` 可与 NumPy 共享 CPU 内存；`clone` 复制数据但保留梯度关系，`detach` 切断自动求导历史。选择哪一个取决于你是否需要共享、复制或追踪梯度。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import numpy as np
+import torch
+a = np.array([1., 2., 3.], dtype=np.float32)
+x = torch.from_numpy(a)
+y = x.clone()
+a[0] = 99
+print(x)  # 与 NumPy 共享，首项变为 99
+print(y)  # clone 后保持原值
+```
+
+### 运行结果与观察
+
+修改 `from_numpy` 得到的 Tensor 时，原 NumPy 数组会同步变化；`torch.tensor(array)` 创建的副本不应变化。把两组输出并排比较即可判断是否共享内存。
+
+### 常见错误
+
+- 以为所有转换都是零拷贝；对一个需要梯度的 Tensor 随意使用 `.data` 修改值。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+数据预处理常在 NumPy、Arrow 与 Tensor 之间转换；理解是否复制能避免隐蔽的数据污染和额外内存。
+
+### 动手练习
+
+分别验证 `torch.tensor(a)` 与 `torch.from_numpy(a)` 在修改 NumPy 后的差异。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“创建、复制与共享内存”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [torch.as_tensor API](https://docs.pytorch.org/docs/stable/generated/torch.as_tensor.html)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+
+---
+
+## dtype 为什么会影响速度、显存和精度
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“dtype 为什么会影响速度、显存和精度”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+同样数量的元素，float32 每个占 4 字节，float16 与 bfloat16 通常占 2 字节。低精度能省显存并提高吞吐，但指数范围和有效精度不同；token id、类别标签等离散索引则通常使用 int64。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+for dtype in (torch.float32, torch.float16, torch.bfloat16):
+    x = torch.empty(1024, 1024, dtype=dtype)
+    mib = x.numel() * x.element_size() / 1024**2
+    print(dtype, f'{mib:.1f} MiB')
+labels = torch.tensor([1, 0, 3], dtype=torch.long)
+```
+
+### 运行结果与观察
+
+三种浮点类型的理论内存应依次约为 4、2、2 MiB；这验证 bfloat16 与 float16 同为 16 位，但数值范围不同。
+
+### 常见错误
+
+- 为了省显存把所有东西都转成 float16，包括索引；误以为 bfloat16 比 float16 小。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+大模型显存估算从“元素数 × 每元素字节数”开始；后续还要加参数、梯度、优化器状态和激活。
+
+### 动手练习
+
+计算一个 `[8, 2048, 4096]` 激活分别使用三种浮点类型时的理论内存。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“dtype 为什么会影响速度、显存和精度”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor 类型与 dtype](https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch-dtype)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+
+---
+
+## CPU、CUDA 与设备无关代码
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“CPU、CUDA 与设备无关代码”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+运算双方必须位于兼容设备上。可靠代码先决定 `device`，再把模型和批次移到同一设备；不要在模块内部到处写死 `cuda:0`。Apple 设备还可能使用 MPS，CPU 则始终是安全回退。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+device = (
+    torch.device('cuda') if torch.cuda.is_available()
+    else torch.device('mps') if torch.backends.mps.is_available()
+    else torch.device('cpu')
+)
+x = torch.randn(2, 3, device=device)
+weight = torch.randn(3, 4, device=device)
+print((x @ weight).device)
+```
+
+### 运行结果与观察
+
+输出设备应与自动选择结果一致：无加速器时为 cpu，有 CUDA/MPS 时为对应设备；任何参与矩阵乘的 Tensor 都必须在同一设备。
+
+### 常见错误
+
+- 模型在 CUDA、标签仍在 CPU；调用 `.to(device)` 却忘记接收返回值。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+训练脚本应该让设备成为配置，而不是散落在业务代码里的常量；分布式时每个进程还会绑定自己的本地 GPU。
+
+### 动手练习
+
+写一个 `move_batch` 函数，递归搬运字典中的 Tensor，同时保留字符串字段。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“CPU、CUDA 与设备无关代码”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [CUDA 语义](https://docs.pytorch.org/docs/stable/notes/cuda.html)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+
+---
+
+## 随机数、种子与可复现边界
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“随机数、种子与可复现边界”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+固定随机种子能控制参数初始化、采样等随机源，但不保证不同硬件、驱动或 PyTorch 版本得到逐位相同结果。复现应同时记录代码、数据版本、环境和关键配置。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import random
+import numpy as np
+import torch
+
+seed = 42
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+print(torch.rand(3))
+```
+
+### 运行结果与观察
+
+相同环境与 seed 下，两次首次随机输出应一致；删除 torch 的 seed 后输出应变化。跨硬件或版本不要求逐位相同。
+
+### 常见错误
+
+- 把“同一个 seed”理解成任何机器都完全一致；验证集仍开启随机增强。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+语言模型训练中的数据顺序、dropout 和采样都会消费随机状态；断点续训若不恢复 RNG 状态，轨迹就会分叉。
+
+### 动手练习
+
+连续运行两次脚本验证随机数一致，再去掉 `torch.manual_seed` 观察差异。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“随机数、种子与可复现边界”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [可复现性说明](https://docs.pytorch.org/docs/stable/notes/randomness.html)
+- [PyTorch 基础教程](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)

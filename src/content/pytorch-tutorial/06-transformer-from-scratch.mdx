@@ -1,0 +1,498 @@
+---
+title: 亲手搭 Transformer：从 Embedding 到注意力
+slug: transformer-from-scratch
+order: 7
+level: 进阶
+description: 不依赖高级封装，沿着形状流亲手实现词嵌入、因果注意力、前馈网络、残差与 Decoder Block。
+topics: [Embedding, Attention, Transformer, RoPE]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## Embedding：把 token id 变成向量
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“Embedding：把 token id 变成向量”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`nn.Embedding` 是一个可学习查找表，输入是整数 id，输出最后增加 hidden 维。它等价于用 one-hot 乘权重矩阵，但不会真的构造巨大 one-hot。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch import nn
+vocab, dim = 32000, 128
+embedding = nn.Embedding(vocab, dim)
+ids = torch.tensor([[1, 42, 9], [7, 0, 0]])
+x = embedding(ids)
+print(x.shape)  # [2,3,128]
+```
+
+### 运行结果与观察
+
+输出 shape 应为 `[2,3,128]`；设置 padding_idx 后第 0 行梯度应保持为 0。
+
+### 常见错误
+
+- 输入 id 用浮点型；id 超出词表范围；忘记 padding 行也会被更新。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+LLM 的 token embedding 参数量约为 `vocab_size × hidden_size`，词表选择会直接影响参数与输出层计算。
+
+### 动手练习
+
+设置 `padding_idx=0`，反向后检查第 0 行梯度。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“Embedding：把 token id 变成向量”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Embedding API](https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 单头缩放点积注意力
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“单头缩放点积注意力”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+注意力先用 query 与 key 的相似度得到分数，除以 `sqrt(head_dim)` 控制方差，再 softmax 成权重，最后对 value 加权求和。核心形状是 `[T,D] @ [D,T] -> [T,T]`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import math, torch
+T, D = 5, 8
+q, k, v = (torch.randn(T, D) for _ in range(3))
+scores = q @ k.T / math.sqrt(D)
+weights = scores.softmax(dim=-1)
+out = weights @ v
+print(scores.shape, out.shape, weights.sum(-1))
+```
+
+### 运行结果与观察
+
+两种写法的输出 shape 与数值应一致，`allclose` 返回 True；注意力权重沿 key 轴求和应接近 1。
+
+### 常见错误
+
+- softmax 用错维度；忘记缩放；把 value 与 key 的角色混淆。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+每一行权重表示一个 query 位置如何读取所有 key/value；理解这个矩阵后，mask 与 KV cache 才不抽象。
+
+### 动手练习
+
+手工设置一个 query 与某个 key 相同，观察其注意力权重。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考实现见页面可下载的 Decoder Block 项目；验收必须同时通过 shape、反向梯度和“修改未来 token 不影响过去输出”的因果测试。</p>
+</details>
+
+
+### 官方资料
+
+- [scaled_dot_product_attention API](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 多头注意力的拆分与合并
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“多头注意力的拆分与合并”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+多头不是复制完整 hidden 多次，而是把投影后的通道拆成 H 个较小 head。一般 `hidden = heads × head_dim`，并在注意力后把 head 合并回 hidden。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+B,T,C,H = 2,6,32,4
+D = C // H
+qkv = torch.randn(B,T,3*C)
+q,k,v = qkv.chunk(3, dim=-1)
+def split(x): return x.view(B,T,H,D).transpose(1,2)
+q,k,v = map(split,(q,k,v))
+out = (q @ k.transpose(-2,-1) / D**0.5).softmax(-1) @ v
+out = out.transpose(1,2).contiguous().view(B,T,C)
+print(out.shape)
+```
+
+### 运行结果与观察
+
+两种写法的输出 shape 与数值应一致，`allclose` 返回 True；注意力权重沿 key 轴求和应接近 1。
+
+### 常见错误
+
+- hidden 不能整除 head 数；合并时漏掉 transpose 或 contiguous。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+GQA/MQA 改变的是 key/value head 数；先把标准 MHA 的轴完全搞清楚，再理解共享。
+
+### 动手练习
+
+把 H 从 4 改成 8，比较 score Tensor 元素数是否改变。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考实现见页面可下载的 Decoder Block 项目；验收必须同时通过 shape、反向梯度和“修改未来 token 不影响过去输出”的因果测试。</p>
+</details>
+
+
+### 官方资料
+
+- [MultiheadAttention API](https://docs.pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 因果掩码为什么放在 softmax 前
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“因果掩码为什么放在 softmax 前”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+自回归模型位置 t 不能看到未来 token，因此将未来位置分数设为负无穷，使 softmax 后概率为 0。若在 softmax 后直接乘 0，剩余概率和不再为 1。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+T = 5
+scores = torch.randn(1, 2, T, T)
+causal = torch.ones(T, T, dtype=torch.bool).tril()
+scores = scores.masked_fill(~causal, float('-inf'))
+probs = scores.softmax(dim=-1)
+print(probs[0,0], probs.sum(-1))
+```
+
+### 运行结果与观察
+
+输出概率最后一维的和应接近 1，被屏蔽位置应为 0；同时检查没有复制出不必要的 `[B,H,T,T]` 实体掩码。
+
+### 常见错误
+
+- mask 方向反了；全屏蔽一行产生 NaN；浮点 mask 与布尔 mask 语义混用。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+训练时一次并行处理整段序列，因果 mask 保证目标约束；生成时 KV cache 只追加新位置。
+
+### 动手练习
+
+构造同时包含 causal 与 padding 的组合 mask，并验证无泄漏。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>把 `[B,T]` mask 变成 `[B,1,1,T]`，再用 `masked_fill(~mask, -inf)`；检查 softmax 后被屏蔽位置为 0。</p>
+</details>
+
+
+### 官方资料
+
+- [Softmax API](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.softmax.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 残差、LayerNorm 与 Pre-Norm
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“残差、LayerNorm 与 Pre-Norm”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+残差让层学习增量并提供直接梯度通道。现代 Decoder 常使用 Pre-Norm：先归一化，再进入注意力或 MLP，最后加回残差。归一化通常沿最后一个 hidden 维进行。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+from torch import nn
+
+class PreNormBlock(nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.ffn = nn.Sequential(nn.Linear(dim,4*dim), nn.GELU(), nn.Linear(4*dim,dim))
+    def forward(self, x):
+        return x + self.ffn(self.norm(x))
+```
+
+### 运行结果与观察
+
+输出 shape 必须与输入完全相同；把子层参数临时置零后，残差分支输出应退化为输入，这能快速发现残差位置写错。
+
+### 常见错误
+
+- 归一化维度写成序列长度；残差两端形状不一致；原地修改残差。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+RMSNorm 与 LayerNorm 的差别、Pre/Post-Norm 的稳定性都建立在“归一化位置与残差路径”上。
+
+### 动手练习
+
+在 block 中加入 dropout，并说明 train/eval 时行为。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“残差、LayerNorm 与 Pre-Norm”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [LayerNorm API](https://docs.pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 位置编码与 RoPE 的接口直觉
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“位置编码与 RoPE 的接口直觉”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+注意力本身不感知顺序。绝对位置嵌入把位置信息加到 token 表示；RoPE 则按位置旋转 query/key 的成对通道，使点积自然携带相对位置信息。实现时重点检查偶数 head_dim、频率和序列轴。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+
+def rotate_half(x):
+    a, b = x.chunk(2, dim=-1)
+    return torch.cat((-b, a), dim=-1)
+
+q = torch.randn(2,4,8,16)
+cos = torch.randn(1,1,8,16)
+sin = torch.randn(1,1,8,16)
+q_rot = q * cos + rotate_half(q) * sin
+print(q_rot.shape)
+```
+
+### 运行结果与观察
+
+旋转后的 shape 不变；使用真正的 sin/cos 配对时 L2 范数应在浮点误差内保持不变。
+
+### 常见错误
+
+- cos/sin 序列长度与 cache position 不一致；不同实现的通道配对方式混用。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+长上下文扩展通常围绕 RoPE 频率缩放展开；先理解旋转作用于 Q/K 而不是 V。
+
+### 动手练习
+
+验证旋转前后向量的 L2 范数近似不变。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“位置编码与 RoPE 的接口直觉”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [RoPE 原论文](https://arxiv.org/abs/2104.09864)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 用 scaled_dot_product_attention 获得融合内核
+
+<aside className="lesson-runtime" data-code-kind="需要 CUDA" data-pagefind-ignore>
+  <strong>代码状态：需要 CUDA</strong>
+  <span>运行环境：CUDA GPU</span>
+  <span>验证：CPU 仅校验语法与回退路径</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“用 scaled_dot_product_attention 获得融合内核”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`torch.nn.functional.scaled_dot_product_attention` 统一表达 QK、mask、softmax、dropout 与乘 V，并可按设备分派到优化内核。先保证 Q/K/V 形状和 mask 语义正确，再测性能。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+import torch.nn.functional as F
+q = torch.randn(2, 8, 128, 64, device='cuda', dtype=torch.float16)
+k = torch.randn_like(q); v = torch.randn_like(q)
+out = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+print(out.shape)
+```
+
+### 运行结果与观察
+
+CUDA 上输出应为 `[2, 8, 128, 64]` 且无 NaN；与 float32 手写因果注意力对照时误差应处于所选 dtype 的合理范围，再单独做同步计时。
+
+### 常见错误
+
+- 在 CPU 环境照抄 CUDA 示例；同时传冲突的 mask 配置；基准测试前没同步 GPU。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+它是 PyTorch 中高性能注意力的重要入口，可避免显式物化完整分数矩阵的某些中间量。
+
+### 动手练习
+
+在可用设备上比较手写 attention 与 SDPA 的输出误差。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“用 scaled_dot_product_attention 获得融合内核”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [SDPA API](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+
+---
+
+## 组装一个 Decoder Block 并数清参数
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“组装一个 Decoder Block 并数清参数”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+一个最小 Decoder Block 包含归一化、自注意力、残差、第二次归一化和 MLP。搭完后先用假数据验证形状、因果性和梯度，再堆叠层数。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+class DecoderBlock(nn.Module):
+    def __init__(self, dim, heads):
+        super().__init__()
+        self.n1, self.n2 = nn.LayerNorm(dim), nn.LayerNorm(dim)
+        self.attn = CausalSelfAttention(dim, heads)
+        self.mlp = nn.Sequential(nn.Linear(dim,4*dim), nn.GELU(), nn.Linear(4*dim,dim))
+    def forward(self, x):
+        x = x + self.attn(self.n1(x))
+        return x + self.mlp(self.n2(x))
+```
+
+### 运行结果与观察
+
+输入与输出 shape 应一致，`loss.backward()` 后各可训练参数应得到有限梯度；完整项目还会修改未来 token，确认更早位置的输出不变。
+
+### 常见错误
+
+- 直接堆几十层后才调试；只检查输出 shape 不检查未来信息泄漏。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+面试中“手写 Transformer”最重要的不是背代码，而是能解释每个轴、每条残差和每部分参数量。
+
+### 动手练习
+
+实现缺失的 `CausalSelfAttention`，再统计 block 的精确参数量。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考实现见页面可下载的 Decoder Block 项目；验收必须同时通过 shape、反向梯度和“修改未来 token 不影响过去输出”的因果测试。</p>
+</details>
+
+
+### 官方资料
+
+- [高性能 Transformer 构件教程](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+- [高性能 Transformer 构件](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)

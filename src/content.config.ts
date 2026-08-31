@@ -50,6 +50,33 @@ const projects = defineCollection({
   }),
 });
 
+const llmInterview = defineCollection({
+  loader: glob({ base: './src/content/llm-interview', pattern: '**/*.{md,mdx}' }),
+  schema: z.object({
+    title: z.string(),
+    slug,
+    order: z.number().int().min(1),
+    description: z.string(),
+    topics: z.array(z.string()).min(1),
+    updatedAt: z.coerce.date(),
+    draft: z.boolean().default(true),
+  }),
+});
+
+const pytorchTutorial = defineCollection({
+  loader: glob({ base: './src/content/pytorch-tutorial', pattern: '**/*.{md,mdx}' }),
+  schema: z.object({
+    title: z.string(),
+    slug,
+    order: z.number().int().min(1),
+    level: z.enum(['入门', '基础', '进阶', '高级', '实战']),
+    description: z.string(),
+    topics: z.array(z.string()).min(1),
+    updatedAt: z.coerce.date(),
+    draft: z.boolean().default(true),
+  }),
+});
+
 const plans = defineCollection({
   loader: glob({ base: './src/content/plans', pattern: '**/*.{md,mdx}' }),
   schema: planSchema,
@@ -119,4 +146,4 @@ const moments = defineCollection({
   }),
 });
 
-export const collections = { notes, projects, plans, regions, works, moments };
+export const collections = { notes, llmInterview, pytorchTutorial, projects, plans, regions, works, moments };

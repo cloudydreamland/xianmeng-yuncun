@@ -1,0 +1,155 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { questionHeadings, sortInterviewChapters } from '../../../utils/interview';
+
+const chapters = sortInterviewChapters(await getCollection('llmInterview', ({ data }) => !data.draft));
+const chapterCards = await Promise.all(chapters.map(async (chapter) => {
+  const { headings } = await render(chapter);
+  return { chapter, questions: questionHeadings(headings) };
+}));
+const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map((question) => ({
+  title: question.text,
+  href: `/interview/llm/${chapter.data.slug}/#${question.slug}`,
+  chapter: chapter.data.title,
+  topics: chapter.data.topics.join(' '),
+})));
+---
+
+<BaseLayout title="大模型面经 · 问道录" description="面向大模型算法岗的系统化中文面经：十四章、一百五十道核心题，从基础原理到训练、推理、RAG、Agent 与系统设计。" searchable searchType="面经" searchTitle="大模型面经 · 问道录" searchCategory="大模型面经" searchTags={['大模型', '算法面试', 'Transformer', 'RAG']}>
+  <section class="interview-home page-shell">
+    <nav class="interview-home__breadcrumb" aria-label="面包屑"><a href="/world/star-abyss/">星渊</a><span>/</span><span aria-current="page">大模型面经</span></nav>
+    <header class="interview-home__header">
+      <div>
+        <p class="pixel-kicker">星渊问道 · 风谷藏卷</p>
+        <h1>大模型面经 · 问道录</h1>
+        <p>十四章、150 道核心题。先用 30 秒答案建立表达骨架，再沿原理、公式、工程案例、追问与易错点向深处走。</p>
+      </div>
+      <dl>
+        <div><dt>{chapters.length}</dt><dd>知识章节</dd></div>
+        <div><dt>{questions.length}</dt><dd>核心问题</dd></div>
+        <div><dt>2026</dt><dd>持续校订</dd></div>
+      </dl>
+    </header>
+
+    <section class="interview-finder" aria-labelledby="interview-finder-title" data-pagefind-ignore>
+      <div><p class="pixel-kicker">题目索引</p><h2 id="interview-finder-title">直接寻找一道题</h2></div>
+      <label><span aria-hidden="true">⌕</span><input type="search" placeholder="例如：RoPE、ZeRO、Rerank、GRPO" aria-label="搜索150道大模型面试题" data-interview-search /></label>
+      <p data-interview-search-status aria-live="polite">输入关键词，题目会在这里显影。</p>
+      <div class="interview-finder__results" data-interview-results hidden>
+        {questions.map((question) => <a href={question.href} data-search-text={`${question.title} ${question.chapter} ${question.topics}`.toLowerCase()}><small>{question.chapter}</small><strong>{question.title}</strong></a>)}
+      </div>
+    </section>
+
+    <section class="interview-chapters" aria-labelledby="interview-chapters-title">
+      <header><p class="pixel-kicker">十四章问道</p><h2 id="interview-chapters-title">从基础走到系统设计</h2><p>章节彼此独立，也按算法岗常见知识链路排列。首次阅读建议顺序推进，面试前可按题目索引快速查漏。</p></header>
+      <div>
+        {chapterCards.map(({ chapter, questions }) => (
+          <a href={`/interview/llm/${chapter.data.slug}/`}>
+            <span>{String(chapter.data.order).padStart(2, '0')}</span>
+            <small>{questions.length} 题 · {chapter.data.topics.slice(0, 3).join(' / ')}</small>
+            <h3>{chapter.data.title}</h3>
+            <p>{chapter.data.description}</p>
+            <strong>进入本章 →</strong>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="interview-method">
+      <div><p class="pixel-kicker">使用方法</p><h2>把“知道”练成“能讲清楚”</h2></div>
+      <ol>
+        <li><strong>先限时口述</strong><span>只看题目，用 30 秒说出结论、原因和适用边界。</span></li>
+        <li><strong>再补齐推导</strong><span>对照深入解释，补上公式、数据流、复杂度和工程取舍。</span></li>
+        <li><strong>最后承接追问</strong><span>用追问检查知识是否连成体系，而不是背下一段固定答案。</span></li>
+      </ol>
+    </section>
+
+    <section class="interview-sources">
+      <p class="pixel-kicker">资料原则</p><h2>答案以一手资料为锚</h2>
+      <p>公开面经用于识别高频问题，技术结论回到论文、技术报告和官方文档核对。页面不使用无法验证的公司真题标签，也不大段复制他人文章。</p>
+      <p><a href="https://arxiv.org/abs/1706.03762">Transformer</a> · <a href="https://arxiv.org/abs/2106.09685">LoRA</a> · <a href="https://arxiv.org/abs/2005.11401">RAG</a> · <a href="https://arxiv.org/abs/2309.06180">PagedAttention</a> · <a href="https://arxiv.org/abs/2501.12948">DeepSeek-R1</a> · <a href="https://arxiv.org/abs/2505.09388">Qwen3</a></p>
+    </section>
+  </section>
+
+  <script>
+    const input = document.querySelector<HTMLInputElement>('[data-interview-search]');
+    const status = document.querySelector<HTMLElement>('[data-interview-search-status]');
+    const results = document.querySelector<HTMLElement>('[data-interview-results]');
+    const items = [...(results?.querySelectorAll<HTMLAnchorElement>('a') ?? [])];
+    input?.addEventListener('input', () => {
+      const query = input.value.trim().toLowerCase();
+      if (!results || !status) return;
+      if (!query) {
+        results.hidden = true;
+        items.forEach((item) => { item.hidden = false; });
+        status.textContent = '输入关键词，题目会在这里显影。';
+        return;
+      }
+      let count = 0;
+      items.forEach((item) => {
+        const match = item.dataset.searchText?.includes(query) ?? false;
+        item.hidden = !match;
+        if (match) count += 1;
+      });
+      results.hidden = false;
+      status.textContent = count ? `找到 ${count} 道相关题目` : '暂时没有匹配的题目，试试更短的关键词。';
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .interview-home { padding:128px 0 110px; }
+  .interview-home__breadcrumb { display:flex; gap:8px; margin-bottom:22px; color:var(--ink-soft); font-size:.72rem; }
+  .interview-home__breadcrumb a { color:var(--water-deep); }
+  .interview-home__header { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:40px; align-items:end; padding:clamp(30px,6vw,64px); border:1px solid rgba(74,111,94,.24); border-radius:38px; background:linear-gradient(135deg,rgba(243,249,231,.97),rgba(223,241,239,.94)); box-shadow:var(--shadow-soft); }
+  .interview-home__header h1 { margin:10px 0 16px; color:#39594f; font-family:var(--serif); font-size:clamp(2.6rem,7vw,5rem); line-height:1.2; }
+  .interview-home__header > div > p:last-child { max-width:720px; margin:0; color:#60736b; line-height:1.9; }
+  .interview-home__header dl { display:flex; gap:8px; margin:0; }
+  .interview-home__header dl div { min-width:105px; padding:16px; border:1px solid #91aa97; border-radius:20px; text-align:center; background:rgba(255,253,246,.75); }
+  .interview-home__header dt { color:#3f6d62; font-family:var(--serif); font-size:1.8rem; font-weight:900; }
+  .interview-home__header dd { margin:3px 0 0; color:#738078; font-size:.65rem; }
+  .interview-finder { margin:26px 0 74px; padding:26px clamp(20px,4vw,34px); border:1px solid #859b8d; border-radius:28px; background:rgba(255,253,246,.92); }
+  .interview-finder > div:first-child { display:flex; align-items:baseline; gap:15px; }
+  .interview-finder h2 { margin:0; color:#4a655a; font-family:var(--serif); }
+  .interview-finder label { display:flex; align-items:center; gap:10px; margin-top:18px; padding:0 16px; border:2px solid #66887c; border-radius:16px; background:#fffdf5; }
+  .interview-finder input { width:100%; min-height:50px; border:0; outline:0; color:#405b53; background:transparent; font:inherit; }
+  .interview-finder > p { color:#708077; font-size:.72rem; }
+  .interview-finder__results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:420px; overflow:auto; margin-top:14px; }
+  .interview-finder__results a { display:grid; gap:3px; padding:12px 14px; border-left:3px solid #6c8c77; color:#526b61; background:#f2f5df; }
+  .interview-finder__results a[hidden] { display:none; }
+  .interview-finder__results small { color:#7b806d; font-size:.62rem; }
+  .interview-chapters > header { max-width:760px; margin-bottom:30px; }
+  .interview-chapters h2, .interview-method h2, .interview-sources h2 { margin:7px 0 12px; color:#425f54; font-family:var(--serif); font-size:clamp(1.9rem,4vw,2.8rem); }
+  .interview-chapters header > p:last-child { color:#6c7c74; line-height:1.8; }
+  .interview-chapters > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+  .interview-chapters a { position:relative; min-height:260px; overflow:hidden; padding:28px; border:1px solid rgba(83,111,93,.2); border-radius:28px; color:#53695f; background:rgba(255,253,246,.88); box-shadow:var(--shadow-soft); transition:transform .2s ease,border-color .2s ease; }
+  .interview-chapters a:hover { border-color:#6e927e; transform:translateY(-3px); }
+  .interview-chapters a > span { position:absolute; right:20px; top:8px; color:rgba(76,115,99,.12); font-family:var(--serif); font-size:5rem; font-weight:900; }
+  .interview-chapters a small { color:#648176; font-size:.65rem; }
+  .interview-chapters h3 { position:relative; margin:18px 0 10px; color:#405f54; font-family:var(--serif); font-size:1.55rem; }
+  .interview-chapters a p { position:relative; min-height:4em; color:#718078; font-size:.82rem; line-height:1.75; }
+  .interview-chapters a strong { color:#39726a; font-size:.75rem; }
+  .interview-method { display:grid; grid-template-columns:.8fr 1.2fr; gap:45px; margin-top:80px; padding:40px; border:1px solid #84998b; border-radius:32px; background:#eef4e4; }
+  .interview-method ol { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+  .interview-method li { display:grid; gap:5px; padding:15px 18px; border-left:4px solid #658779; background:#fffdf2; }
+  .interview-method li strong { color:#45685d; }
+  .interview-method li span { color:#748077; font-size:.78rem; line-height:1.7; }
+  .interview-sources { margin-top:28px; padding:35px; border:1px dashed #87998c; border-radius:26px; color:#6b7972; background:rgba(255,253,246,.72); }
+  .interview-sources a { color:#34746f; border-bottom:1px dashed currentColor; }
+  @media(max-width:850px){
+    .interview-home__header { grid-template-columns:1fr; align-items:start; }
+    .interview-home__header dl { flex-wrap:wrap; }
+    .interview-home__header dl div { flex:1; min-width:90px; }
+    .interview-chapters > div, .interview-method { grid-template-columns:1fr; }
+  }
+  @media(max-width:600px){
+    .interview-home { padding-top:105px; }
+    .interview-home__header { border-radius:26px; }
+    .interview-home__header dl { width:100%; }
+    .interview-home__header dl div:last-child { flex-basis:100%; }
+    .interview-finder__results, .interview-chapters > div { grid-template-columns:1fr; }
+    .interview-chapters a { min-height:230px; padding:24px; }
+    .interview-method, .interview-sources { padding:24px 20px; border-radius:24px; }
+  }
+</style>

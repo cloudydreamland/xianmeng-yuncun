@@ -1,0 +1,307 @@
+---
+title: 模型架构与 Scaling
+slug: architecture-and-scaling
+order: 4
+description: 理解 Decoder-only、MoE、Scaling Law 与现代模型结构选择背后的能力、计算和部署权衡。
+topics: [Decoder-only, MoE, Scaling Law, 模型架构]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 为什么主流通用 LLM 多采用 Decoder-only？
+
+### 30 秒口述版
+
+Decoder-only 用统一的因果语言建模目标处理理解与生成，结构简单、训练数据通用、扩展和推理复用成熟。
+
+### 原理与推导
+
+它并非理论上全面优于 encoder-decoder，而是在规模化、in-context learning 和统一接口上形成工程优势。
+
+### 公式、代码或工程案例
+
+比较 BERT、T5 与 GPT 的 attention mask 和训练目标。
+
+### 高频追问
+
+- 什么任务仍适合 encoder-decoder？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把生态选择解释为 encoder 完全没有价值。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## Encoder-only、Encoder-Decoder 与 Decoder-only 如何选？
+
+### 30 秒口述版
+
+编码理解、条件生成和开放式生成分别对应三类架构的传统优势，选择取决于输入输出形式、延迟和训练资产。
+
+### 原理与推导
+
+encoder-only 可双向编码，encoder-decoder 分离条件编码，decoder-only 统一为前缀续写。
+
+### 公式、代码或工程案例
+
+用分类、翻译、聊天三个任务比较数据流。
+
+### 高频追问
+
+- Prefix LM 位于什么位置？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只按模型名称分类，要看实际 mask。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## Scaling Law 说明了什么？
+
+### 30 秒口述版
+
+在一定范围内，模型损失随参数、数据和计算规模呈可预测幂律下降，可用于预算分配和训练规划。
+
+### 原理与推导
+
+Scaling law 是经验规律，不保证所有下游能力平滑增长，也会受数据质量、架构和后训练影响。
+
+### 公式、代码或工程案例
+
+用小规模试验拟合曲线，再预测候选参数/数据组合。
+
+### 高频追问
+
+- 涌现是否与 scaling law 矛盾？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把拟合区间外的外推当成确定结论。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## Chinchilla Scaling 的核心结论是什么？
+
+### 30 秒口述版
+
+固定计算预算下，许多旧模型参数过大、数据不足；应更平衡地增加参数量与训练 token。
+
+### 原理与推导
+
+结论来自特定模型族和数据配方，后来高质量数据、重复训练与推理成本又改变实际取舍。
+
+### 公式、代码或工程案例
+
+区分训练计算最优与部署总成本最优。
+
+### 高频追问
+
+- 为什么现代小模型会训练更多 token？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要死背固定 token/参数比例。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## Dense 模型与 MoE 模型怎样比较？
+
+### 30 秒口述版
+
+Dense 每个 token 激活全部参数；MoE 通过路由只激活少数专家，以较低激活计算扩大总参数容量。
+
+### 原理与推导
+
+MoE 的难点包括负载均衡、专家并行通信、路由稳定性和部署显存。
+
+### 公式、代码或工程案例
+
+说明总参数、激活参数和每 token FLOPs 三个口径。
+
+### 高频追问
+
+- 专家数越多越好吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要拿 MoE 总参数与 Dense 激活参数直接比较。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## MoE Router 如何工作？
+
+### 30 秒口述版
+
+router 根据 token hidden state 计算专家分数，选择 top-k 专家并加权组合输出。
+
+### 原理与推导
+
+训练通常加入负载均衡或 router z-loss，避免少数专家拥塞和其余专家闲置。
+
+### 公式、代码或工程案例
+
+追踪每专家 token 数、丢弃率和通信时间。
+
+### 高频追问
+
+- Top-1 与 Top-2 路由如何权衡？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要忽略 capacity factor 与跨卡 all-to-all。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## 为什么现代 LLM 常用 SwiGLU？
+
+### 30 秒口述版
+
+SwiGLU 用一条 SiLU 门控分支调制另一条线性分支，通常比普通 ReLU/GELU FFN 有更强表达能力。
+
+### 原理与推导
+
+为保持参数预算，中间维不能机械沿用传统 4d；不同模型会选择约 8d/3 等配置。
+
+### 公式、代码或工程案例
+
+写出 SwiGLU(x)=(SiLU(xW₁)⊙xW₂)W₃。
+
+### 高频追问
+
+- GLU 家族有什么共同点？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只比较激活函数而忽略额外矩阵。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## RMSNorm 为什么在现代 LLM 中常见？
+
+### 30 秒口述版
+
+RMSNorm 只按均方根缩放，不做均值中心化，计算更简洁且在多种 LLM 配方中表现稳定。
+
+### 原理与推导
+
+它通常与 Pre-Norm、残差缩放和低精度内核共同使用，不能孤立评价。
+
+### 公式、代码或工程案例
+
+比较 LayerNorm 与 RMSNorm 的归约次数和参数。
+
+### 高频追问
+
+- RMSNorm 是否总比 LayerNorm 快？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要忽略 fused kernel 后真实性能可能不同。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## 模型宽度、深度和头数怎样权衡？
+
+### 30 秒口述版
+
+增加宽度提高单层容量和矩阵效率，增加深度提高组合层级但延长串行路径；头数受 head dimension 与硬件内核约束。
+
+### 原理与推导
+
+配比依赖总参数、训练稳定性、并行策略和目标硬件，通常用缩放实验决定。
+
+### 公式、代码或工程案例
+
+在固定参数预算下比较加深与加宽对激活显存的影响。
+
+### 高频追问
+
+- 为什么 head_dim 常取 64 或 128？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把某个公开模型配比当成普适最优。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)
+
+---
+
+## 现代开源模型技术报告应该怎样阅读？
+
+### 30 秒口述版
+
+先分清预训练架构、数据、后训练、推理与评测，再核对参数口径和对照设置。
+
+### 原理与推导
+
+技术报告是第一手信息但仍可能省略数据细节，结论应结合可复现实验和官方代码。
+
+### 公式、代码或工程案例
+
+用 Llama 3、DeepSeek-V3、Qwen3 横向记录结构与训练配方。
+
+### 高频追问
+
+- 如何识别不可比 benchmark？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只摘排行榜数字而跳过评测协议。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [Switch Transformers](https://arxiv.org/abs/2101.03961)

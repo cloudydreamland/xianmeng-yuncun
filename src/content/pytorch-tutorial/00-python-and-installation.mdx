@@ -1,0 +1,192 @@
+---
+title: 零基础准备：Python、NumPy 与正确安装
+slug: python-and-installation
+order: 1
+level: 入门
+description: 只补后续课程真正会用到的 Python 与 NumPy，并学会按自己的机器选择 PyTorch、判断 CUDA 是否可用。
+topics: [Python, NumPy, 安装, CUDA]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 只学够用的 Python：变量、函数、容器与循环
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+读懂后续教程中的 Python 变量、函数、列表、字典、循环和类型提示，并能修改一个训练配置。
+
+### 清晰讲解
+
+PyTorch 代码仍然是 Python。零基础阶段不需要先学完整语法，只要掌握四类东西：用变量保存配置，用函数封装步骤，用列表或字典组织数据，用循环重复训练。缩进表示代码块，冒号后的下一行必须缩进。
+
+### 代码示例
+
+```python
+config = {"epochs": 3, "learning_rate": 1e-3}
+losses = [1.2, 0.8, 0.5]
+
+def summarize(values: list[float]) -> float:
+    return sum(values) / len(values)
+
+for epoch, loss in enumerate(losses, start=1):
+    print(f"epoch={epoch}/{config['epochs']} loss={loss:.2f}")
+print("mean loss:", summarize(losses))
+```
+
+### 运行结果与观察
+
+程序应打印 3 行 epoch/loss 和均值 `0.8333...`。把 `epochs` 改成 4 并不会凭空增加一条 loss，借此区分“配置”和“真实数据”。
+
+### 常见错误
+
+- 混用 Tab 与空格导致缩进错误；把字典键写成未定义变量；误以为类型提示会在运行时自动转换数据。
+- 一次背大量语法，却不能解释训练循环里每个变量的生命周期。
+
+### 与大模型方向的连接
+
+真实训练脚本会把模型、数据、并行和优化器参数放进嵌套配置；先会读配置，才能安全修改大模型配方。
+
+### 动手练习
+
+给配置增加 `batch_size`，并打印 `epochs × batch_size` 表示的样本槽位数。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“只学够用的 Python：变量、函数、容器与循环”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Python 官方教程](https://docs.python.org/zh-cn/3/tutorial/)
+- [Python 官方教程](https://docs.python.org/zh-cn/3/tutorial/)
+
+---
+
+## NumPy 到 Tensor：先理解数组再理解框架
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+掌握数组的形状、轴、切片和向量化，理解 NumPy 与 PyTorch 的相同点和边界。
+
+### 清晰讲解
+
+NumPy 数组与 Tensor 都用 shape 描述多维数据，也都支持广播和切片。Tensor 额外提供加速器设备与自动求导。数据清洗阶段常使用 NumPy，进入模型前再转换为 Tensor。
+
+### 代码示例
+
+```python
+import numpy as np
+import torch
+
+array = np.arange(12, dtype=np.float32).reshape(3, 4)
+tensor = torch.from_numpy(array)
+print("shape:", array.shape, tensor.shape)
+print("column mean:", tensor.mean(dim=0))
+array[0, 0] = 99
+print("shared value:", tensor[0, 0].item())
+```
+
+### 运行结果与观察
+
+两者 shape 都是 `(3, 4)`，列均值输出 4 个数；修改 NumPy 后 Tensor 首项也变为 99，说明 `from_numpy` 在 CPU 上共享底层内存。
+
+### 常见错误
+
+- 不理解轴就反复试 `dim`；共享内存时意外修改原始数据；把 NumPy 数组直接送入 CUDA 模型。
+- 用 Python 双重循环替代向量化运算，导致数据预处理很慢。
+
+### 与大模型方向的连接
+
+分词结果、评测指标和离线数据分析经常在 NumPy、Arrow 与 Tensor 之间流转，边界上的复制与 dtype 会影响内存和速度。
+
+### 动手练习
+
+计算每一行的均值，并验证输出 shape 是 `[3]` 而不是 `[4]`。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>先把每个轴写成语义：例如 `[B,T,C]` 分别是批次、序列和隐藏维；再用 `assert tensor.shape == (...)` 固化预期。</p>
+</details>
+
+
+### 官方资料
+
+- [NumPy 初学者基础](https://numpy.org/doc/stable/user/absolute_beginners.html)
+- [NumPy 快速入门](https://numpy.org/doc/stable/user/quickstart.html)
+- [PyTorch 与 NumPy 桥接](https://docs.pytorch.org/tutorials/beginner/blitz/tensor_tutorial.html#numpy-bridge)
+
+---
+
+## 按机器安装 PyTorch，并读懂 CUDA 版本
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+从官方安装选择器获得正确命令，并能区分显卡驱动、PyTorch 自带 CUDA runtime 与本地 toolkit。
+
+### 清晰讲解
+
+安装命令会随操作系统、Python 版本和计算平台变化，因此教程不应硬编码一个“永远正确”的 CUDA 命令。进入官方选择器，依次选择系统、pip、Python 和 CPU/CUDA；没有 NVIDIA GPU 时选 CPU。多数预编译 PyTorch wheel 自带所需 CUDA runtime，本地 `nvcc` 主要在编译自定义扩展时才重要。
+
+### 代码示例
+
+```python
+import torch
+
+print("PyTorch:", torch.__version__)
+print("CUDA available:", torch.cuda.is_available())
+print("wheel CUDA runtime:", torch.version.cuda)
+if torch.cuda.is_available():
+    print("GPU:", torch.cuda.get_device_name(0))
+    x = torch.randn(1024, 1024, device="cuda")
+    print("allocated MiB:", torch.cuda.memory_allocated() / 1024**2)
+else:
+    print("当前走 CPU 路径；这不是安装失败。")
+```
+
+### 运行结果与观察
+
+CPU 安装应显示 `CUDA available: False` 和 CPU 提示；CUDA 安装且驱动可用时应打印显卡名称。`torch.version.cuda` 为空只说明安装的是 CPU wheel。
+
+### 常见错误
+
+- 看到 `nvidia-smi` 就认定当前 Python 环境能用 CUDA；在旧博客里复制不匹配的 wheel 地址；同时混用多个 Python 环境。
+- 把 `nvcc --version`、驱动支持上限和 wheel runtime 当成同一个版本。
+
+### 与大模型方向的连接
+
+混合精度、FlashAttention、FSDP 与量化都有硬件和版本边界；先准确报告环境，才谈得上复现实验。
+
+### 动手练习
+
+把版本检查输出保存为文本，并写出你机器的 Python、PyTorch、CUDA 可用性与显卡名称。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“按机器安装 PyTorch，并读懂 CUDA 版本”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [PyTorch 官方安装选择器](https://pytorch.org/get-started/locally/)
+- [PyTorch 官方安装选择器](https://pytorch.org/get-started/locally/)
+- [CUDA 语义说明](https://docs.pytorch.org/docs/stable/notes/cuda.html)

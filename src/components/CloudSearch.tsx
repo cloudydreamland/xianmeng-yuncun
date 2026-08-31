@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-type SearchType = 'all' | '笔记' | '项目' | '推进' | '世界' | '作品' | '关于';
+type SearchType = 'all' | '笔记' | '面经' | '教程' | '项目' | '推进' | '世界' | '作品' | '关于';
 
 interface PagefindResultData {
   url: string;
@@ -26,6 +26,8 @@ interface Props {
 const FILTERS: Array<{ value: SearchType; label: string }> = [
   { value: 'all', label: '全部' },
   { value: '笔记', label: '笔记' },
+  { value: '面经', label: '面经' },
+  { value: '教程', label: '教程' },
   { value: '项目', label: '项目' },
   { value: '推进', label: '推进' },
   { value: '世界', label: '世界' },
@@ -129,7 +131,7 @@ export default function CloudSearch({
         if (currentRequest !== requestIdRef.current) return;
         setHandles([]);
         setResults([]);
-        setStatus(window.location.hostname === 'localhost'
+        setStatus(import.meta.env.DEV
           ? '开发模式还没有生成搜索索引，请使用生产预览验证。'
           : '云海暂时起雾，搜索索引加载失败，请稍后再试。');
       }

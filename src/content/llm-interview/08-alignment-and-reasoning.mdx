@@ -1,0 +1,441 @@
+---
+title: 对齐与推理能力
+slug: alignment-and-reasoning
+order: 8
+description: 连接 SFT、奖励模型、RLHF、PPO、DPO、GRPO 与推理训练，理解目标、数据和稳定性的边界。
+topics: [RLHF, PPO, DPO, GRPO]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## RLHF 的完整流程是什么？
+
+### 30 秒口述版
+
+先做 SFT，再收集偏好比较训练奖励模型，最后用强化学习优化策略并用 KL 约束偏离参考模型。
+
+### 原理与推导
+
+每阶段解决的问题不同：SFT 给行为起点，奖励模型近似人类偏好，RL 在该代理目标上搜索。
+
+### 公式、代码或工程案例
+
+画出 prompt→候选→偏好→RM→PPO 的数据流。
+
+### 高频追问
+
+- 为什么不能直接优化人工评分？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把奖励模型分数当成真实人类价值。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 偏好数据应该怎样收集？
+
+### 30 秒口述版
+
+对同一 prompt 的候选做成对排序，并明确帮助性、正确性和安全性准则。
+
+### 原理与推导
+
+需处理标注者分歧、位置偏差、长度偏好和难例覆盖，保留一致性与置信信息。
+
+### 公式、代码或工程案例
+
+随机交换候选顺序并设置黄金题审计。
+
+### 高频追问
+
+- Pairwise 与 pointwise 反馈如何比较？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把多数票当成无噪声真值。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 奖励模型怎样训练？
+
+### 30 秒口述版
+
+输入 prompt 与 response 输出标量，对 chosen/rejected 使用成对 logistic loss，使前者分数更高。
+
+### 原理与推导
+
+它学的是收集分布上的相对偏好，超出分布时可能被策略利用。
+
+### 公式、代码或工程案例
+
+写出 -log σ(r_chosen-r_rejected)。
+
+### 高频追问
+
+- 奖励模型为何会偏爱长答案？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只看训练准确率。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## PPO 在 RLHF 中优化什么？
+
+### 30 秒口述版
+
+PPO 用裁剪概率比限制策略更新，并结合奖励、价值函数与参考模型 KL 惩罚提高稳定性。
+
+### 原理与推导
+
+策略生成在线样本，critic 估计价值，优势函数降低方差；多项损失共同作用。
+
+### 公式、代码或工程案例
+
+解释 ratio、clip、advantage 和 KL 四个量。
+
+### 高频追问
+
+- PPO 属于 on-policy 吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只背裁剪公式而不说明数据来自当前策略。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 优势函数为什么比直接奖励更合适？
+
+### 30 秒口述版
+
+优势衡量某动作相对当前状态基线好多少，减去价值基线可降低梯度方差。
+
+### 原理与推导
+
+序列奖励需分配到 token，GAE 在偏差与方差间折中。
+
+### 公式、代码或工程案例
+
+A_t=Q(s_t,a_t)-V(s_t)。
+
+### 高频追问
+
+- GAE 的 lambda 如何影响估计？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要说基线会改变策略梯度期望。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## KL 约束在后训练中有什么作用？
+
+### 30 秒口述版
+
+限制新策略远离参考模型，防止为追逐奖励而语言退化或模式坍缩。
+
+### 原理与推导
+
+可作为 reward penalty 或目标约束，系数过大限制学习，过小增加 reward hacking。
+
+### 公式、代码或工程案例
+
+监控 token-level KL 与实际生成质量。
+
+### 高频追问
+
+- 参考模型通常选谁？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把低 KL 等同于高质量。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## DPO 为什么不需要显式奖励模型？
+
+### 30 秒口述版
+
+DPO 将带 KL 约束的偏好优化推导成 chosen/rejected 相对参考策略的分类损失，直接训练策略。
+
+### 原理与推导
+
+它简化工程但仍隐含偏好模型，并依赖静态偏好数据、参考模型和 beta。
+
+### 公式、代码或工程案例
+
+解释策略与参考模型 log-ratio 的差。
+
+### 高频追问
+
+- DPO 是 on-policy 还是 off-policy？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要说 DPO 完全没有奖励假设。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## DPO 的 beta 控制什么？
+
+### 30 秒口述版
+
+beta 控制相对参考策略偏移与偏好拟合强度的尺度。
+
+### 原理与推导
+
+数值含义受 loss 实现和数据难度影响，应结合 margin、KL 与生成评测选择。
+
+### 公式、代码或工程案例
+
+画出不同 beta 下偏好准确率与 KL 曲线。
+
+### 高频追问
+
+- chosen/rejected 概率同时下降正常吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只监控 pairwise accuracy。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## GRPO 与 PPO 的主要区别是什么？
+
+### 30 秒口述版
+
+GRPO 对同一 prompt 的一组回答按组内奖励归一化估计相对优势，可省去独立 critic。
+
+### 原理与推导
+
+它降低价值模型显存，但需要多样采样，组内方差小或奖励稀疏时信号会弱。
+
+### 公式、代码或工程案例
+
+说明 group size、reward normalization 与 KL。
+
+### 高频追问
+
+- GRPO 是否天然比 PPO 稳定？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把 critic-free 说成没有基线。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 规则奖励与模型奖励怎样组合？
+
+### 30 秒口述版
+
+可验证任务优先使用答案、编译或测试等规则信号，开放任务再引入模型评分，并做尺度校准。
+
+### 原理与推导
+
+组合奖励要防止某一分量支配，且规则漏洞同样会被利用。
+
+### 公式、代码或工程案例
+
+分别监控每个 reward component 与总分。
+
+### 高频追问
+
+- 长度奖励为何危险？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只优化综合分而不看分量。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## Reward Hacking 是什么？
+
+### 30 秒口述版
+
+策略找到提高代理奖励但违背真实目标的捷径，例如冗长、格式投机或利用评判器偏差。
+
+### 原理与推导
+
+根因是代理目标不完备和分布外优化，缓解需多评判器、对抗测试、约束与人工审计。
+
+### 公式、代码或工程案例
+
+比较 reward 上升而真实成功率下降的曲线。
+
+### 高频追问
+
+- Goodhart 定律如何体现？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把所有高奖励样本都当优质数据回灌。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 过程监督与结果监督如何比较？
+
+### 30 秒口述版
+
+结果监督只评价最终答案，便宜且目标直接；过程监督评价中间步骤，可提供密集信号和错误定位。
+
+### 原理与推导
+
+过程标签成本高且可能约束有效的新推理路径，最终选择依任务可验证性。
+
+### 公式、代码或工程案例
+
+数学题同时记录 final correctness 与 step validity。
+
+### 高频追问
+
+- PRM 如何被搜索使用？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把可读推理文本等同于模型真实内部推理。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 推理模型的 Test-Time Compute 是什么？
+
+### 30 秒口述版
+
+推理时通过更长思考、多样采样、搜索或验证器投入额外计算换取更高成功率。
+
+### 原理与推导
+
+收益取决于任务可验证性和候选多样性，成本、延迟与错误相关性会限制扩展。
+
+### 公式、代码或工程案例
+
+画 pass@k 随采样数的边际收益。
+
+### 高频追问
+
+- Self-consistency 为什么有效？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把输出更长直接等同于推理更强。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+
+---
+
+## 后训练怎样防止能力回退？
+
+### 30 秒口述版
+
+混合通用数据、控制更新强度、加入 KL 或回放，并持续跑基座能力回归集。
+
+### 原理与推导
+
+能力回退可能来自数据窄化、格式过拟合和优化目标冲突，应按领域定位。
+
+### 公式、代码或工程案例
+
+每个 checkpoint 同时评估目标集与通用集。
+
+### 高频追问
+
+- Model merging 能否修复回退？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要到训练结束才做一次回归。
+
+### 权威来源
+
+- [InstructGPT](https://arxiv.org/abs/2203.02155)
+- [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+- [DeepSeek-R1](https://arxiv.org/abs/2501.12948)

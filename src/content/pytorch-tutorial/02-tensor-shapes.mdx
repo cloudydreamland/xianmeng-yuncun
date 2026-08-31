@@ -1,0 +1,423 @@
+---
+title: 张量基本功：索引、广播与线性代数
+slug: tensor-shapes
+order: 3
+level: 基础
+description: 把形状变换、广播、索引与批量矩阵乘法练成肌肉记忆，为注意力、掩码和损失计算打稳地基。
+topics: [broadcasting, view, einsum, mask]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 用 shape 推理，而不是靠试错
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“用 shape 推理，而不是靠试错”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+每次运算前先写出输入与输出形状。元素级运算保持可广播形状，矩阵乘法收缩相邻的内维。形状推理是排查注意力错误最省时间的方法。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.randn(2, 5, 8)      # B,T,C
+w = torch.randn(8, 16)        # C,D
+y = x @ w                     # B,T,D
+print(y.shape)                 # torch.Size([2, 5, 16])
+```
+
+### 运行结果与观察
+
+输出应明确显示每个 Tensor 的 shape、ndim、dtype 与 device；改变一个轴后，只允许与该轴相关的输出变化。若 shape 虽能广播但语义错误，本节仍判定未通过。
+
+### 常见错误
+
+- 只凭元素总数猜形状；把 batch 维和 sequence 维交换后仍认为语义相同。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+线性层本质上对最后一维做变换，因此一份权重可同时处理所有 batch 和 token。
+
+### 动手练习
+
+推导 `[4, 128, 768] @ [768, 3072]` 的输出形状和乘加量级。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>先把每个轴写成语义：例如 `[B,T,C]` 分别是批次、序列和隐藏维；再用 `assert tensor.shape == (...)` 固化预期。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## 索引、切片与布尔选择
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“索引、切片与布尔选择”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+基础切片通常返回共享存储的视图，高级索引常生成新 Tensor。布尔掩码适合筛选，但会压平被选位置；要保留原布局，常用 `masked_fill` 或 `where`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.arange(12).reshape(3, 4)
+rows = x[:2]                       # view-like slice
+mask = x % 2 == 0
+selected = x[mask]
+kept_shape = x.masked_fill(~mask, -1)
+print(selected, kept_shape, sep='\n')
+```
+
+### 运行结果与观察
+
+切片结果的 shape 应与所选区间一致，布尔索引只保留条件为真的元素；练习中应手算元素数量，再与 `numel()` 对照。
+
+### 常见错误
+
+- 原地修改切片时没意识到原 Tensor 也改变；混淆 mask 的正负语义。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+padding mask 与 causal mask 都依赖布尔语义；先明确 `True` 表示“保留”还是“屏蔽”，不同 API 约定可能不同。
+
+### 动手练习
+
+创建 `[B,T]` padding mask，并将隐藏状态 `[B,T,C]` 的 padding 位置置零。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“索引、切片与布尔选择”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## reshape、view、transpose 与 contiguous
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“reshape、view、transpose 与 contiguous”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`view` 只改变元数据，要求内存布局兼容；`transpose` 改变步长后常不连续，可能需要 `contiguous`。`reshape` 会尽量返回视图，必要时悄悄复制，使用更方便但要理解成本。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.randn(2, 3, 4)
+y = x.transpose(1, 2)             # [2,4,3]
+print(y.is_contiguous())
+z = y.contiguous().view(2, 12)
+r = y.reshape(2, 12)
+print(z.shape, r.shape)
+```
+
+### 运行结果与观察
+
+输出应明确显示每个 Tensor 的 shape、ndim、dtype 与 device；改变一个轴后，只允许与该轴相关的输出变化。若 shape 虽能广播但语义错误，本节仍判定未通过。
+
+### 常见错误
+
+- 把 `view` 当成任意换轴；不清楚 `reshape` 何时产生额外复制。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+多头注意力频繁在 `[B,T,C]` 和 `[B,H,T,D]` 间变形；忘记转回布局是最常见实现错误之一。
+
+### 动手练习
+
+将 `[B,T,H*D]` 变为 `[B,H,T,D]`，再无损还原并用 `allclose` 验证。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>先把每个轴写成语义：例如 `[B,T,C]` 分别是批次、序列和隐藏维；再用 `assert tensor.shape == (...)` 固化预期。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## 广播机制与隐形内存
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“广播机制与隐形内存”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+广播从末尾维度向前比较：两个维度相等，或其中一个为 1，才可兼容。`expand` 通过步长制造逻辑视图，通常不复制；`repeat` 真正复制数据。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+scores = torch.randn(2, 4, 8, 8)     # B,H,T,T
+mask = torch.tril(torch.ones(8, 8, dtype=torch.bool))
+scores = scores.masked_fill(~mask, float('-inf'))
+probs = scores.softmax(dim=-1)
+print(probs.shape)
+```
+
+### 运行结果与观察
+
+输出概率最后一维的和应接近 1，被屏蔽位置应为 0；同时检查没有复制出不必要的 `[B,H,T,T]` 实体掩码。
+
+### 常见错误
+
+- 把错误形状广播成功却得到错误语义；用 `repeat` 制造巨大掩码浪费显存。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+一个 `[T,T]` 因果掩码可以广播到所有 batch 和 head，无需复制成 `[B,H,T,T]`。
+
+### 动手练习
+
+用 `[B,1,1,T]` padding mask 同时屏蔽所有 head 和 query 位置。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>把 `[B,T]` mask 变成 `[B,1,1,T]`，再用 `masked_fill(~mask, -inf)`；检查 softmax 后被屏蔽位置为 0。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## 矩阵乘法、bmm 与 einsum
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“矩阵乘法、bmm 与 einsum”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`matmul` 支持批量广播，`bmm` 专门处理三维批矩阵，`einsum` 用轴标签表达收缩关系。先掌握普通 `@`，复杂轴关系再用 `einsum` 提高清晰度。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+q = torch.randn(2, 4, 6, 8)  # B,H,T,D
+k = torch.randn(2, 4, 6, 8)
+s1 = q @ k.transpose(-2, -1)
+s2 = torch.einsum('bhtd,bhsd->bhts', q, k)
+print(torch.allclose(s1, s2), s1.shape)
+```
+
+### 运行结果与观察
+
+两种写法的输出 shape 与数值应一致，`allclose` 返回 True；注意力权重沿 key 轴求和应接近 1。
+
+### 常见错误
+
+- 在热路径中过度使用难读的 einsum；忽视临时张量大小。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+注意力分数的两个序列轴分别代表 query 位置和 key 位置；给轴命名能减少“转置错一维”的概率。
+
+### 动手练习
+
+用 einsum 写出 attention probabilities 与 value 的乘法，并标注每个字母。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“矩阵乘法、bmm 与 einsum”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## 数值稳定：softmax、logsumexp 与归一化
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“数值稳定：softmax、logsumexp 与归一化”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+指数函数增长很快。稳定 softmax 会先减去最大值，交叉熵内部也会组合 `log_softmax` 与 NLL，避免先算概率再取对数。数值稳定不是小优化，而是训练能否进行的前提。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.tensor([1000., 1001., 1002.])
+naive = torch.exp(x) / torch.exp(x).sum()
+stable = torch.softmax(x, dim=0)
+manual = torch.exp(x - x.max()) / torch.exp(x - x.max()).sum()
+print(naive, stable, manual, sep='\n')
+```
+
+### 运行结果与观察
+
+朴素指数写法应出现 `nan`，框架 softmax 与减最大值的手写版本应给出相同有限概率，从而直观看到稳定化的作用。
+
+### 常见错误
+
+- 手写 `log(softmax(x))`；归一化时把错误维度当作类别维。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+注意力、语言模型词表 softmax 和对比学习都可能遇到大 logits；优先使用框架提供的融合稳定算子。
+
+### 动手练习
+
+比较 `torch.log_softmax(x, -1)` 和手写稳定版本的结果。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“数值稳定：softmax、logsumexp 与归一化”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Softmax API](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.softmax.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)
+
+---
+
+## 原地操作、别名与内存安全
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“原地操作、别名与内存安全”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+带下划线的方法通常是原地操作。它能节省一部分内存，但会修改共享存储并可能破坏 autograd 为反向传播保存的中间值。先写正确的非原地版本，再根据 profiler 证据优化。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.tensor([1., 2., 3.], requires_grad=True)
+y = x * 2
+safe = torch.relu(y)
+loss = safe.sum()
+loss.backward()
+print(x.grad)
+```
+
+### 运行结果与观察
+
+`view` 与原 Tensor 的 `data_ptr()` 应相同，`clone` 应不同；对别名做原地修改会影响原值，而副本保持不变。
+
+### 常见错误
+
+- 看到方法名相似却没注意下划线；对叶子 Tensor 做需要梯度的原地修改。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+大模型训练显存紧张，但随意原地改激活可能触发 version counter 错误；检查点和融合算子往往是更稳妥的优化路径。
+
+### 动手练习
+
+构造一个会触发原地修改报错的最小例子，再改成安全写法。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“原地操作、别名与内存安全”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Tensor API](https://docs.pytorch.org/docs/stable/tensors.html)
+- [Tensor 教程](https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html)

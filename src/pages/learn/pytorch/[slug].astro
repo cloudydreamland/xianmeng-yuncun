@@ -1,0 +1,21 @@
+---
+import { getCollection, render } from 'astro:content';
+import PytorchTutorialLayout from '../../../layouts/PytorchTutorialLayout.astro';
+import { lessonHeadings, sortPytorchChapters } from '../../../utils/pytorchTutorial';
+
+export async function getStaticPaths() {
+  const chapters = sortPytorchChapters(await getCollection('pytorchTutorial', ({ data }) => !data.draft));
+  return chapters.map((chapter, index) => ({
+    params: { slug: chapter.data.slug },
+    props: { chapter, chapters, prev: chapters[index - 1], next: chapters[index + 1] },
+  }));
+}
+
+const { chapter, chapters, prev, next } = Astro.props;
+const { Content, headings } = await render(chapter);
+const lessons = lessonHeadings(headings);
+---
+
+<PytorchTutorialLayout chapter={chapter} chapters={chapters} lessons={lessons} prev={prev} next={next}>
+  <Content />
+</PytorchTutorialLayout>

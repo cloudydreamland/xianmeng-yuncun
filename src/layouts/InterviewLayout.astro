@@ -1,0 +1,218 @@
+---
+import 'katex/dist/katex.min.css';
+import BaseLayout from './BaseLayout.astro';
+import type { InterviewChapter } from '../utils/interview';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  chapter: InterviewChapter;
+  chapters: InterviewChapter[];
+  questions: Heading[];
+  prev?: InterviewChapter;
+  next?: InterviewChapter;
+}
+
+const { chapter, chapters, questions, prev, next } = Astro.props;
+const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+}).format(date);
+---
+
+<BaseLayout
+  title={`${chapter.data.title}｜大模型面经 · 问道录`}
+  description={chapter.data.description}
+  searchable
+  searchType="面经"
+  searchTitle={chapter.data.title}
+  searchCategory="大模型面经"
+  searchTags={chapter.data.topics}
+  searchDate={chapter.data.updatedAt}
+>
+  <div class="interview-progress" aria-hidden="true"><span data-interview-progress></span></div>
+  <div class="interview-page page-shell">
+    <nav class="interview-breadcrumb" aria-label="面包屑">
+      <a href="/world/star-abyss/">星渊</a><span aria-hidden="true">/</span>
+      <a href="/interview/llm/">大模型面经</a><span aria-hidden="true">/</span>
+      <span aria-current="page">{chapter.data.title}</span>
+    </nav>
+
+    <details class="interview-mobile-directory" data-pagefind-ignore>
+      <summary>展开章节与本页目录 <span aria-hidden="true">⌄</span></summary>
+      <div>
+        <strong>十四章问道录</strong>
+        {chapters.map((item) => (
+          <a href={`/interview/llm/${item.data.slug}/`} aria-current={item.id === chapter.id ? 'page' : undefined}>
+            <small>{String(item.data.order).padStart(2, '0')}</small>{item.data.title}
+          </a>
+        ))}
+        <strong>本章问题</strong>
+        {questions.map((question, index) => (
+          <a href={`#${question.slug}`} data-question-link={question.slug}>
+            <small>{String(index + 1).padStart(2, '0')}</small>{question.text}
+          </a>
+        ))}
+      </div>
+    </details>
+
+    <div class="interview-reading-grid">
+      <aside class="interview-directory" aria-label="大模型面经目录" data-pagefind-ignore>
+        <a class="interview-directory__home" href="/interview/llm/">大模型面经 · 问道录</a>
+        <div class="interview-directory__scroll">
+          <p>十四章</p>
+          <nav>
+            {chapters.map((item) => (
+              <a href={`/interview/llm/${item.data.slug}/`} aria-current={item.id === chapter.id ? 'page' : undefined}>
+                <small>{String(item.data.order).padStart(2, '0')}</small><span>{item.data.title}</span>
+              </a>
+            ))}
+          </nav>
+          <p>本章 {questions.length} 题</p>
+          <nav class="interview-directory__questions">
+            {questions.map((question, index) => (
+              <a href={`#${question.slug}`} data-question-link={question.slug}>
+                <small>{String(index + 1).padStart(2, '0')}</small><span>{question.text}</span>
+              </a>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      <article class="interview-article" data-interview-article>
+        <header class="interview-article__header">
+          <p class="pixel-kicker">第 {String(chapter.data.order).padStart(2, '0')} 章 · 大模型算法岗</p>
+          <h1>{chapter.data.title}</h1>
+          <p>{chapter.data.description}</p>
+          <div>
+            <span>{questions.length} 道核心题</span>
+            <span>校订于 {formatDate(chapter.data.updatedAt)}</span>
+          </div>
+          <div class="tag-row">{chapter.data.topics.map((topic) => <span>{topic}</span>)}</div>
+        </header>
+        <div class="interview-prose" data-interview-prose><slot /></div>
+        <nav class="interview-chapter-nav" aria-label="相邻章节" data-pagefind-ignore>
+          {prev ? <a href={`/interview/llm/${prev.data.slug}/`}><small>上一章</small><strong>{prev.data.title}</strong></a> : <span></span>}
+          {next ? <a href={`/interview/llm/${next.data.slug}/`}><small>下一章</small><strong>{next.data.title}</strong></a> : <span></span>}
+        </nav>
+      </article>
+    </div>
+  </div>
+
+  <script>
+    const article = document.querySelector<HTMLElement>('[data-interview-article]');
+    const prose = document.querySelector<HTMLElement>('[data-interview-prose]');
+    const progress = document.querySelector<HTMLElement>('[data-interview-progress]');
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-question-link]')];
+    const headings = [...(prose?.querySelectorAll<HTMLElement>('h2[id]') ?? [])];
+
+    const setActive = (id: string) => links.forEach((link) => {
+      const active = link.dataset.questionLink === id;
+      link.classList.toggle('active', active);
+      if (active) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+    links.forEach((link) => link.addEventListener('click', () => {
+      if (link.dataset.questionLink) setActive(link.dataset.questionLink);
+    }));
+
+    const updateActiveHeading = () => {
+      if (!headings.length) return;
+      const current = headings.reduce((active, heading) => (
+        heading.getBoundingClientRect().top <= 170 ? heading : active
+      ), headings[0]);
+      setActive(current.id);
+    };
+    window.addEventListener('hashchange', () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (id) setActive(id);
+    });
+    window.addEventListener('scroll', updateActiveHeading, { passive: true });
+    updateActiveHeading();
+
+    const updateProgress = () => {
+      if (!article || !prose || !progress) return;
+      const distance = Math.max(1, prose.offsetHeight - window.innerHeight);
+      const value = Math.min(1, Math.max(0, (window.scrollY - prose.offsetTop) / distance));
+      progress.style.transform = `scaleX(${value})`;
+    };
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    window.addEventListener('resize', updateProgress, { passive: true });
+    updateProgress();
+  </script>
+</BaseLayout>
+
+<style>
+  .interview-progress { position:fixed; z-index:130; inset:0 0 auto; height:3px; background:rgba(255,255,255,.3); pointer-events:none; }
+  .interview-progress span { display:block; width:100%; height:100%; background:linear-gradient(90deg,#77b8b2,#8eaf67,#d9aa55); transform:scaleX(0); transform-origin:left; }
+  .interview-page { padding:118px 0 100px; }
+  .interview-breadcrumb { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; color:var(--ink-soft); font-size:.72rem; }
+  .interview-breadcrumb a { color:var(--water-deep); }
+  .interview-reading-grid { display:grid; grid-template-columns:270px minmax(0,820px); gap:42px; align-items:start; justify-content:center; }
+  .interview-directory { position:sticky; top:24px; max-height:calc(100svh - 48px); overflow:hidden; border:1px solid rgba(84,111,99,.22); border-radius:24px; background:rgba(255,253,246,.94); box-shadow:var(--shadow-soft); }
+  .interview-directory__home { display:block; padding:18px 20px; color:#fff; background:#416a62; font-family:var(--serif); font-weight:900; }
+  .interview-directory__scroll { max-height:calc(100svh - 108px); overflow:auto; padding:12px 10px 18px; scrollbar-width:thin; }
+  .interview-directory p { margin:12px 10px 7px; color:#7a6956; font-size:.62rem; font-weight:900; letter-spacing:.15em; }
+  .interview-directory nav { display:grid; gap:2px; }
+  .interview-directory nav a { display:grid; grid-template-columns:25px 1fr; gap:7px; align-items:start; padding:7px 9px; border-radius:10px; color:#61726a; font-size:.7rem; line-height:1.5; }
+  .interview-directory nav a:hover, .interview-directory nav a.active { color:#315f57; background:#e5efe1; }
+  .interview-directory nav a[aria-current="page"] { color:#fff; background:#577c69; }
+  .interview-directory nav small { color:inherit; opacity:.68; font-variant-numeric:tabular-nums; }
+  .interview-directory__questions { padding-left:5px; border-left:1px dashed #9dae9f; }
+  .interview-mobile-directory { display:none; }
+  .interview-article { min-width:0; }
+  .interview-article__header { margin-bottom:28px; padding:38px clamp(24px,5vw,48px); border:1px solid rgba(84,111,99,.2); border-radius:30px; background:linear-gradient(145deg,rgba(247,250,232,.96),rgba(235,246,242,.94)); box-shadow:var(--shadow-soft); }
+  .interview-article__header h1 { margin:10px 0 12px; color:var(--wood-dark); font-family:var(--serif); font-size:clamp(2rem,5vw,3.25rem); line-height:1.3; }
+  .interview-article__header > p:not(.pixel-kicker) { max-width:660px; color:var(--ink-soft); line-height:1.8; }
+  .interview-article__header > div:not(.tag-row) { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:18px; color:#60766d; font-size:.72rem; }
+  .interview-article__header .tag-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
+  .interview-article__header .tag-row span { padding:5px 10px; border:1px solid #91aa91; border-radius:999px; color:#4c6c5e; background:#f9f6dd; font-size:.66rem; }
+  .interview-prose { min-width:0; padding:clamp(26px,5vw,56px); border:1px solid rgba(114,91,66,.13); border-radius:30px; color:#465a52; background:rgba(255,253,246,.92); box-shadow:var(--shadow-soft); font-family:var(--serif); font-size:1rem; line-height:1.95; }
+  .interview-prose :global(h2) { margin:3.2em 0 1em; padding-top:.25em; color:#3e5e53; font-size:1.75rem; line-height:1.45; scroll-margin-top:28px; }
+  .interview-prose :global(h2:first-child) { margin-top:0; }
+  .interview-prose :global(h2::before) { content:"问"; display:inline-grid; width:1.75em; height:1.75em; place-items:center; margin-right:.55em; border-radius:50%; color:#fff; background:#52786a; font-family:var(--sans); font-size:.55em; vertical-align:.2em; }
+  .interview-prose :global(h3) { margin:1.8em 0 .65em; color:#755d40; font-size:1.12rem; scroll-margin-top:28px; }
+  .interview-prose :global(h3:first-of-type) { color:#35685e; }
+  .interview-prose :global(p), .interview-prose :global(li) { overflow-wrap:anywhere; }
+  .interview-prose :global(a) { color:#286d76; border-bottom:1px dashed currentColor; }
+  .interview-prose :global(blockquote) { margin:1.25em 0; padding:18px 22px; border-left:4px solid #6f9a7d; border-radius:0 15px 15px 0; color:#355c50; background:#edf4e4; }
+  .interview-prose :global(pre), .interview-prose :global(.katex-display), .interview-prose :global(.table-wrap) { max-width:100%; overflow:auto; }
+  .interview-prose :global(pre) { padding:18px; border-radius:14px; background:#253e3b; }
+  .interview-prose :global(pre code) { color:#eef8ec; background:transparent; }
+  .interview-prose :global(code) { padding:.12em .35em; border-radius:5px; color:#754d3d; background:#f1e4d0; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.87em; }
+  .interview-prose :global(table) { display:block; min-width:0; width:100%; overflow-x:auto; border-collapse:collapse; font-size:.82rem; }
+  .interview-prose :global(th), .interview-prose :global(td) { padding:10px 12px; border:1px solid #aeb9a9; text-align:left; }
+  .interview-prose :global(th) { color:#fff; background:#557469; }
+  .interview-prose :global(hr) { margin:3em 0; border:0; border-top:1px dashed #9cab9e; }
+  .interview-chapter-nav { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:26px; }
+  .interview-chapter-nav a { display:flex; min-height:100px; flex-direction:column; justify-content:center; padding:18px 22px; border:1px solid #9eaa9d; border-radius:20px; color:#52695f; background:rgba(255,253,246,.86); }
+  .interview-chapter-nav a:last-child { text-align:right; }
+  .interview-chapter-nav small { color:#4a8077; }
+  .interview-chapter-nav strong { margin-top:5px; font-family:var(--serif); }
+  @media(max-width:980px){
+    .interview-page { padding-top:105px; }
+    .interview-reading-grid { display:block; }
+    .interview-directory { display:none; }
+    .interview-mobile-directory { display:block; margin-bottom:18px; border:1px solid #7f9688; border-radius:18px; background:rgba(255,253,246,.95); }
+    .interview-mobile-directory summary { display:flex; min-height:48px; align-items:center; justify-content:space-between; padding:10px 16px; color:#3f665b; cursor:pointer; font-weight:900; list-style:none; }
+    .interview-mobile-directory summary::-webkit-details-marker { display:none; }
+    .interview-mobile-directory > div { display:grid; max-height:65svh; overflow:auto; padding:5px 12px 16px; }
+    .interview-mobile-directory strong { margin:12px 6px 5px; color:#765f43; font-size:.7rem; }
+    .interview-mobile-directory a { display:grid; grid-template-columns:30px 1fr; min-height:44px; align-items:center; gap:6px; padding:7px; border-radius:9px; color:#5c7067; font-size:.74rem; }
+    .interview-mobile-directory a[aria-current="page"], .interview-mobile-directory a.active { color:#fff; background:#5b7c6e; }
+  }
+  @media(max-width:600px){
+    .interview-page { padding-bottom:72px; }
+    .interview-breadcrumb { margin-bottom:16px; }
+    .interview-article__header, .interview-prose { border-radius:22px; }
+    .interview-prose { padding:24px 19px; font-size:.95rem; }
+    .interview-prose :global(h2) { font-size:1.42rem; }
+    .interview-chapter-nav { grid-template-columns:1fr; }
+    .interview-chapter-nav a:last-child { text-align:left; }
+  }
+</style>

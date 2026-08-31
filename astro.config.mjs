@@ -2,6 +2,9 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
+import { unified } from '@astrojs/markdown-remark';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
 import { fileURLToPath } from 'node:url';
 
 const picomatchCompatPath = fileURLToPath(new URL('./scripts/picomatch-compat.mjs', import.meta.url));
@@ -14,6 +17,7 @@ export default defineConfig({
     defaultStrategy: 'hover',
   },
   markdown: {
+    processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }),
     shikiConfig: {
       theme: 'github-light',
       wrap: true,

@@ -1,0 +1,439 @@
+---
+title: 神经网络工程：Module、损失与训练循环
+slug: modules-and-training
+order: 5
+level: 基础
+description: 从 `nn.Module` 的参数注册机制出发，亲手搭建可训练、可验证、可保存和可恢复的完整训练器。
+topics: [nn.Module, loss, optimizer, checkpoint]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## nn.Module 不只是一个 Python 类
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“nn.Module 不只是一个 Python 类”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`nn.Module` 会递归注册子模块、参数和 buffer，因此 `.to(device)`、`state_dict()` 与优化器才能自动发现它们。可训练权重用 `nn.Parameter`，非训练状态如位置索引可用 `register_buffer`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch import nn
+
+class TinyMLP(nn.Module):
+    def __init__(self, dim=16):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(dim, 4*dim), nn.GELU(), nn.Linear(4*dim, dim))
+        self.register_buffer('scale', torch.tensor(dim**-0.5))
+    def forward(self, x):
+        return self.net(x) * self.scale
+```
+
+### 运行结果与观察
+
+打印参数时能看到 MLP 权重，打印 buffer 时能看到 scale；两者会随 `.to(device)` 移动，但只有参数交给优化器。
+
+### 常见错误
+
+- 把层放进普通列表导致无法注册；在 forward 临时创建带参数的层。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+Transformer block 本质也是 Module 树；参数命名与分组决定权重衰减、LoRA 注入和分布式切分。
+
+### 动手练习
+
+打印模型的 `named_parameters()` 与 `named_buffers()`，解释两者区别。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“nn.Module 不只是一个 Python 类”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [nn.Module API](https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## forward、call 与训练/评估模式
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“forward、call 与训练/评估模式”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+平时调用 `model(x)` 而不是直接调用 `forward`，因为 Module 的调用流程还处理 hooks 和包装逻辑。`train()` 与 `eval()` 控制 Dropout、BatchNorm 等层的行为，但不会自动开启或关闭梯度。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch import nn
+m = nn.Dropout(p=0.5)
+x = torch.ones(8)
+m.train(); print(m(x))
+m.eval();  print(m(x))
+with torch.no_grad(): print(m(x))
+```
+
+### 运行结果与观察
+
+训练模式的 dropout 输出含随机 0，评估模式保持全 1；`no_grad` 不会替代 `eval()`。
+
+### 常见错误
+
+- 认为 `eval()` 等于禁止梯度；直接调用 `forward` 绕过框架机制。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+语言模型中的 dropout 在验证与生成时必须关闭；eval 和 no_grad 分别解决“层行为”和“求导开销”。
+
+### 动手练习
+
+写出一份正确的验证阶段模板，并解释每行状态切换。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Module.train API](https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.train)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## 选择损失函数并检查输入约定
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“选择损失函数并检查输入约定”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+损失函数不仅是公式，还有严格的形状与数值约定。`CrossEntropyLoss` 接受未经 softmax 的 logits 与整数类别；语言模型通常把 `[B,T,V]` 展平为 `[B*T,V]`，标签展平为 `[B*T]`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch import nn
+B, T, V = 2, 4, 10
+logits = torch.randn(B, T, V)
+targets = torch.randint(0, V, (B, T))
+loss = nn.functional.cross_entropy(logits.view(-1, V), targets.view(-1))
+print(loss.item())
+```
+
+### 运行结果与观察
+
+交叉熵应是有限标量；把 logits 或 targets 的 shape/dtype 改错后应得到明确错误，而不是静默训练。
+
+### 常见错误
+
+- 先 softmax 再交叉熵；标签用了浮点型；把词表维放错。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+next-token prediction 就是在每个有效 token 位置做多分类；padding 可通过 `ignore_index` 排除。
+
+### 动手练习
+
+加入 padding 标签 `-100`，验证这些位置不影响 loss。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“选择损失函数并检查输入约定”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [PyTorch 损失函数索引](https://docs.pytorch.org/docs/stable/nn.html#loss-functions)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## 优化器、参数组与权重衰减
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“优化器、参数组与权重衰减”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+优化器读取参数的 `.grad` 更新数值。AdamW 将权重衰减与梯度更新解耦，是 Transformer 常用选择；bias 与归一化参数通常不做衰减，可按名字或维度分组。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch import nn
+model = nn.Sequential(nn.Linear(8, 16), nn.LayerNorm(16), nn.Linear(16, 2))
+decay, no_decay = [], []
+for name, p in model.named_parameters():
+    (decay if p.ndim >= 2 else no_decay).append(p)
+opt = torch.optim.AdamW([
+    {'params': decay, 'weight_decay': 0.1},
+    {'params': no_decay, 'weight_decay': 0.0},
+], lr=3e-4)
+```
+
+### 运行结果与观察
+
+两个参数组不重不漏：二维权重进入 decay，bias 与归一化参数进入 no_decay；元素总数应等于全部可训练参数。
+
+### 常见错误
+
+- 把被冻结参数也交给优化器；参数在多个 group 重复；将 L2 正则与 AdamW 衰减混为一谈。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+大模型训练脚本常按参数性质分组；先验证参数不重不漏，再讨论复杂策略。
+
+### 动手练习
+
+统计两个参数组的元素总数，并断言等于所有可训练参数总数。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [AdamW API](https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## 写对一个最小训练循环
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“写对一个最小训练循环”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+标准顺序是取批次、前向、算损失、清梯度、反向、更新。顺序本身容易背，难点是每一步的设备、模式、形状和梯度状态都一致。先用小数据过拟合，是验证管线正确性的最快方法。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+for inputs, targets in loader:
+    inputs, targets = inputs.to(device), targets.to(device)
+    optimizer.zero_grad(set_to_none=True)
+    logits = model(inputs)
+    loss = loss_fn(logits, targets)
+    loss.backward()
+    optimizer.step()
+```
+
+### 运行结果与观察
+
+至少记录首尾 epoch 的 loss 与 accuracy：在内置可分数据上 loss 应明显下降、准确率应高于随机基线；若二者不动，先检查 `zero_grad → backward → step` 顺序。
+
+### 常见错误
+
+- 在 `no_grad` 里训练；忘记搬标签；对验证 loss 反向传播。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+预训练循环会增加梯度累积、AMP、裁剪与调度器，但骨架没有改变。复杂化前先确保一个 batch 能让 loss 下降。
+
+### 动手练习
+
+用随机生成的线性数据训练一个回归模型，确认几十步内 loss 明显下降。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [优化模型参数教程](https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## 学习率调度与 warmup
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“学习率调度与 warmup”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+学习率决定每次更新幅度。Transformer 常先 warmup，降低初始化早期不稳定，再按 cosine 或线性策略衰减。调度器应与“优化器更新次数”对齐，而不是盲目与 dataloader 次数对齐。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import math
+def lr_scale(step, warmup, total):
+    if step < warmup:
+        return (step + 1) / warmup
+    progress = (step - warmup) / max(1, total - warmup)
+    return 0.5 * (1 + math.cos(math.pi * progress))
+
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: lr_scale(s, 100, 1000))
+```
+
+### 运行结果与观察
+
+逐步打印学习率，warmup 阶段应单调升高，随后按既定调度下降；第一步、峰值步和最后一步都应与手算值一致。
+
+### 常见错误
+
+- 把 batch 数当 update 数；恢复 checkpoint 后调度器从零重启。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+梯度累积时 4 个 micro-step 才发生一次参数更新，scheduler 通常也应只走一步。
+
+### 动手练习
+
+画出 1000 步 warmup+cosine 曲线，检查首尾和峰值。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“学习率调度与 warmup”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [学习率调度器索引](https://docs.pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+
+---
+
+## checkpoint：保存的不只是模型权重
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“checkpoint：保存的不只是模型权重”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+只做推理时保存 `state_dict` 即可；要精确续训，还需优化器、调度器、step、随机状态和 AMP scaler。保存普通数据结构比 pickle 整个模型对象更稳健。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+checkpoint = {
+    'model': model.state_dict(),
+    'optimizer': optimizer.state_dict(),
+    'scheduler': scheduler.state_dict(),
+    'step': step,
+    'cpu_rng': torch.get_rng_state(),
+}
+torch.save(checkpoint, 'checkpoint.pt')
+
+state = torch.load('checkpoint.pt', map_location='cpu', weights_only=True)
+model.load_state_dict(state['model'])
+```
+
+### 运行结果与观察
+
+保存后重建模型与优化器，恢复出的下一次 loss 应与不中断训练的对照分支在浮点误差内一致；只恢复权重而不恢复优化器时通常不会一致。
+
+### 常见错误
+
+- 保存整个 Module 后依赖代码路径；加载时不检查 missing/unexpected keys；只恢复模型却声称无缝续训。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+大模型 checkpoint 可能分片保存；无论规模多大，核心目标仍是明确恢复哪些状态、由谁重组。
+
+### 动手练习
+
+保存训练 5 步的状态，重启后继续 5 步，并与不中断的 10 步结果比较。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [序列化语义](https://docs.pytorch.org/docs/stable/notes/serialization.html)
+- [构建神经网络](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)

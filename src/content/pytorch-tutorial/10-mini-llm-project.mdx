@@ -1,0 +1,446 @@
+---
+title: 方向实战：训练并优化一个迷你语言模型
+slug: mini-llm-project
+order: 12
+level: 实战
+description: 把前十一章串成一个可运行项目：构造自回归样本、训练 Decoder-only 模型、生成文本、做参数高效微调并形成项目复盘。
+topics: [Decoder-only, language modeling, LoRA, KV Cache]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 把文本变成 next-token 训练样本
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“把文本变成 next-token 训练样本”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+最小语言模型可从字符词表开始。把文本编码为 id 后，长度为 T 的输入对应向右偏一位的目标；真实项目会换成 BPE/SentencePiece，但张量关系相同。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+text = '你好，PyTorch！你好，大模型！'
+chars = sorted(set(text))
+stoi = {ch:i for i,ch in enumerate(chars)}
+ids = torch.tensor([stoi[ch] for ch in text], dtype=torch.long)
+block = 8
+x = ids[:block]
+y = ids[1:block+1]
+print(x, y)
+```
+
+### 运行结果与观察
+
+输入与目标长度相同，目标恰好向右偏一位；逐位置检查最后一个输入 token 的下一个目标。
+
+### 常见错误
+
+- 输入与标签完全相同没有右移；跨文档拼接时错误学习边界；未知字符没有策略。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+自回归预训练的监督信号来自序列自身，不需要人工逐 token 标注；关键是 shift 后不越界且不泄漏未来。
+
+### 动手练习
+
+写一个随机截取函数，每次返回 `[B,T]` 的 inputs 和 targets。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Dataset 与 DataLoader 教程](https://docs.pytorch.org/tutorials/beginner/basics/data_tutorial.html)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## 搭建最小 Decoder-only Language Model
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“搭建最小 Decoder-only Language Model”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+模型由 token/position embedding、若干 Decoder Block、末尾归一化和词表投影组成。若输入输出 embedding 共享权重，可省参数并形成常见 weight tying。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+class TinyLM(nn.Module):
+    def __init__(self, vocab, dim, layers, heads, max_len):
+        super().__init__()
+        self.max_len = max_len
+        self.token = nn.Embedding(vocab, dim)
+        self.pos = nn.Embedding(max_len, dim)
+        self.blocks = nn.ModuleList([DecoderBlock(dim, heads) for _ in range(layers)])
+        self.norm = nn.LayerNorm(dim)
+        self.head = nn.Linear(dim, vocab, bias=False)
+        self.head.weight = self.token.weight
+    def forward(self, ids):
+        x = self.token(ids) + self.pos(torch.arange(ids.size(1), device=ids.device))
+        for block in self.blocks: x = block(x)
+        return self.head(self.norm(x))
+```
+
+### 运行结果与观察
+
+输入 `[B,T]` 应得到 logits `[B,T,V]`，参数量应与词嵌入、各 Block、归一化和输出头之和一致；因果测试中未来 token 变化不能影响更早位置。
+
+### 常见错误
+
+- position 超过 max_len；权重绑定后又重复初始化；输出词表维放错。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+这是 GPT 类模型的缩小版；规模变化不会改变 embedding—blocks—head 的主干。
+
+### 动手练习
+
+用 `[2,16]` 假输入跑通模型，并计算参数量。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考实现见页面可下载的 Decoder Block 项目；验收必须同时通过 shape、反向梯度和“修改未来 token 不影响过去输出”的因果测试。</p>
+</details>
+
+
+### 官方资料
+
+- [Transformer 构件教程](https://docs.pytorch.org/tutorials/intermediate/transformer_building_blocks.html)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## 训练、验证与过拟合一个小批次
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“训练、验证与过拟合一个小批次”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+先让模型在单个小 batch 上快速过拟合，证明目标、mask、损失和优化器通路正确，再扩到完整语料。训练与验证要抽样固定批次或足够多 batch，避免噪声误导。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+model.train()
+for step in range(200):
+    x, y = get_batch('train')
+    optimizer.zero_grad(set_to_none=True)
+    logits = model(x)
+    loss = torch.nn.functional.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    optimizer.step()
+    if step % 20 == 0: print(step, loss.item())
+```
+
+### 运行结果与观察
+
+先让模型反复训练同一个小 batch，loss 应快速降到明显低于初值；若连小批次都无法过拟合，应先修训练循环或 mask，再扩大数据。
+
+### 常见错误
+
+- 直接跑数天才发现 loss 未对齐；验证仍使用训练模式；只看 loss 不看样本生成。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+“小 batch 过拟合测试”是大模型训练启动前极高性价比的 smoke test。
+
+### 动手练习
+
+设法让 4 条序列的 loss 降到很低，并打印预测 token 对齐情况。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [优化模型参数教程](https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## 自回归生成、温度与 top-k
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“自回归生成、温度与 top-k”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+生成时每次取当前位置 logits，按温度缩放后可截断到 top-k，再采样下一个 token。温度趋近 0 更确定，较高温度更多样；必须在 inference mode 与 eval 模式下运行。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+@torch.inference_mode()
+def generate(model, ids, steps=20, temperature=1.0, top_k=20):
+    model.eval()
+    for _ in range(steps):
+        logits = model(ids[:, -model.max_len:])[:, -1] / temperature
+        values, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+        logits[logits < values[:, [-1]]] = float('-inf')
+        next_id = torch.multinomial(logits.softmax(-1), 1)
+        ids = torch.cat((ids, next_id), dim=1)
+    return ids
+```
+
+### 运行结果与观察
+
+`temperature→0` 时输出趋近贪心；限制 top-k 后每一步采样 id 必须来自概率最高的 k 个 token，固定 generator 后结果应可复现。
+
+### 常见错误
+
+- temperature 设为 0 直接除法；忘记截断超长上下文；生成时仍开 dropout。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+采样策略改变输出分布但不增加模型知识；线上还要处理 EOS、重复惩罚、批量完成和随机种子。
+
+### 动手练习
+
+增加 EOS 停止条件，并支持 batch 内不同样本不同时间结束。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“自回归生成、温度与 top-k”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [torch.multinomial API](https://docs.pytorch.org/docs/stable/generated/torch.multinomial.html)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## KV Cache 为什么能加速解码
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“KV Cache 为什么能加速解码”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+自回归解码若每步重算全部历史 token 的 K/V，会做大量重复工作。KV cache 为每层保存历史 key/value，新一步只计算新 token 的 Q/K/V，再把新 K/V 追加。它降低计算但占用随层数、序列和 batch 增长的显存。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+# 单层缓存接口示意
+def append_cache(new_k, new_v, cache=None):
+    if cache is None:
+        return new_k, new_v
+    old_k, old_v = cache
+    return torch.cat([old_k, new_k], dim=-2), torch.cat([old_v, new_v], dim=-2)
+
+# k/v shape: [B, H_kv, T, D]
+```
+
+### 运行结果与观察
+
+逐 token 解码时缓存长度应每步增加 1，带缓存与全序列重算的下一 token logits 应在容差内一致；序列变长后缓存版单步耗时增长应更缓。
+
+### 常见错误
+
+- 训练时无脑开启 cache；cache position 与 RoPE 位置错位；每步 cat 导致重复复制仍很慢。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+推理服务的连续批处理、PagedAttention 和量化 KV cache 都围绕“如何管理这块动态增长内存”。
+
+### 动手练习
+
+推导 fp16 KV cache 的字节数公式，并代入层数 32、KV heads 8、head_dim 128、长度 4096。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“KV Cache 为什么能加速解码”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Transformers KV Cache 说明](https://huggingface.co/docs/transformers/main/en/cache_explanation)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## 用 LoRA 思想做参数高效微调
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“用 LoRA 思想做参数高效微调”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+LoRA 冻结原权重 W，只训练低秩增量 `BA`，前向为 `xW + scale*xBA`。训练参数从 `in×out` 降到 `rank×(in+out)`；实战常注入注意力投影层。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+class LoRALinear(nn.Module):
+    def __init__(self, base, rank=8, alpha=16):
+        super().__init__(); self.base = base
+        for p in self.base.parameters(): p.requires_grad = False
+        self.A = nn.Parameter(torch.randn(base.in_features, rank) * 0.01)
+        self.B = nn.Parameter(torch.zeros(rank, base.out_features))
+        self.scale = alpha / rank
+    def forward(self, x):
+        return self.base(x) + (x @ self.A @ self.B) * self.scale
+```
+
+### 运行结果与观察
+
+B 为零初始化时包装层初始输出应与 base 一致；可训练参数应只包含 A/B，比例明显低于全量微调。
+
+### 常见错误
+
+- B 不做零初始化导致初始输出改变；把所有层都注入却不核对可训练参数；rank 与 alpha 含义混淆。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+这段教学实现用于理解原理；真实项目宜使用成熟 PEFT 库处理目标模块、量化、保存和合并。
+
+### 动手练习
+
+替换 TinyLM 的 query/value 投影，打印可训练参数占总参数的比例。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>打印 `named_parameters()`，只允许 adapter 参数 `requires_grad=True`；再计算可训练元素数除以总元素数。</p>
+</details>
+
+
+### 官方资料
+
+- [PEFT LoRA 指南](https://huggingface.co/docs/peft/developer_guides/lora)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)
+
+---
+
+## 把项目整理成算法岗可讲述的证据
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“把项目整理成算法岗可讲述的证据”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+完整项目应留下问题定义、数据版本、模型配置、训练曲线、消融、速度显存指标、失败案例和可复现命令。面试表达按“目标—约束—选择—验证—反思”展开，而不是只展示最终 loss。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+# 建议的实验记录结构（Python 字典可序列化为 JSON）
+run = {
+    'model': {'layers': 6, 'dim': 384, 'heads': 6},
+    'data': {'version': 'sha256:...', 'tokens': 1_000_000},
+    'train': {'seed': 42, 'lr': 3e-4, 'steps': 5000},
+    'result': {'val_loss': None, 'tokens_per_second': None},
+}
+```
+
+### 运行结果与观察
+
+从全新目录按 README 命令应能安装、训练并产出 checkpoint；报告需同时给出基线、改动、指标、失败案例和复现环境，不能只展示最终数字。
+
+### 常见错误
+
+- 只汇报最好结果；没有 baseline；指标与配置对不上；无法用一条命令复现。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+你的方向不是“会 PyTorch API”，而是能用它解释和解决大模型训练、推理与系统问题；可复现实验就是最可靠的证据。
+
+### 动手练习
+
+为项目写一页复盘：至少包含一个失败实验、一个性能瓶颈和一个下一步改进。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“把项目整理成算法岗可讲述的证据”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [保存与加载模型教程](https://docs.pytorch.org/tutorials/beginner/saving_loading_models.html)
+- [字符级语言模型教程](https://docs.pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html)

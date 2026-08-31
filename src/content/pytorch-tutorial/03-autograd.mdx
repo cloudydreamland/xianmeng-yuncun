@@ -1,0 +1,376 @@
+---
+title: 自动求导：从计算图到反向传播
+slug: autograd
+order: 4
+level: 基础
+description: 拆开 autograd 的黑盒：看懂动态计算图、叶子节点、梯度累积、钩子和自定义求导，真正掌握训练为何有效。
+topics: [autograd, backpropagation, gradient, hook]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 动态计算图如何记录运算
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“动态计算图如何记录运算”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+当输入需要梯度时，PyTorch 会在前向过程中记录产生结果的算子，形成运行时计算图。调用 `backward` 后，它按链式法则从标量损失反向传播。图是动态构建的，所以普通 Python 分支和循环依然可用。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.tensor(2.0, requires_grad=True)
+y = x**3 + 2*x
+y.backward()
+print(x.grad)  # 3*x^2 + 2 = 14
+```
+
+### 运行结果与观察
+
+`x=2` 时梯度应为 14；它等于手算导数而不是当前函数值。修改函数后要先手算，再与 `.grad` 对照。
+
+### 常见错误
+
+- 误以为 PyTorch 先编译一张永久静态图；在前向中把 Tensor 转为 Python 数值后还期待梯度回传。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+Transformer 是大量可微算子的组合；你不必手写每层梯度，但必须知道哪些操作切断了图。
+
+### 动手练习
+
+把函数改成 `sin(x) * x**2`，手算导数并与 autograd 对照。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“动态计算图如何记录运算”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)
+
+---
+
+## 叶子 Tensor、grad_fn 与 retain_grad
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“叶子 Tensor、grad_fn 与 retain_grad”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+用户创建且需要梯度的参数通常是叶子 Tensor，梯度默认累积在它的 `.grad`。中间结果是非叶子节点，虽然有 `grad_fn`，但默认不保留 `.grad`；调试时可调用 `retain_grad`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.ones(3, requires_grad=True)
+y = x * 2
+y.retain_grad()
+loss = (y**2).sum()
+loss.backward()
+print(x.is_leaf, y.is_leaf)
+print(x.grad, y.grad)
+```
+
+### 运行结果与观察
+
+x 是叶子、y 是非叶子；调用 `retain_grad` 后两者都能观察到梯度。删除它后 y.grad 应为空。
+
+### 常见错误
+
+- 把非叶子节点的空 `.grad` 误判为梯度消失；滥用 `retain_grad` 导致额外内存。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+检查某层激活梯度时，不要因为 `.grad is None` 就断言没有梯度流；先区分叶子与非叶子。
+
+### 动手练习
+
+打印一个两层 MLP 中参数和激活的 `is_leaf`、`grad_fn`。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>先把每个轴写成语义：例如 `[B,T,C]` 分别是批次、序列和隐藏维；再用 `assert tensor.shape == (...)` 固化预期。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)
+
+---
+
+## 为什么每步都要清空梯度
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“为什么每步都要清空梯度”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+PyTorch 默认把新梯度加到现有 `.grad` 上，这便于梯度累积，但普通训练若不清空就会混入历史批次。推荐在反向前使用 `optimizer.zero_grad(set_to_none=True)`。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+w = torch.tensor(1.0, requires_grad=True)
+for _ in range(2):
+    (w * 3).backward()
+print(w.grad)  # 6：两次各累积 3
+w.grad = None
+(w * 3).backward()
+print(w.grad)  # 3
+```
+
+### 运行结果与观察
+
+连续两次 backward 后梯度由 3 累积为 6；清空后再次反向回到 3，证明累积是默认行为。
+
+### 常见错误
+
+- 每个 micro-batch 都 `step` 却称为梯度累积；累积时忘记缩放 loss。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+梯度累积正是利用这一行为模拟更大 batch，但损失通常要除以累积步数。
+
+### 动手练习
+
+实现 4 个 micro-batch 累积后再更新一次参数，并验证更新幅度。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)
+
+---
+
+## 停止梯度：no_grad、inference_mode 与 detach
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“停止梯度：no_grad、inference_mode 与 detach”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`no_grad` 暂停记录梯度，适合验证；`inference_mode` 进一步关闭部分 autograd 开销，适合纯推理；`detach` 返回与原 Tensor 共享存储但脱离当前图的视图。三者目的相近，作用范围不同。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.randn(2, 3, requires_grad=True)
+with torch.no_grad():
+    a = x * 2
+with torch.inference_mode():
+    b = x * 3
+c = (x * 4).detach()
+print(a.requires_grad, b.requires_grad, c.requires_grad)
+```
+
+### 运行结果与观察
+
+三个结果的 `requires_grad` 均为 False；但 detach 仍可能共享存储，不能据此认定发生了数据复制。
+
+### 常见错误
+
+- 用 `detach` 后原地修改共享数据；验证时忘记关闭梯度导致显存逐步上涨。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+生成阶段应避免构建反向图；记录指标时可 `loss.detach()`，防止日志列表无意持有整张计算图。
+
+### 动手练习
+
+写一个验证函数，确保模型切到 eval、关闭梯度并返回 Python 浮点指标。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)
+
+---
+
+## 梯度钩子与调试梯度流
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“梯度钩子与调试梯度流”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+hook 能在梯度经过 Tensor 或模块时观察、记录甚至修改它。它适合诊断梯度爆炸、某层无梯度等问题，但生产代码要及时移除，避免额外开销和隐蔽副作用。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+x = torch.randn(4, requires_grad=True)
+handle = x.register_hook(lambda grad: print('grad norm:', grad.norm().item()))
+loss = (x**2).mean()
+loss.backward()
+handle.remove()
+```
+
+### 运行结果与观察
+
+反向时只打印一次有限的梯度范数；移除 handle 后再次反向不应再触发该输出。
+
+### 常见错误
+
+- 在 hook 中返回错误形状；注册后从不 remove；日志同步 GPU 造成训练变慢。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+可按 Transformer 层记录梯度范数，判断深层梯度是否异常；不要每步打印完整梯度。
+
+### 动手练习
+
+给一个 `nn.Linear` 的权重注册 hook，只在梯度非有限时报警。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)
+
+---
+
+## 自定义 autograd Function 何时需要
+
+<aside className="lesson-runtime" data-code-kind="可独立运行" data-pagefind-ignore>
+  <strong>代码状态：可独立运行</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：PyTorch 2.13 CPU 已执行</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“自定义 autograd Function 何时需要”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+大多数模型应组合已有算子，让 autograd 自动求导。只有接入自定义 CUDA 算子、特殊数值近似或需要手写反向时，才实现 `torch.autograd.Function`，并用 `gradcheck` 校验。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+
+class Cube(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x**3
+    @staticmethod
+    def backward(ctx, grad_out):
+        (x,) = ctx.saved_tensors
+        return grad_out * 3 * x**2
+
+x = torch.tensor(2., requires_grad=True)
+Cube.apply(x).backward()
+print(x.grad)
+```
+
+### 运行结果与观察
+
+`x=2` 时自定义反向应得到梯度 12，并应继续通过双精度 gradcheck。
+
+### 常见错误
+
+- 在 forward 保存所有中间值造成显存浪费；反向漏乘上游梯度 `grad_out`。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+高性能大模型算子可能有自定义 forward/backward；理解保存哪些中间量，就是理解它的显存代价。
+
+### 动手练习
+
+为 `x^2 + x` 写自定义 Function，并用双精度 `gradcheck` 验证。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“自定义 autograd Function 何时需要”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Autograd 机制](https://docs.pytorch.org/docs/stable/notes/autograd.html)
+- [Autograd 基础](https://docs.pytorch.org/tutorials/beginner/introyt/autogradyt_tutorial.html)

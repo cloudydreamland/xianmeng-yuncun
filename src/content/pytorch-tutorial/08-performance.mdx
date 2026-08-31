@@ -1,0 +1,371 @@
+---
+title: 性能与显存：Profiler、compile 与检查点
+slug: performance
+order: 9
+level: 高级
+description: 用测量代替猜测，读懂 CPU/GPU 时间线、显存组成、激活检查点与 `torch.compile` 的适用边界。
+topics: [Profiler, torch.compile, checkpointing, memory]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 先定义正确的性能指标
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“先定义正确的性能指标”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+性能优化必须同时固定模型、序列长度、batch、精度、硬件和 warmup。GPU 运算异步，普通计时若不同步会测到排队时间，而不是实际执行时间。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import time, torch
+for _ in range(10): model(x)  # warmup
+if x.is_cuda: torch.cuda.synchronize()
+start = time.perf_counter()
+for _ in range(50): model(x)
+if x.is_cuda: torch.cuda.synchronize()
+elapsed = time.perf_counter() - start
+print('steps/s:', 50 / elapsed)
+```
+
+### 运行结果与观察
+
+预热后报告中位数或分位数，而不是单次耗时；吞吐量与端到端延迟要分别测量，并明确 batch、序列长度、dtype、设备与同步方式。
+
+### 常见错误
+
+- 不 warmup；比较不同 batch 的 steps/s；忘记同步 CUDA。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+LLM 服务要区分 prefill 与 decode、首 token 延迟与生成吞吐；训练则常看 tokens/s 与 MFU。
+
+### 动手练习
+
+同时报告 steps/s 与 tokens/s，并说明哪一个能跨序列长度比较。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“先定义正确的性能指标”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [torch.utils.benchmark 教程](https://docs.pytorch.org/tutorials/recipes/recipes/benchmark.html)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
+
+---
+
+## 用 PyTorch Profiler 找真正瓶颈
+
+<aside className="lesson-runtime" data-code-kind="伪代码／接口示意" data-pagefind-ignore>
+  <strong>代码状态：伪代码／接口示意</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“用 PyTorch Profiler 找真正瓶颈”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+Profiler 能记录算子时间、调用栈、形状和内存。先用短 schedule 采样，避免把整个训练跑进 profiler；观察 CPU 是否喂不满 GPU、是否有大量小 kernel 或昂贵拷贝。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+from torch.profiler import profile, ProfilerActivity
+activities = [ProfilerActivity.CPU]
+if torch.cuda.is_available(): activities.append(ProfilerActivity.CUDA)
+with profile(activities=activities, record_shapes=True, profile_memory=True) as prof:
+    loss = train_one_step()
+print(prof.key_averages().table(sort_by='cuda_time_total' if torch.cuda.is_available() else 'cpu_time_total', row_limit=10))
+```
+
+### 运行结果与观察
+
+trace 中应能区分 CPU 调度、算子计算、拷贝和空闲；优化前后对比同一输入，只有热点耗时下降且输出正确才算有效。
+
+### 常见错误
+
+- 只看单个算子百分比不看调用次数；长时间 record_shapes 导致巨大追踪文件。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+注意力、矩阵乘和通信通常是大模型热点，但数据处理或 Python graph break 也可能让 GPU 空闲。
+
+### 动手练习
+
+profile 三个训练 step，列出最耗时的三个算子并提出验证方法。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“用 PyTorch Profiler 找真正瓶颈”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Profiler API](https://docs.pytorch.org/docs/stable/profiler.html)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
+
+---
+
+## 显存到底花在哪里
+
+<aside className="lesson-runtime" data-code-kind="需要 CUDA" data-pagefind-ignore>
+  <strong>代码状态：需要 CUDA</strong>
+  <span>运行环境：CUDA GPU</span>
+  <span>验证：CPU 仅校验语法与回退路径</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“显存到底花在哪里”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+训练显存主要由参数、梯度、优化器状态、激活和临时工作区构成。`memory_allocated` 是张量实际占用，`memory_reserved` 还包含缓存分配器保留空间；两者不同不等于泄漏。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+if torch.cuda.is_available():
+    torch.cuda.reset_peak_memory_stats()
+    loss = train_one_step()
+    print('allocated MiB', torch.cuda.memory_allocated()/1024**2)
+    print('reserved MiB', torch.cuda.memory_reserved()/1024**2)
+    print('peak MiB', torch.cuda.max_memory_allocated()/1024**2)
+    print(torch.cuda.memory_summary(abbreviated=True))
+```
+
+### 运行结果与观察
+
+分别记录加载模型后、前向后、反向后的 allocated/peak memory；峰值减基线能近似看出激活与梯度开销，清缓存不等于释放仍被 Tensor 引用的内存。
+
+### 常见错误
+
+- 把 reserved 全当泄漏；只在 forward 前测显存；异常时第一反应是 `empty_cache`。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+估算大模型可训练规模时，参数字节数只是下界，激活会随 batch、序列长度和层数增长。
+
+### 动手练习
+
+分别改变 batch 和 sequence length，记录峰值显存并解释增长规律。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“显存到底花在哪里”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [CUDA 内存管理](https://docs.pytorch.org/docs/stable/notes/cuda.html#cuda-memory-management)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
+
+---
+
+## 激活检查点：用计算换显存
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“激活检查点：用计算换显存”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+普通反向需要保存中间激活。activation checkpoint 在前向少存一部分，反向时重算，从而降显存但增加计算。应按较大的连续 block 切分，避免过细导致额外开销。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+from torch.utils.checkpoint import checkpoint
+
+class Stack(torch.nn.Module):
+    def __init__(self, blocks): super().__init__(); self.blocks = torch.nn.ModuleList(blocks)
+    def forward(self, x):
+        for block in self.blocks:
+            x = checkpoint(block, x, use_reentrant=False)
+        return x
+```
+
+### 运行结果与观察
+
+开启后输出与梯度应和未开启版本接近，峰值显存应下降而步骤耗时上升；若模型含随机层，还要验证 RNG 状态处理后结果一致。
+
+### 常见错误
+
+- 推理时也开 checkpoint；带随机算子却没考虑 RNG；切得太碎导致吞吐大降。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+长序列 LLM 训练常受激活显存限制，检查点是扩大 batch 或序列长度的核心手段。
+
+### 动手练习
+
+对比开启/关闭检查点的峰值显存与单步时间。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“激活检查点：用计算换显存”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [Activation Checkpointing API](https://docs.pytorch.org/docs/stable/checkpoint.html)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
+
+---
+
+## torch.compile 能优化什么
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“torch.compile 能优化什么”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+`torch.compile` 捕获 PyTorch 运算图，减少 Python/framework 开销并进行算子融合。首次调用包含编译成本，动态图形状或 Python 数据依赖可能产生 graph break 与重复编译。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+import torch
+
+compiled_model = torch.compile(model)
+with torch.no_grad():
+    eager = model(x)
+    compiled = compiled_model(x)  # 首次调用会编译
+print(torch.testing.assert_close(eager, compiled))
+```
+
+### 运行结果与观察
+
+第一次调用包含编译开销，不能与 eager 稳态直接比较；预热后再计时，并用多组 shape 验证输出误差及是否发生频繁重新编译。
+
+### 常见错误
+
+- 把首次编译时间算进稳态吞吐；没做正确性对照；形状不断变化导致重复编译。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+Transformer 由重复 block 组成，常能从融合与减少调度开销中受益；但收益必须在目标形状和硬件上实测。
+
+### 动手练习
+
+分别测首次调用和后续 50 次调用，报告 break-even 需要多少步。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“torch.compile 能优化什么”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [torch.compile API](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
+
+---
+
+## 减少同步、拷贝与 Python 开销
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：CPU 可运行</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+用自己的话解释“减少同步、拷贝与 Python 开销”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+
+### 清晰讲解
+
+GPU 只有遇到需要 CPU 数值时才被迫同步；频繁 `.item()`、打印 CUDA Tensor 或不必要的 CPU/GPU 往返会打断流水。尽量在设备上聚合，再低频取回小结果。
+
+> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+
+### 代码示例
+
+```python
+loss_sum = torch.zeros((), device=device)
+for step, batch in enumerate(loader, 1):
+    loss = train_step(batch)
+    loss_sum += loss.detach()
+    if step % 100 == 0:
+        mean_loss = (loss_sum / 100).item()  # 低频同步
+        print(mean_loss)
+        loss_sum.zero_()
+```
+
+### 运行结果与观察
+
+去掉循环中的 `.item()` 或频繁 CPU/GPU 往返后，Profiler 中同步事件数量应减少；吞吐提高的同时，最终指标必须保持在容差内。
+
+### 常见错误
+
+- 每个 token 解码都把大 Tensor 搬回 CPU；循环中不断创建相同常量。
+- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+
+### 与大模型方向的连接
+
+大模型每步很贵，但微小同步仍会阻止计算与数据传输重叠；性能分析要观察 GPU 空洞。
+
+### 动手练习
+
+找出一段训练代码中的隐式同步点，并改为批量记录。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“减少同步、拷贝与 Python 开销”改变了哪一个数据流或训练状态。</p>
+</details>
+
+
+### 官方资料
+
+- [PyTorch 性能调优指南](https://docs.pytorch.org/tutorials/recipes/recipes/tuning_guide.html)
+- [torch.compile 教程](https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)

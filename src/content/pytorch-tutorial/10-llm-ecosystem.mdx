@@ -1,0 +1,378 @@
+---
+title: 大模型生态：Transformers、PEFT、torchao 与 TorchTitan
+slug: llm-ecosystem
+order: 11
+level: 高级
+description: 把 PyTorch 基础接到真实大模型工具链，理解 Hugging Face 生态、参数高效微调、量化优化与官方大规模训练框架的职责边界。
+topics: [Transformers, Datasets, Accelerate, PEFT, torchao, TorchTitan]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## Transformers：从 Tokenizer 到预训练模型
+
+<aside className="lesson-runtime" data-code-kind="需要额外依赖" data-pagefind-ignore>
+  <strong>代码状态：需要额外依赖</strong>
+  <span>运行环境：需安装 Hugging Face 依赖</span>
+  <span>验证：依赖接口与边界已核对</span>
+</aside>
+
+### 本节目标
+
+理解 Transformers 如何把 tokenizer、配置、PyTorch Module 和生成流程组织在一起，并能加载一个模型完成推理。
+
+### 清晰讲解
+
+Transformers 没有替代 PyTorch：模型仍是 `nn.Module`，前向、梯度和优化器仍由 PyTorch 完成。它提供统一配置、预训练权重、Tokenizer 和任务封装。先检查输入 shape 与模型输出，再使用高层 pipeline。
+
+### 代码示例
+
+```python
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model_id = "openai-community/gpt2"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id)
+inputs = tokenizer("PyTorch makes tensors", return_tensors="pt")
+outputs = model.generate(**inputs, max_new_tokens=12)
+print(inputs["input_ids"].shape)
+print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+```
+
+### 运行结果与观察
+
+首次运行会下载权重，后续从缓存加载；输入通常是 `[1, T]`，输出长度不超过 `T + 12`。具体文本受模型与版本影响，不应写成固定断言。
+
+### 常见错误
+
+- 忽略模型许可证和缓存空间；Tokenizer 与模型不是同一 checkpoint；只会用 pipeline 而说不清 Tensor shape。
+- 在服务中每个请求都重新加载模型。
+
+### 与大模型方向的连接
+
+算法岗要在“从零实现以理解原理”和“用成熟生态完成实验”之间切换，两种能力不能互相替代。
+
+### 动手练习
+
+打印模型参数量、第一层名称和生成结果新增的 token id。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Transformers Quickstart](https://huggingface.co/docs/transformers/quicktour)
+- [Transformers Quickstart](https://huggingface.co/docs/transformers/quicktour)
+
+---
+
+## Datasets：可复现的数据加载与 map
+
+<aside className="lesson-runtime" data-code-kind="需要额外依赖" data-pagefind-ignore>
+  <strong>代码状态：需要额外依赖</strong>
+  <span>运行环境：需安装 Hugging Face 依赖</span>
+  <span>验证：依赖接口与边界已核对</span>
+</aside>
+
+### 本节目标
+
+使用 Datasets 加载、切分和批量预处理数据，并理解 Arrow 缓存与 PyTorch DataLoader 的分工。
+
+### 清晰讲解
+
+Datasets 负责数据版本、列式存储、缓存和 `map` 变换；DataLoader 负责训练时采样与组 batch。大数据预处理应批量执行，并记录来源和 revision。
+
+### 代码示例
+
+```python
+from datasets import Dataset
+
+dataset = Dataset.from_dict({"text": ["云起", "月明", "张量有形状"]})
+dataset = dataset.map(
+    lambda batch: {"length": [len(text) for text in batch["text"]]},
+    batched=True,
+)
+split = dataset.train_test_split(test_size=1, seed=42)
+print(split)
+print(split["train"].column_names)
+```
+
+### 运行结果与观察
+
+结果包含可复现的 train/test 切分和新增的 `length` 列；同样 seed 应得到同样划分。
+
+### 常见错误
+
+- 逐样本执行昂贵 tokenizer；先切 chunk 再随机划分导致文档泄漏；缓存没有随预处理代码更新。
+- 把 Dataset 切分与 DataLoader batch 混为一谈。
+
+### 与大模型方向的连接
+
+语料来源、去重和 train/eval 隔离比“成功读进内存”更重要，数据版本应进入实验记录。
+
+### 动手练习
+
+过滤长度小于 3 的文本，并确认原数据集没有被原地修改。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>固定 seed，打印首个 batch 的索引、shape 和 mask；再检查 train/validation 的稳定 hash 没有交集。</p>
+</details>
+
+
+### 官方资料
+
+- [torch.utils.data API](https://docs.pytorch.org/docs/stable/data.html)
+- [Datasets Quickstart](https://huggingface.co/docs/datasets/quickstart)
+
+---
+
+## Accelerate：让训练循环适配设备与分布式
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：需安装 Hugging Face 依赖</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+理解 `prepare`、`backward` 和 `unwrap_model` 分别负责什么，避免把 Accelerate 当成自动优化魔法。
+
+### 清晰讲解
+
+Accelerate 封装设备放置、混合精度和常见分布式启动，但核心循环仍清晰可见。模型、优化器和 DataLoader 交给 `prepare` 后，必须使用返回的新对象。
+
+### 代码示例
+
+```python
+from accelerate import Accelerator
+
+accelerator = Accelerator(mixed_precision="bf16")
+model, optimizer, loader = accelerator.prepare(model, optimizer, loader)
+for inputs, labels in loader:
+    optimizer.zero_grad(set_to_none=True)
+    loss = loss_fn(model(inputs), labels)
+    accelerator.backward(loss)
+    optimizer.step()
+accelerator.wait_for_everyone()
+```
+
+### 运行结果与观察
+
+单进程与多进程骨架保持一致，但 effective batch、日志 rank 和模型保存仍要显式确认。bf16 不受支持时应修改配置，而不是假设它生效。
+
+### 常见错误
+
+- `prepare` 后继续使用旧 model；每个 rank 重复写文件；以为框架会自动选择最佳并行策略。
+- 配置 bf16 却不检查硬件支持。
+
+### 与大模型方向的连接
+
+它适合把验证过的 PyTorch 循环迁移到多卡，是理解底层 DDP/FSDP 后的工程加速层。
+
+### 动手练习
+
+让日志只在主进程打印，并用 `unwrap_model` 保存普通 `state_dict`。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [Accelerate Quicktour](https://huggingface.co/docs/accelerate/quicktour)
+- [Accelerate Quicktour](https://huggingface.co/docs/accelerate/quicktour)
+
+---
+
+## PEFT：用官方库完成 LoRA 微调
+
+<aside className="lesson-runtime" data-code-kind="承接上一节" data-pagefind-ignore>
+  <strong>代码状态：承接上一节</strong>
+  <span>运行环境：需安装 Hugging Face 依赖</span>
+  <span>验证：纳入完整项目或组合测试</span>
+</aside>
+
+### 本节目标
+
+把手写 LoRA 原理映射到 PEFT 的目标模块、配置、可训练参数和 adapter 保存流程。
+
+### 清晰讲解
+
+PEFT 用 adapter 层包装目标 Linear。`target_modules` 必须匹配具体模型命名；配置后先打印可训练参数比例，再训练。adapter checkpoint 不等于完整基础模型。
+
+### 代码示例
+
+```python
+from peft import LoraConfig, TaskType, get_peft_model
+
+config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,
+    target_modules=["q_proj", "v_proj"],
+    r=8,
+    lora_alpha=16,
+    lora_dropout=0.05,
+)
+model = get_peft_model(model, config)
+model.print_trainable_parameters()
+```
+
+### 运行结果与观察
+
+trainable percentage 应远低于 100%；目标模块名不匹配时必须检查 `named_modules()`，不能默认为已经正确注入。
+
+### 常见错误
+
+- 从另一架构照抄 target_modules；保存 adapter 后丢失基础模型信息；把更少训练参数等同于更少前向显存。
+- 不设置任何全量微调或不同 rank 的比较基线。
+
+### 与大模型方向的连接
+
+面试时既要会推导低秩增量，也要能说明框架如何注入、保存、合并和部署 adapter。
+
+### 动手练习
+
+列出所有带 `lora_` 的参数，断言其余基础权重被冻结。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>打印 `named_parameters()`，只允许 adapter 参数 `requires_grad=True`；再计算可训练元素数除以总元素数。</p>
+</details>
+
+
+### 官方资料
+
+- [PEFT LoRA 指南](https://huggingface.co/docs/peft/developer_guides/lora)
+- [PEFT Quicktour](https://huggingface.co/docs/peft/quicktour)
+
+---
+
+## torchao：训练到推理的原生量化入口
+
+<aside className="lesson-runtime" data-code-kind="需要 CUDA" data-pagefind-ignore>
+  <strong>代码状态：需要 CUDA</strong>
+  <span>运行环境：CUDA GPU</span>
+  <span>验证：CPU 仅校验语法与回退路径</span>
+</aside>
+
+### 本节目标
+
+理解 weight-only、动态激活量化和 QAT 的差别，并识别 torchao API 的硬件边界。
+
+### 清晰讲解
+
+量化不是无条件把 dtype 改成整数。weight-only 主要减少权重带宽和存储，动态量化还处理激活，QAT 在训练中模拟量化误差。torchao 与 `torch.compile`、分布式和 Hugging Face 有集成，但配置依赖硬件。
+
+### 代码示例
+
+```python
+import torch
+from torchao.quantization import Int4WeightOnlyConfig, quantize_
+
+if not torch.cuda.is_available():
+    raise SystemExit("本示例需要受支持的 CUDA GPU")
+model = model.eval().cuda()
+quantize_(model, Int4WeightOnlyConfig(group_size=32))
+with torch.inference_mode():
+    output = model(input_ids.cuda())
+print(output.logits.shape)
+```
+
+### 运行结果与观察
+
+正确验收要记录量化前后峰值显存、tokens/s 与任务指标。不同 GPU、模型和 torchao 版本支持范围不同。
+
+### 常见错误
+
+- 只比较文件大小；量化后不复测精度；CPU 机器照抄 CUDA int4 配置。
+- 混淆训练 dtype、权重存储 dtype 和实际计算 kernel。
+
+### 与大模型方向的连接
+
+量化把 PyTorch 模型连接到推理服务，算法岗需要同时回答误差、性能和硬件支持三个问题。
+
+### 动手练习
+
+设计表格记录量化前后的显存、首 token 延迟、tokens/s 和验证集指标。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [torchao 文档](https://docs.pytorch.org/ao/stable/)
+- [torchao 官方文档](https://docs.pytorch.org/ao/stable/)
+- [torchao 教程目录](https://docs.pytorch.org/ao/stable/eager_tutorials/index.html)
+
+---
+
+## TorchTitan：阅读官方大规模预训练配方
+
+<aside className="lesson-runtime" data-code-kind="伪代码／接口示意" data-pagefind-ignore>
+  <strong>代码状态：伪代码／接口示意</strong>
+  <span>运行环境：多进程／多卡 GPU</span>
+  <span>验证：CPU 仅校验语法与回退路径</span>
+</aside>
+
+### 本节目标
+
+知道 TorchTitan 的配置入口与运行边界，把 TP、FSDP2、checkpoint 和 float8 映射到真实训练框架。
+
+### 清晰讲解
+
+TorchTitan 面向生成模型预训练，集成多维并行、分布式 checkpoint、弹性和性能分析。学习重点不是立刻启动大模型，而是读懂配置中的每一维 mesh 与训练状态。
+
+### 代码示例
+
+```python
+# 真正训练需在 TorchTitan 仓库按官方配置使用 torchrun。
+parallelism = {
+    "data_parallel_shard_degree": 8,
+    "tensor_parallel_degree": 1,
+    "pipeline_parallel_degree": 1,
+}
+world_size = 8
+degrees = 1
+for degree in parallelism.values():
+    degrees *= degree
+assert degrees == world_size
+print(parallelism)
+```
+
+### 运行结果与观察
+
+字典示例可在 CPU 独立执行，用于检查 mesh 乘积；真正训练需要 Linux、多卡 GPU、匹配依赖和模型配置，不能用本地语法通过冒充硬件验证。
+
+### 常见错误
+
+- 没理解单卡循环就修改大规模框架；并行维度乘积与 world size 不一致；忽视 checkpoint 和故障恢复。
+- 把默认配方当成任何集群的最优配置。
+
+### 与大模型方向的连接
+
+从 TorchTitan 配置反推数据并行、张量并行和分片策略，是从“会写 PyTorch”走向“能读训练系统”的关键。
+
+### 动手练习
+
+为 64 张 GPU 写两种合法 mesh 组合，并说明通信和单卡显存取舍。
+
+<details className="lesson-answer">
+  <summary>查看参考答案与验收点</summary>
+  <p>用一个极小 batch 过拟合，并记录 loss、梯度范数和参数更新；断点恢复后比较下一步结果，而不只检查文件存在。</p>
+</details>
+
+
+### 官方资料
+
+- [TorchTitan 仓库](https://github.com/pytorch/torchtitan)
+- [TorchTitan GitHub](https://github.com/pytorch/torchtitan)
+- [torchao 与 TorchTitan 预训练教程](https://docs.pytorch.org/ao/stable/eager_tutorials/pretraining.html)

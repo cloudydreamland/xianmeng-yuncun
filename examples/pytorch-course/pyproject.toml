@@ -1,0 +1,10 @@
+[project]
+name = "xianmeng-pytorch-course-projects"
+version = "1.0.0"
+description = "《PyTorch 从零到大模型工程》三个可运行贯穿项目"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.7,<3"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

@@ -1,0 +1,357 @@
+---
+title: 机器学习与深度学习基础
+slug: deep-learning-foundations
+order: 1
+description: 从损失函数、优化器、归一化与梯度稳定性出发，建立回答大模型训练问题所需的共同底座。
+topics: [深度学习, 优化器, 归一化, 数值稳定性]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## 交叉熵为什么适合语言模型训练？
+
+### 30 秒口述版
+
+自回归语言模型是在每个位置预测下一个 token 的条件分布，交叉熵正好衡量真实 one-hot 分布与模型分布之间的差异。最小化交叉熵等价于最大化训练语料的条件似然；它对错误但高置信度的预测惩罚更强，梯度又能直接通过 softmax logits 反向传播。
+
+### 原理与推导
+
+给定上下文 $x_{<t}$ 和真实 token $x_t$，模型输出 $p_\theta(x_t\mid x_{<t})$。单个位置的负对数似然为：
+
+$$
+\mathcal{L}_t=-\log p_\theta(x_t\mid x_{<t})
+$$
+
+把所有非 padding 位置求和或平均，就是 token-level cross entropy。它并不直接优化“回答质量”，而是在训练分布上提高真实序列的概率。因此，低训练损失不自动意味着事实性、指令遵循或安全性更好，这些能力还受数据、后训练目标和评测方式影响。
+
+### 公式、代码或工程案例
+
+实现时通常传入未归一化 logits，让框架内部完成稳定的 `log_softmax + NLLLoss`，不要先手工 softmax：
+
+```python
+loss = torch.nn.functional.cross_entropy(
+    logits[:, :-1].reshape(-1, vocab_size),
+    input_ids[:, 1:].reshape(-1),
+    ignore_index=pad_token_id,
+)
+```
+
+### 高频追问
+
+- 为什么 label smoothing 在预训练中不是总有收益？它会削弱对真实 token 的峰值概率，需要结合校准与生成质量验证。
+- 交叉熵与困惑度是什么关系？在相同 tokenizer 与评测切分下，PPL 是平均 token 交叉熵的指数。
+
+### 易错点
+
+不能跨 tokenizer 直接比较困惑度；词表和切分粒度不同会改变 token 数与单 token 难度。还要确认 causal shift、padding mask 和 reduction 方式一致。
+
+### 权威来源
+
+- [PyTorch CrossEntropyLoss 文档](https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
+- [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)
+
+---
+
+## AdamW 与 Adam 的关键区别是什么？
+
+### 30 秒口述版
+
+AdamW 把权重衰减从梯度更新中解耦，直接按参数大小做衰减；Adam 若把 L2 正则项混入梯度，正则化会被每个参数的自适应学习率重新缩放，两者不再等价。Transformer 训练通常选择 AdamW，并对 bias、LayerNorm/RMSNorm 权重排除衰减。
+
+### 原理与推导
+
+Adam 使用一阶矩 $m_t$ 和二阶矩 $v_t$ 调整每个参数的步长。若把 $\lambda\theta$ 加入梯度，它也会被 $1/\sqrt{v_t}$ 缩放；AdamW 则在自适应梯度更新之外执行 $\theta\leftarrow(1-\eta\lambda)\theta$，使“优化方向”和“参数收缩”职责分离。
+
+### 公式、代码或工程案例
+
+```python
+decay, no_decay = [], []
+for name, param in model.named_parameters():
+    (no_decay if name.endswith("bias") or "norm" in name else decay).append(param)
+optimizer = AdamW([
+    {"params": decay, "weight_decay": 0.1},
+    {"params": no_decay, "weight_decay": 0.0},
+], lr=3e-4, betas=(0.9, 0.95))
+```
+
+### 高频追问
+
+- 为什么大模型常把 $\beta_2$ 从 0.999 调低到 0.95 左右？更快适应非平稳梯度统计，但具体值必须由训练规模与稳定性实验决定。
+- 权重衰减是否等同于降低学习率？不是，前者偏向控制参数范数，后者改变所有更新步长。
+
+### 易错点
+
+不要机械地给所有参数加衰减；归一化缩放参数、偏置与 embedding 是否衰减应遵循具体训练配方。复现实验时还要核对 epsilon、betas、梯度裁剪和学习率调度。
+
+### 权威来源
+
+- [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101)
+- [PyTorch AdamW 文档](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
+
+---
+
+## 为什么大模型训练需要学习率预热和衰减？
+
+### 30 秒口述版
+
+训练初期参数和优化器矩估计都不稳定，直接使用峰值学习率容易造成激活或梯度爆炸，因此先 warmup；中后期再逐渐衰减学习率，让参数在较小步长下收敛。常见配方是线性预热后接 cosine decay，但预热比例应按 token 数、全局 batch 和模型规模调节。
+
+### 原理与推导
+
+预热不是为了提高最终学习率，而是控制最初若干步的更新尺度。大 batch 训练会改变梯度噪声，混合精度也放大数值不稳定风险。进入稳定区后，余弦或线性衰减逐步降低探索幅度；若衰减过早，模型会欠拟合，过晚则训练尾部振荡且浪费计算。
+
+### 公式、代码或工程案例
+
+余弦衰减可写成：
+
+$$
+\eta_t=\eta_{min}+\frac{1}{2}(\eta_{max}-\eta_{min})\left(1+\cos\frac{\pi(t-T_w)}{T-T_w}\right)
+$$
+
+其中 $T_w$ 为预热步数，$T$ 为总训练步数。工程上应按有效 optimizer step 计算，而不是按 micro-batch 数误算。
+
+### 高频追问
+
+- warmup 设多少？没有通用常数，应结合峰值学习率、batch、模型深度和稳定性曲线确定。
+- cosine 与 linear decay 谁更好？两者都常用，数据量和训练预算匹配比曲线名称更重要。
+
+### 易错点
+
+使用梯度累积时，scheduler 通常应在 optimizer step 后更新。断点恢复必须同时恢复 scheduler 状态，否则学习率会跳变。
+
+### 权威来源
+
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 梯度消失和梯度爆炸为什么会发生？
+
+### 30 秒口述版
+
+深层网络的反向传播本质上是多个 Jacobian 连乘；若其主导奇异值长期小于 1，梯度指数衰减，长期大于 1 则指数放大。Transformer 通过残差连接、合适初始化、归一化、学习率预热和梯度裁剪缓解，但仍需监控梯度范数与非有限值。
+
+### 原理与推导
+
+设第 $l$ 层为 $h_l=f_l(h_{l-1})$，则早期层梯度包含 $\prod_l \partial h_l/\partial h_{l-1}$。激活函数饱和、参数尺度失衡或深度过大都会让连乘偏离稳定区。残差结构把恒等路径加入 Jacobian，使信息和梯度不必只穿过非线性变换。
+
+### 公式、代码或工程案例
+
+```python
+total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+if not torch.isfinite(total_norm):
+    optimizer.zero_grad(set_to_none=True)
+    raise RuntimeError(f"non-finite gradient: {total_norm}")
+```
+
+裁剪只能限制后果，不能替代对异常数据、溢出算子或错误学习率的定位。
+
+### 高频追问
+
+- clip-by-value 与 clip-by-norm 有何区别？前者逐元素截断，后者保持整体方向并缩放范数，训练大模型更常见后者。
+- 为什么 Pre-LN 更易训练深层 Transformer？它给残差主干提供更直接的梯度路径。
+
+### 易错点
+
+看到大梯度就调小阈值可能掩盖数据或实现错误。应同时检查 loss scale、激活范围、特定层梯度、坏样本和分布式聚合前后的范数。
+
+### 权威来源
+
+- [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
+- [On Layer Normalization in the Transformer Architecture](https://arxiv.org/abs/2002.04745)
+
+---
+
+## LayerNorm、RMSNorm 与 BatchNorm 有什么区别？
+
+### 30 秒口述版
+
+BatchNorm 沿 batch 统计均值方差，依赖批量组成，适合视觉卷积但不适合变长自回归序列；LayerNorm 对单个 token 的隐藏维做中心化和缩放；RMSNorm 省去减均值，仅按均方根缩放，计算更简单。现代 LLM 常用 Pre-RMSNorm 或 Pre-LayerNorm。
+
+### 原理与推导
+
+LayerNorm 对隐藏向量 $x\in\mathbb{R}^d$ 计算 $\mu$ 与 $\sigma$，再输出 $\gamma(x-\mu)/\sqrt{\sigma^2+\epsilon}+\beta$。RMSNorm 使用 $\gamma x/\sqrt{\frac1d\sum_i x_i^2+\epsilon}$。它们不需要跨样本同步，因此训练、推理和不同序列长度下行为一致。
+
+### 公式、代码或工程案例
+
+归一化放置也很关键：Post-LN 是 `x = norm(x + sublayer(x))`，Pre-LN 是 `x = x + sublayer(norm(x))`。Pre-LN 通常优化更稳定；Post-LN 可能有不同表征性质，但对初始化和训练配方更敏感。
+
+### 高频追问
+
+- RMSNorm 为什么可以不减均值？经验上重新缩放已能提供主要稳定性收益，但这不是说中心化永远无用。
+- epsilon 有什么影响？过小可能在低精度下不稳定，过大会改变归一化尺度。
+
+### 易错点
+
+“在哪个维度归一化”比名字更重要。不要把 LayerNorm 误说成对序列长度维统计，也不要忽略不同框架对 epsilon 和可学习偏置的默认差异。
+
+### 权威来源
+
+- [Layer Normalization](https://arxiv.org/abs/1607.06450)
+- [Root Mean Square Layer Normalization](https://arxiv.org/abs/1910.07467)
+
+---
+
+## FP16、BF16 和 FP32 应该怎样选择？
+
+### 30 秒口述版
+
+FP32 精度和动态范围最大但显存、带宽成本高；FP16 尾数较多但指数范围小，容易溢出，常需 loss scaling；BF16 与 FP32 共享 8 位指数，动态范围更大、训练更稳，但尾数较少。支持 BF16 的现代训练硬件通常优先 BF16，关键归约和优化器状态仍可能保留 FP32。
+
+### 原理与推导
+
+混合精度并不是“把所有张量统一转成低精度”。矩阵乘可用 BF16/FP16 提速，累加、归一化、softmax、损失与优化器状态根据算子敏感性保留更高精度。最终选择还取决于 GPU 支持、通信格式、内核实现和模型配方。
+
+### 公式、代码或工程案例
+
+FP16 的最大有限值约为 $6.55\times10^4$，梯度过小又会下溢。动态 loss scaling 先放大损失再反向传播，检测到非有限梯度时降低 scale；BF16 通常不需要同等程度的 scaling。
+
+### 高频追问
+
+- TF32 是什么？它是 NVIDIA 对 FP32 矩阵运算使用的内部格式选择，不等同于把模型权重存成 BF16。
+- FP8 能否直接替代 BF16？需要分尺度、校准和硬件内核配合，不能只改 dtype。
+
+### 易错点
+
+不要只看 dtype 推断显存；参数、梯度、优化器状态、master weights、激活和临时 workspace 可能使用不同精度。
+
+### 权威来源
+
+- [Mixed Precision Training](https://arxiv.org/abs/1710.03740)
+- [NVIDIA Transformer Engine 文档](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/)
+
+---
+
+## 训练出现 Loss NaN 应该如何系统排查？
+
+### 30 秒口述版
+
+先定位第一个非有限值出现在哪个 step、样本、层和算子，再区分数据、前向、反向和优化器问题。检查输入与标签范围、mask 是否产生全负无穷、log/除法是否合法、学习率和 loss scale、梯度范数以及断点状态；不要只靠重启或盲目降低学习率。
+
+### 原理与推导
+
+NaN 会快速污染后续张量，因此“最终 loss 是 NaN”信息量很低。有效方法是固定随机种子复现，在数据入口、关键激活、loss、各层梯度和参数更新后加入 `isfinite` 检查，通过二分层或 step 缩小范围。
+
+### 公式、代码或工程案例
+
+典型故障包括：空标签使平均分母为零；attention 某一行全部被 mask，softmax 输入全为 $-\infty$；FP16 指数溢出；恢复 checkpoint 时 optimizer/scheduler 未同步；分布式某个 rank 读到坏样本。
+
+### 高频追问
+
+- 为什么梯度裁剪后仍 NaN？前向或 loss 已经 NaN 时裁剪无效；裁剪函数本身也不能修复非有限梯度。
+- 如何找出坏 rank？记录全局 step、rank、样本 ID，并在 all-reduce 前检查本地张量。
+
+### 易错点
+
+开启 anomaly detection 很慢，适合最小复现而非长期大规模训练。修复后应补回归样本和数值监控，而不是删除日志。
+
+### 权威来源
+
+- [PyTorch 数值精度说明](https://pytorch.org/docs/stable/notes/numerical_accuracy.html)
+- [NVIDIA Automatic Mixed Precision 指南](https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/)
+
+---
+
+## 梯度累积与增大全局 Batch 完全等价吗？
+
+### 30 秒口述版
+
+在参数不更新、样本顺序和 loss 归一化一致，且模型没有依赖 micro-batch 统计的算子时，梯度累积可近似得到同一全局 batch 的平均梯度。但 dropout 随机性、序列动态打包、梯度裁剪时机、混合精度溢出、分布式通信和优化器 step 数都会造成差异。
+
+### 原理与推导
+
+若把 $K$ 个 micro-batch 的 loss 各除以 $K$ 后累积，理论梯度等于拼接 batch 的平均梯度。真正影响训练动态的是每次 optimizer update 看到的 token 数，因此大模型常用“tokens per update”而不仅是样本数描述 batch。
+
+### 公式、代码或工程案例
+
+```python
+optimizer.zero_grad(set_to_none=True)
+for micro_step, batch in enumerate(loader):
+    (model(**batch).loss / accumulation_steps).backward()
+    if (micro_step + 1) % accumulation_steps == 0:
+        clip_grad_norm_(model.parameters(), 1.0)
+        optimizer.step()
+        scheduler.step()
+        optimizer.zero_grad(set_to_none=True)
+```
+
+### 高频追问
+
+- DDP 中怎样避免每个 micro-step 都通信？非最终 micro-step 使用 `no_sync()`，最后一次再 all-reduce。
+- 可变长度序列怎样归一化？按有效 token 数而非 micro-batch 个数更稳妥。
+
+### 易错点
+
+最常见错误是 loss 未除累积步数、scheduler 每个 micro-step 更新、或在每个 micro-step 单独裁剪梯度，导致与预期训练配方不同。
+
+### 权威来源
+
+- [PyTorch DistributedDataParallel 文档](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html)
+- [Hugging Face Accelerate 梯度累积指南](https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation)
+
+---
+
+## 过拟合、欠拟合和数据泄漏如何区分？
+
+### 30 秒口述版
+
+欠拟合表现为训练与验证都差，说明容量、优化或数据表达不足；过拟合是训练继续变好而验证恶化；数据泄漏则会制造异常乐观的验证结果，常来自训练验证重复、近重复、未来信息或 benchmark 污染。大模型里必须把数据去重和污染审计当作评测的一部分。
+
+### 原理与推导
+
+仅看一条 loss 曲线不足以判断。应同时比较训练/验证 token loss、下游任务、不同时间或来源切分，并检查模型规模与数据规模的关系。预训练常见的是数据重复导致记忆，后训练则可能因指令模板单一造成格式过拟合。
+
+### 公式、代码或工程案例
+
+数据审计可分为 exact hash、规范化文本 hash、MinHash/LSH 近重复检测和 benchmark n-gram 污染检查。时间切分或来源隔离通常比随机切分更接近真实泛化场景。
+
+### 高频追问
+
+- 验证集 loss 下降但业务效果不升为什么？验证分布或目标可能与业务不一致，或生成质量受解码与对齐影响。
+- 增加 dropout 能解决泄漏吗？不能，泄漏是数据与评测设计错误。
+
+### 易错点
+
+不能因为“网页公开”就认为 benchmark 答案进入训练集无影响。评测题被记忆会让指标失去能力测量意义。
+
+### 权威来源
+
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+
+---
+
+## 如何估算一次大模型训练的显存组成？
+
+### 30 秒口述版
+
+训练显存至少包括参数、梯度、优化器状态、可能的 FP32 master weights、激活、临时算子 workspace、通信缓冲和内存碎片。仅按“参数量 × dtype 字节”只得到权重下限；全参 Adam 训练中，模型状态常约每参数 12–20 字节，激活又随 batch、序列长度和层数增长。
+
+### 原理与推导
+
+以混合精度 Adam 为例，若保留 2 字节参数、2 字节梯度、4 字节 FP32 master weight，以及两个各 4 字节的 Adam 矩，模型状态约为每参数 16 字节。具体框架可能复用或分片这些张量。激活显存与实现相关，checkpointing 可用额外计算换取存储下降。
+
+### 公式、代码或工程案例
+
+粗略模型状态下限：
+
+$$
+M_{state}\approx N_{param}(b_w+b_g+b_{master}+b_m+b_v)
+$$
+
+之后还要加激活、attention 中间量、CUDA context 与安全余量。使用 ZeRO/FSDP 时，应分别说明参数、梯度和优化器状态在哪一级被分片，而不是简单除以 GPU 数。
+
+### 高频追问
+
+- 为什么实测比公式大？缓存分配器、碎片、临时 kernel workspace、通信 bucket 和未释放计算图都会增加峰值。
+- 推理显存怎么算？主要是权重、KV cache 和 workspace；KV cache 随并发与上下文长度增长。
+
+### 易错点
+
+显存预算必须使用“峰值”而非稳定阶段均值，并区分 GB 与 GiB。还要明确参数量是否包含 embedding、专家总参数以及冻结参数。
+
+### 权威来源
+
+- [ZeRO: Memory Optimizations Toward Training Trillion Parameter Models](https://arxiv.org/abs/1910.02054)
+- [PyTorch FullyShardedDataParallel 文档](https://pytorch.org/docs/stable/fsdp.html)

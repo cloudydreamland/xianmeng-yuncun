@@ -1,0 +1,337 @@
+---
+title: 预训练数据与优化
+slug: pretraining-data-and-optimization
+order: 5
+description: 覆盖预训练目标、数据治理、采样、去重、课程与训练稳定性，理解“数据 × 计算 × 优化”的完整系统。
+topics: [预训练, 数据治理, 优化, 混合精度]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## Causal Language Modeling 的训练目标是什么？
+
+### 30 秒口述版
+
+给定前缀预测下一个 token，最大化整段序列的条件似然，训练时用 teacher forcing 并行计算各位置损失。
+
+### 原理与推导
+
+目标简单通用，但只保证拟合 token 分布，不直接保证事实、推理或指令遵循。
+
+### 公式、代码或工程案例
+
+检查 label shift、causal mask 与 padding ignore 是否一致。
+
+### 高频追问
+
+- 为什么曝光偏差会出现？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把预训练目标说成直接最小化回答错误率。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 预训练语料需要哪些清洗步骤？
+
+### 30 秒口述版
+
+常见流程包括格式解析、语言与质量过滤、隐私和安全处理、去重、污染检查、领域分类与采样。
+
+### 原理与推导
+
+顺序会影响结果，例如先规范化再去重能发现更多近重复，但过度清洗会损失代码和少数语言。
+
+### 公式、代码或工程案例
+
+为每个过滤器记录保留率和抽样审计样本。
+
+### 高频追问
+
+- 质量分类器会引入什么偏差？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只报告最终 token 数而没有数据谱系。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 为什么去重对大模型训练重要？
+
+### 30 秒口述版
+
+重复内容浪费计算、提高记忆和隐私风险，还可能让 benchmark 污染被放大。
+
+### 原理与推导
+
+需要同时处理文档级 exact duplicate、段落级和近重复；阈值过严会误删模板化但有价值内容。
+
+### 公式、代码或工程案例
+
+组合 hash 与 MinHash/LSH，并按来源审计误删率。
+
+### 高频追问
+
+- 训练数据重复是否有时有益？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把 URL 不同当作内容不同。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 数据混合比例怎样确定？
+
+### 30 秒口述版
+
+按目标能力、数据质量、规模和边际收益设置语言/领域采样权重，并通过消融与小模型实验校准。
+
+### 原理与推导
+
+简单按原始体量采样会让网页大类淹没高价值代码、数学或小语种；过采样又可能过拟合。
+
+### 公式、代码或工程案例
+
+记录每领域有效 token、重复率和验证集曲线。
+
+### 高频追问
+
+- 温度采样解决什么？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只凭主观“高质量”定权重。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 预训练数据污染如何检测？
+
+### 30 秒口述版
+
+在训练前将评测集及其变体与语料做精确、n-gram 和近重复匹配，记录命中并隔离。
+
+### 原理与推导
+
+只匹配完整题面会漏掉答案、翻译版和局部片段；模型发布后也应披露已知污染限制。
+
+### 公式、代码或工程案例
+
+对 benchmark 构建规范化指纹与受控 canary。
+
+### 高频追问
+
+- 时间切分为何有帮助？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把低匹配率等同于零污染。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## Packing 为什么能提高训练效率？
+
+### 30 秒口述版
+
+把多个短样本拼入固定长度序列可减少 padding，提高有效 token 比例和 GPU 利用率。
+
+### 原理与推导
+
+必须正确设置文档边界、位置 ID、attention mask 和 loss mask，避免样本之间意外互看。
+
+### 公式、代码或工程案例
+
+统计有效 token/总 token，而不是只看 batch size。
+
+### 高频追问
+
+- 有 EOS 后还需要 block-diagonal mask 吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要默认拼接后的跨文档注意力一定无害。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 学习率、Batch 与 Token 数怎样联动？
+
+### 30 秒口述版
+
+全局 batch 影响梯度噪声和每次更新看到的 token，学习率与 warmup 需要随有效 batch 和规模重新标定。
+
+### 原理与推导
+
+线性缩放只是经验起点；过大 batch 会减少更新次数并改变泛化。
+
+### 公式、代码或工程案例
+
+用 tokens/update、总 optimizer steps 和峰值学习率共同描述配方。
+
+### 高频追问
+
+- 梯度噪声尺度是什么？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只报告 per-GPU batch。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 混合精度训练怎样保证稳定？
+
+### 30 秒口述版
+
+对适合的 GEMM 使用 BF16/FP16，敏感归约与优化器状态保留高精度，并监控溢出。
+
+### 原理与推导
+
+FP16 常需动态 loss scaling，BF16 动态范围更大；FP8 还需分尺度与校准。
+
+### 公式、代码或工程案例
+
+记录非有限梯度、scale 变化和各层激活范围。
+
+### 高频追问
+
+- 为什么 softmax 常内部转 FP32？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把 autocast 理解为所有算子统一低精度。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## Gradient Checkpointing 的原理是什么？
+
+### 30 秒口述版
+
+前向只保存部分边界激活，反向时重算中间前向，以额外计算换显存。
+
+### 原理与推导
+
+切分粒度决定重算开销与峰值；随机算子还需保证重算一致。
+
+### 公式、代码或工程案例
+
+比较开启前后的峰值显存、step time 与吞吐。
+
+### 高频追问
+
+- 它能减少参数显存吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要说 checkpointing 会减少模型状态。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 训练中断后怎样正确恢复？
+
+### 30 秒口述版
+
+除模型权重外还要恢复 optimizer、scheduler、scaler、随机数、数据游标和全局 step。
+
+### 原理与推导
+
+分布式拓扑或数据 worker 改变可能破坏严格复现，应定义可接受的恢复级别。
+
+### 公式、代码或工程案例
+
+恢复前后核对下一步 LR、样本 ID 和 loss 连续性。
+
+### 高频追问
+
+- 弹性训练如何处理 world size 变化？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只加载模型权重就称为续训。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)
+
+---
+
+## 怎样判断预训练是否正常？
+
+### 30 秒口述版
+
+结合 train/validation loss、梯度范数、学习率、吞吐、硬件错误、数据域指标和定期下游探针判断。
+
+### 原理与推导
+
+单一 loss 平滑不代表数据正确；异常高吞吐也可能意味着样本被截断或 mask 错误。
+
+### 公式、代码或工程案例
+
+建立已知小数据过拟合测试和周期性固定探针集。
+
+### 高频追问
+
+- loss spike 应立即回滚吗？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要对短期噪声过度反应，也不要忽略重复 spike 的样本关联。
+
+### 权威来源
+
+- [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
+- [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)

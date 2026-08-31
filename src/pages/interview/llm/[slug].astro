@@ -1,0 +1,21 @@
+---
+import { getCollection, render } from 'astro:content';
+import InterviewLayout from '../../../layouts/InterviewLayout.astro';
+import { questionHeadings, sortInterviewChapters } from '../../../utils/interview';
+
+export async function getStaticPaths() {
+  const chapters = sortInterviewChapters(await getCollection('llmInterview', ({ data }) => !data.draft));
+  return chapters.map((chapter, index) => ({
+    params: { slug: chapter.data.slug },
+    props: { chapter, chapters, prev: chapters[index - 1], next: chapters[index + 1] },
+  }));
+}
+
+const { chapter, chapters, prev, next } = Astro.props;
+const { Content, headings } = await render(chapter);
+const questions = questionHeadings(headings);
+---
+
+<InterviewLayout chapter={chapter} chapters={chapters} questions={questions} prev={prev} next={next}>
+  <Content />
+</InterviewLayout>

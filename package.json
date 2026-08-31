@@ -30,10 +30,13 @@
     "animal-island-ui": "^1.2.3",
     "astro": "^7.1.1",
     "classnames": "^2.5.1",
+    "katex": "^0.18.4",
     "pixi-filters": "^6.1.5",
     "pixi.js": "^8.19.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",

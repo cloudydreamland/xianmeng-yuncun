@@ -1,0 +1,149 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { lessonHeadings, sortPytorchChapters } from '../../../utils/pytorchTutorial';
+import { pytorchCourseExtras } from '../../../data/pytorchCourseExtras';
+
+const chapters = sortPytorchChapters(await getCollection('pytorchTutorial', ({ data }) => !data.draft));
+const chapterCards = await Promise.all(chapters.map(async (chapter) => {
+  const { headings } = await render(chapter);
+  return { chapter, lessons: lessonHeadings(headings) };
+}));
+const lessons = chapterCards.flatMap(({ chapter, lessons }) => lessons.map((lesson) => ({
+  title: lesson.text,
+  href: `/learn/pytorch/${chapter.data.slug}/#${lesson.slug}`,
+  chapter: chapter.data.title,
+  level: chapter.data.level,
+  topics: chapter.data.topics.join(' '),
+})));
+const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseExtras[chapter.data.slug]?.estimatedMinutes ?? 0), 0);
+---
+
+<BaseLayout title="PyTorch 从零到大模型工程" description="面向大模型算法方向的系统 PyTorch 中文教程：从张量、自动求导和训练循环，走到 Transformer、性能优化、分布式训练与迷你语言模型实战。" searchable searchType="教程" searchTitle="PyTorch 从零到大模型工程" searchCategory="PyTorch 教程" searchTags={['PyTorch', '深度学习', 'Transformer', '大模型工程']}>
+  <section class="course-home page-shell">
+    <nav class="course-home__breadcrumb" aria-label="面包屑"><a href="/world/star-abyss/">星渊</a><span>/</span><span aria-current="page">PyTorch 修炼路线</span></nav>
+    <header class="course-home__header">
+      <div>
+        <p class="pixel-kicker">星渊炼火 · 以代码求真</p>
+        <h1>PyTorch 从零到大模型工程</h1>
+        <p>不是 API 清单，而是一条能亲手跑通的学习路线。每节都用直白解释、可执行代码、常见错误和大模型连接，把“会调用”逐步练成“懂原理、能调试、能扩展”。</p>
+        <div class="course-home__actions"><a href={`/learn/pytorch/${chapters[0]?.data.slug}/`}>从第一行 Tensor 开始</a><a href="#course-map">查看课程地图</a></div>
+      </div>
+      <dl>
+        <div><dt>{chapters.length}</dt><dd>学习章节</dd></div>
+        <div><dt>{lessons.length}</dt><dd>核心课程</dd></div>
+        <div><dt>3</dt><dd>贯穿项目</dd></div>
+      </dl>
+    </header>
+
+    <section class="course-dashboard" aria-labelledby="course-dashboard-title" data-pagefind-ignore>
+      <div><p class="pixel-kicker">我的修炼进度</p><h2 id="course-dashboard-title">从上次停下的地方继续</h2><p data-course-progress-text>尚未完成课程，选择第一节开始即可。</p></div>
+      <div class="course-dashboard__meter"><span data-course-progress-meter style="--course-percent:0%"></span></div>
+      <div class="course-dashboard__actions"><a href={`/learn/pytorch/${chapters[0]?.data.slug}/`} data-course-continue>开始第一章</a><button type="button" data-course-reset>重置本机进度</button></div>
+      <small>预计总学习时间约 {Math.ceil(estimatedMinutes / 60)} 小时 · 进度只保存在当前设备</small>
+    </section>
+
+    <section class="course-compass" aria-labelledby="course-compass-title">
+      <div><p class="pixel-kicker">学习罗盘</p><h2 id="course-compass-title">零基础应该怎么走？</h2></div>
+      <ol>
+        <li><span>01</span><strong>先跑通</strong><p>入门阶段先理解形状、设备和梯度，不急着背 API。</p></li>
+        <li><span>02</span><strong>再看懂</strong><p>亲手写训练循环与 Transformer，建立数据流和显存意识。</p></li>
+        <li><span>03</span><strong>后优化</strong><p>用 AMP、Profiler、编译与分布式方法解决真实瓶颈。</p></li>
+        <li><span>04</span><strong>做成项目</strong><p>最终训练一个迷你 Decoder-only 模型，并形成可讲述的项目经验。</p></li>
+      </ol>
+    </section>
+
+    <section class="course-finder" aria-labelledby="course-finder-title" data-pagefind-ignore>
+      <div><p class="pixel-kicker">课程索引</p><h2 id="course-finder-title">直接寻找一个知识点</h2></div>
+      <label><span aria-hidden="true">⌕</span><input type="search" placeholder="例如：广播、反向传播、AMP、FSDP、KV Cache" aria-label={`搜索${lessons.length}节PyTorch课程`} data-course-search /></label>
+      <p data-course-search-status aria-live="polite">输入关键词，相关课程会在这里显影。</p>
+      <div class="course-finder__results" data-course-results hidden>
+        {lessons.map((lesson) => <a href={lesson.href} data-search-text={`${lesson.title} ${lesson.chapter} ${lesson.level} ${lesson.topics}`.toLowerCase()}><small>{lesson.level} · {lesson.chapter}</small><strong>{lesson.title}</strong></a>)}
+      </div>
+    </section>
+
+    <section class="course-map" id="course-map" aria-labelledby="course-map-title">
+      <header><p class="pixel-kicker">{chapters.length} 章修炼</p><h2 id="course-map-title">从 Python 第一行走到大模型训练</h2><p>先补齐 Python、NumPy 与 PyTorch 基础，再进入 Transformer、性能、分布式和真实生态，最终以一个可运行的语言模型项目收束。</p></header>
+      <div>
+        {chapterCards.map(({ chapter, lessons }) => (
+          <a href={`/learn/pytorch/${chapter.data.slug}/`}>
+            <span>{String(chapter.data.order).padStart(2, '0')}</span>
+            <small>{chapter.data.level} · {lessons.length} 节</small>
+            <h3>{chapter.data.title}</h3>
+            <p>{chapter.data.description}</p>
+            <em>{chapter.data.topics.slice(0, 3).join(' / ')}</em><strong>进入本章 →</strong>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="course-projects" id="course-projects">
+      <div><p class="pixel-kicker">贯穿项目</p><h2>每走一段，就留下可运行的成果</h2></div>
+      <ol>
+        <li><small>基础里程碑</small><strong>完整分类训练器</strong><span>数据、训练、验证与 checkpoint 闭环。</span><a href="/downloads/pytorch-course/classifier-project.zip" download>下载项目</a></li>
+        <li><small>进阶里程碑</small><strong>可运行 Decoder Block</strong><span>含 SDPA、反向梯度与因果泄漏测试。</span><a href="/downloads/pytorch-course/decoder-block-project.zip" download>下载项目</a></li>
+        <li><small>方向项目</small><strong>迷你中文语言模型</strong><span>内置语料，完成训练、生成与 checkpoint。</span><a href="/downloads/pytorch-course/mini-lm-project.zip" download>下载项目</a></li>
+      </ol>
+      <div class="course-projects__bundle"><a href="/downloads/pytorch-course/all-projects.zip" download>下载全部项目与依赖配置</a><a href="/downloads/pytorch-course/verification-report.json">查看 74 段代码验证报告</a></div>
+    </section>
+
+    <section class="course-verification">
+      <p class="pixel-kicker">真实执行边界</p><h2>不把语法通过冒充硬件验证</h2>
+      <dl><div><dt>74</dt><dd>Python 代码语法校验</dd></div><div><dt>39</dt><dd>CPU 独立执行通过</dd></div><div><dt>35</dt><dd>组合或硬件路径明示</dd></div><div><dt>3/3</dt><dd>完整项目 CPU 通过</dd></div></dl>
+      <p>CUDA、FSDP2、Tensor Parallel 与 TorchTitan 路径明确标记所需硬件；页面同时提供运行命令和验收指标，但不会声称在本站 CPU 环境完成了 GPU 验证。</p>
+    </section>
+
+    <section class="course-sources"><p class="pixel-kicker">资料原则</p><h2>以官方文档和可复现实验为锚</h2><p>教程按 PyTorch 当前推荐接口组织，版本敏感内容会注明边界。代码优先保持短小可运行，再解释如何扩展到大模型训练。</p><p><a href="https://docs.pytorch.org/tutorials/beginner/basics/intro.html">基础教程</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html">torch.compile</a> · <a href="https://docs.pytorch.org/tutorials/distributed.html">分布式训练</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html">高性能注意力</a></p></section>
+  </section>
+
+  <script>
+    const input = document.querySelector<HTMLInputElement>('[data-course-search]');
+    const status = document.querySelector<HTMLElement>('[data-course-search-status]');
+    const results = document.querySelector<HTMLElement>('[data-course-results]');
+    const items = [...(results?.querySelectorAll<HTMLAnchorElement>('a') ?? [])];
+    input?.addEventListener('input', () => {
+      const query = input.value.trim().toLowerCase();
+      if (!results || !status) return;
+      if (!query) { results.hidden = true; items.forEach((item) => { item.hidden = false; }); status.textContent = '输入关键词，相关课程会在这里显影。'; return; }
+      let count = 0;
+      items.forEach((item) => { const match = item.dataset.searchText?.includes(query) ?? false; item.hidden = !match; if (match) count += 1; });
+      results.hidden = false;
+      status.textContent = count ? `找到 ${count} 节相关课程` : '暂时没有匹配的课程，试试更短的关键词。';
+    });
+    const progressText = document.querySelector<HTMLElement>('[data-course-progress-text]');
+    const progressMeter = document.querySelector<HTMLElement>('[data-course-progress-meter]');
+    const continueLink = document.querySelector<HTMLAnchorElement>('[data-course-continue]');
+    const resetButton = document.querySelector<HTMLButtonElement>('[data-course-reset]');
+    const totalLessons = Number(document.querySelector('input[data-course-search]')?.getAttribute('aria-label')?.match(/\d+/)?.[0] || 0);
+    const renderProgress = () => {
+      let completed: string[] = [];
+      let last: { href?: string; title?: string } | null = null;
+      try {
+        completed = JSON.parse(localStorage.getItem('xianmeng:pytorch-progress:v1') || '[]');
+        last = JSON.parse(localStorage.getItem('xianmeng:pytorch-last-read:v1') || 'null');
+      } catch {}
+      const count = Math.min(totalLessons, new Set(completed).size);
+      const percent = totalLessons ? Math.round(count / totalLessons * 100) : 0;
+      if (progressText) progressText.textContent = count ? `已完成 ${count} / ${totalLessons} 节（${percent}%）` : '尚未完成课程，选择第一节开始即可。';
+      progressMeter?.style.setProperty('--course-percent', `${percent}%`);
+      if (continueLink && last?.href) { continueLink.href = last.href; continueLink.textContent = `继续：${last.title || '上次课程'}`; }
+    };
+    resetButton?.addEventListener('click', () => {
+      localStorage.removeItem('xianmeng:pytorch-progress:v1');
+      localStorage.removeItem('xianmeng:pytorch-last-read:v1');
+      renderProgress();
+    });
+    renderProgress();
+  </script>
+</BaseLayout>
+
+<style>
+  .course-home{padding:128px 0 110px}.course-home__breadcrumb{display:flex;gap:8px;margin-bottom:22px;color:var(--ink-soft);font-size:.72rem}.course-home__breadcrumb a{color:#426c9b}.course-home__header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px;align-items:end;padding:clamp(30px,6vw,64px);border:1px solid rgba(73,91,136,.25);border-radius:38px;background:linear-gradient(135deg,rgba(238,245,255,.97),rgba(228,245,237,.94));box-shadow:var(--shadow-soft)}.course-home__header h1{margin:10px 0 16px;color:#344f70;font-family:var(--serif);font-size:clamp(2.5rem,6.5vw,4.8rem);line-height:1.2}.course-home__header>div>p:not(.pixel-kicker){max-width:720px;margin:0;color:#607079;line-height:1.9}.course-home__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.course-home__actions a{min-height:44px;padding:11px 16px;border:1px solid #52749b;border-radius:999px;color:#fff;background:#52749b;font-size:.72rem;font-weight:900}.course-home__actions a:last-child{color:#496783;background:transparent}.course-home__header dl{display:flex;gap:8px;margin:0}.course-home__header dl div{min-width:105px;padding:16px;border:1px solid #91a4bb;border-radius:20px;text-align:center;background:rgba(255,253,246,.78)}.course-home__header dt{color:#405f84;font-family:var(--serif);font-size:1.8rem;font-weight:900}.course-home__header dd{margin:3px 0 0;color:#738078;font-size:.65rem}
+  .course-compass{display:grid;grid-template-columns:.55fr 1.45fr;gap:36px;margin:28px 0 30px;padding:30px;border:1px solid #90a0b1;border-radius:28px;background:rgba(255,253,246,.92)}.course-compass h2,.course-map h2,.course-projects h2,.course-sources h2{margin:7px 0 12px;color:#3f5873;font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.7rem)}.course-compass ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}.course-compass li{position:relative;padding:17px 18px 16px 48px;border-radius:18px;background:#edf3f8}.course-compass li>span{position:absolute;left:15px;top:17px;color:#6382a2;font-size:.7rem}.course-compass strong{color:#405e7a}.course-compass li p{margin:5px 0 0;color:#718087;font-size:.75rem;line-height:1.65}
+  .course-dashboard{display:grid;grid-template-columns:1fr auto;gap:10px 30px;align-items:center;margin:28px 0;padding:26px 30px;border:1px solid #8299b0;border-radius:26px;background:#fffdf5}.course-dashboard h2{margin:5px 0;color:#405d7b;font-family:var(--serif)}.course-dashboard p{margin:4px 0;color:#6e7c84;font-size:.76rem}.course-dashboard__meter{grid-column:1/-1;height:10px;overflow:hidden;border-radius:999px;background:#dde5eb}.course-dashboard__meter span{display:block;width:var(--course-percent);height:100%;background:linear-gradient(90deg,#567ba5,#64a193);transition:width .3s}.course-dashboard__actions{display:flex;flex-wrap:wrap;gap:8px}.course-dashboard__actions a,.course-dashboard__actions button{min-height:44px;padding:10px 14px;border:1px solid #5e7d9e;border-radius:999px;color:#fff;background:#52749b;cursor:pointer;font:inherit;font-size:.7rem;font-weight:900}.course-dashboard__actions button{color:#526b82;background:transparent}.course-dashboard>small{color:#78838a;font-size:.64rem}
+  .course-finder{margin:0 0 74px;padding:26px clamp(20px,4vw,34px);border:1px solid #8597a8;border-radius:28px;background:rgba(255,253,246,.92)}.course-finder>div:first-child{display:flex;align-items:baseline;gap:15px}.course-finder h2{margin:0;color:#435e79;font-family:var(--serif)}.course-finder label{display:flex;align-items:center;gap:10px;margin-top:18px;padding:0 16px;border:2px solid #5c7b9d;border-radius:16px;background:#fffdf5}.course-finder input{width:100%;min-height:50px;border:0;outline:0;color:#405764;background:transparent;font:inherit}.course-finder>p{color:#708087;font-size:.72rem}.course-finder__results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:420px;overflow:auto;margin-top:14px}.course-finder__results a{display:grid;gap:3px;padding:12px 14px;border-left:3px solid #6682a1;color:#526673;background:#eef3f7}.course-finder__results a[hidden]{display:none}.course-finder__results small{color:#71808d;font-size:.62rem}
+  .course-map{scroll-margin-top:24px}.course-map>header{max-width:760px;margin-bottom:30px}.course-map header>p:last-child{color:#6c7a81;line-height:1.8}.course-map>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.course-map a{position:relative;min-height:280px;overflow:hidden;padding:28px;border:1px solid rgba(77,95,127,.2);border-radius:28px;color:#536571;background:rgba(255,253,246,.9);box-shadow:var(--shadow-soft);transition:transform .2s ease,border-color .2s ease}.course-map a:hover{border-color:#718aa8;transform:translateY(-3px)}.course-map a>span{position:absolute;right:20px;top:8px;color:rgba(74,100,135,.12);font-family:var(--serif);font-size:5rem;font-weight:900}.course-map a small{color:#648096;font-size:.65rem}.course-map h3{position:relative;margin:18px 0 10px;color:#3e5873;font-family:var(--serif);font-size:1.5rem}.course-map a p{position:relative;min-height:4.8em;color:#718087;font-size:.82rem;line-height:1.75}.course-map a em{display:block;margin-bottom:13px;color:#80694d;font-size:.64rem;font-style:normal}.course-map a strong{color:#3c6d91;font-size:.75rem}
+  .course-projects{display:grid;grid-template-columns:.7fr 1.3fr;gap:20px 42px;margin-top:80px;padding:40px;border:1px solid #8799ab;border-radius:32px;background:#edf3f8}.course-projects ol{display:grid;gap:12px;margin:0;padding:0;list-style:none}.course-projects li{display:grid;gap:4px;padding:16px 18px;border-left:4px solid #6281a2;background:#fffdf2}.course-projects small{color:#7e6a50}.course-projects strong{color:#405f7d}.course-projects span{color:#748087;font-size:.76rem;line-height:1.7}.course-projects li a{justify-self:start;margin-top:5px;color:#376d92;font-size:.7rem;font-weight:900}.course-projects__bundle{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:9px;padding-top:12px;border-top:1px dashed #90a0af}.course-projects__bundle a{min-height:44px;padding:10px 14px;border:1px solid #65809b;border-radius:999px;color:#456781;background:#fffdf5;font-size:.72rem;font-weight:900}.course-verification{margin-top:28px;padding:32px;border:1px solid #8798aa;border-radius:26px;color:#65757e;background:#f1f5f7}.course-verification h2{margin:7px 0 16px;color:#405c78;font-family:var(--serif)}.course-verification dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}.course-verification dl div{padding:13px;border-radius:13px;text-align:center;background:#fffdf5}.course-verification dt{color:#42688d;font-family:var(--serif);font-size:1.5rem;font-weight:900}.course-verification dd{margin:4px 0 0;font-size:.65rem}.course-verification>p:last-child{line-height:1.75}.course-sources{margin-top:28px;padding:35px;border:1px dashed #8798aa;border-radius:26px;color:#6b7880;background:rgba(255,253,246,.74)}.course-sources a{color:#397092;border-bottom:1px dashed currentColor}
+  @media(max-width:850px){.course-home__header,.course-compass,.course-projects{grid-template-columns:1fr;align-items:start}.course-home__header dl{flex-wrap:wrap}.course-home__header dl div{flex:1;min-width:90px}.course-map>div{grid-template-columns:1fr}.course-verification dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){.course-home{padding-top:105px}.course-home__header{border-radius:26px}.course-home__header dl{width:100%}.course-home__header dl div:last-child{flex-basis:100%}.course-dashboard{grid-template-columns:1fr;padding:22px 18px}.course-compass{padding:24px 20px}.course-compass ol,.course-finder__results{grid-template-columns:1fr}.course-map a{min-height:250px;padding:24px}.course-projects,.course-verification,.course-sources{padding:24px 20px;border-radius:24px}}
+</style>

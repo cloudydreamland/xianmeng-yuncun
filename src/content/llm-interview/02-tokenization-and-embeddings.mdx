@@ -1,0 +1,277 @@
+---
+title: Tokenizer 与表示学习
+slug: tokenization-and-embeddings
+order: 2
+description: 理解文本如何变成 token 与向量，以及词表、切分和表示学习如何影响中文能力、效率与评测。
+topics: [Tokenizer, Embedding, BPE, 中文处理]
+updatedAt: 2026-08-31
+draft: false
+---
+
+## BPE 的训练和编码过程是什么？
+
+### 30 秒口述版
+
+BPE 从基础符号出发，反复合并语料中最高频的相邻符号对，编码时按已学习的合并规则把文本切成子词。
+
+### 原理与推导
+
+它在词表规模、序列长度和未登录词之间折中；实现时要区分字符级 BPE 与 byte-level BPE。
+
+### 公式、代码或工程案例
+
+用“低频词被拆开、高频词保留整体”解释合并过程，并说明合并次数决定词表大小。
+
+### 高频追问
+
+- BPE 与 WordPiece 的合并准则有何不同？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要说 BPE 能从语义上找到词根，它优化的是频率与压缩式目标。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## WordPiece、BPE 与 Unigram 有什么区别？
+
+### 30 秒口述版
+
+BPE 逐步合并高频符号对，WordPiece 常用似然增益选择合并，Unigram 从大词表出发删除贡献较低的子词。
+
+### 原理与推导
+
+三者都解决开放词表问题，但训练方向、概率模型和可产生的候选切分不同。
+
+### 公式、代码或工程案例
+
+比较同一句中文夹英文文本在三种 tokenizer 下的 token 数与边界稳定性。
+
+### 高频追问
+
+- 为什么同名算法在不同库中的实现仍会不同？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只背“自底向上/自顶向下”，还要说明目标函数与编码策略。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## SentencePiece 为什么适合多语言与中文？
+
+### 30 秒口述版
+
+SentencePiece 直接把原始 Unicode 文本视为字符流训练，不依赖空格分词，并把空格编码成普通符号。
+
+### 原理与推导
+
+它提供 BPE 与 Unigram 模型，训练和解码可逆，适合没有天然词边界的中文及多语言混合语料。
+
+### 公式、代码或工程案例
+
+说明规范化、特殊空格符号和 detokenization 如何共同保证可逆性。
+
+### 高频追问
+
+- Unicode normalization 会造成哪些信息损失？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把 SentencePiece 当成一种独立于 BPE/Unigram 的切分算法。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## Byte-level tokenizer 的优势和代价是什么？
+
+### 30 秒口述版
+
+字节级词表可以覆盖任意 Unicode 输入，几乎消除 UNK；代价是非英文文本可能被切得更长，可读性更差。
+
+### 原理与推导
+
+byte fallback 能增强鲁棒性，但序列变长会增加注意力和 KV cache 成本，词表设计仍需平衡常见多字节片段。
+
+### 公式、代码或工程案例
+
+比较同一句中文在字符级和 byte-level tokenizer 下的 token 长度。
+
+### 高频追问
+
+- 为什么 byte-level 仍会训练子词合并？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要误以为一个 Unicode 字符总等于一个 byte。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## 词表大小怎样影响模型效果和成本？
+
+### 30 秒口述版
+
+大词表缩短序列却扩大 embedding 与输出层，小词表减少参数却增加序列长度和计算。
+
+### 原理与推导
+
+最优点与语言分布、参数共享、上下文长度和推理硬件相关；多语言模型还要考虑不同语言的 token 公平性。
+
+### 公式、代码或工程案例
+
+估算词表从 32K 增至 128K 时 embedding 参数增加量：词表差乘隐藏维。
+
+### 高频追问
+
+- 输入输出 embedding 共享能省多少参数？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只以英文 token/word 指标评价中文 tokenizer。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## 特殊 token 与 Chat Template 有什么关系？
+
+### 30 秒口述版
+
+BOS、EOS、PAD、角色标记和工具调用标记定义了模型看到的会话协议，chat template 负责把结构化消息稳定序列化。
+
+### 原理与推导
+
+训练与推理模板不一致会产生分布偏移，重复 BOS/EOS、错误 mask 或角色边界都会明显损伤效果。
+
+### 公式、代码或工程案例
+
+将 system/user/assistant 消息渲染后检查 token ID，并确认只对 assistant 区域计算监督损失。
+
+### 高频追问
+
+- EOS 和 PAD 能否共用？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要凭肉眼拼 prompt；应使用与模型发布配方一致的模板。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## Embedding 层为什么可以表示语义？
+
+### 30 秒口述版
+
+Embedding 本质是可学习查表，语义来自训练目标迫使相似上下文中的 token 学到可复用方向，而不是向量天然带语义。
+
+### 原理与推导
+
+静态 token embedding 会在后续 Transformer 层被上下文化；最终隐藏状态与独立检索 embedding 的训练目标也不同。
+
+### 公式、代码或工程案例
+
+区分输入 embedding、contextual representation 与句向量检索模型。
+
+### 高频追问
+
+- 为什么余弦相似度常用于 embedding？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把模型某层 hidden state 直接当成高质量句向量而不做验证。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## 输入输出 Embedding 为什么经常共享权重？
+
+### 30 秒口述版
+
+Weight tying 让输入查表矩阵与输出词表投影共用参数，减少显存并给输入输出空间施加一致约束。
+
+### 原理与推导
+
+共享要求形状兼容；是否提升效果取决于模型架构、词表和训练配方，不能视为必然。
+
+### 公式、代码或工程案例
+
+若词表 V、隐藏维 d，共享可少存约 V×d 个参数。
+
+### 高频追问
+
+- 共享后输出 bias 怎么处理？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要把共享权重误解为输入 token 与输出概率完全相同。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+
+---
+
+## 中文 tokenizer 应该怎样评估？
+
+### 30 秒口述版
+
+除压缩率外，要看中文、代码、数字、专名和多语言混输的 token 长度、边界稳定性、UNK、下游效果与解码可逆性。
+
+### 原理与推导
+
+评测集应按语言和领域分层，并报告每字符 token 数、长尾实体切分和上下文实际可容纳的信息量。
+
+### 公式、代码或工程案例
+
+建立固定探针集，比较多个 tokenizer 的长度分布与极端样本。
+
+### 高频追问
+
+- 怎样发现数字和空白切分异常？
+- 这个结论在规模、数据或硬件条件变化时，边界会怎样改变？
+
+### 易错点
+
+不要只抽查几个漂亮示例，也不要跨 tokenizer 直接比较 PPL。
+
+### 权威来源
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
