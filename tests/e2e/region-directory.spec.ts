@@ -7,8 +7,8 @@ test.beforeEach(async ({ page }) => {
 test('内容较短的五境保留明确主入口和可展开的境内目录', async ({ page }) => {
   const cases = [
     ['cloud-village', '#today'],
-    ['rain-bridge', '#cloud-search'],
-    ['wind-valley', '#wind-archive'],
+    ['rain-bridge', '#learning-paths'],
+    ['wind-valley', '#resource-library'],
     ['snow-cliff', '#habits'],
     ['lantern-lane', '#gallery'],
   ] as const;
@@ -28,7 +28,7 @@ test('内容较短的五境保留明确主入口和可展开的境内目录', as
 test('星渊和月潭用右侧选项卡一次只展示一项长功能', async ({ page }) => {
   const cases = [
     ['star-abyss', 3, 'constellation'],
-    ['moon-pool', 5, 'moon-projects'],
+    ['moon-pool', 6, 'moon-projects'],
   ] as const;
 
   for (const [slug, count, defaultTab] of cases) {

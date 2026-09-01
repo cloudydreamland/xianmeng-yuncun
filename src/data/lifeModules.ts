@@ -21,7 +21,7 @@ export interface LifeModule {
 export const lifeModules: LifeModule[] = [
   { id: 'today', label: '今日', title: '今日云笺', description: '今日重点、临期事项与生活概览', realm: 'cloud-village', realmLabel: '云村', href: '/world/cloud-village/#today', mark: '今' },
   { id: 'insights', label: '趋势', title: '生活趋势', description: '任务、专注、习惯与开销的温和回望', realm: 'cloud-village', realmLabel: '云村', href: '/world/cloud-village/#insights', mark: '势' },
-  { id: 'inbox', label: '收集', title: '临时记录', description: '任务、链接与未分类想法的统一入口', realm: 'rain-bridge', realmLabel: '雨桥', href: '/world/rain-bridge/#inbox', mark: '收' },
+  { id: 'inbox', label: '收集', title: '临时记录', description: '任务、链接与未分类想法的统一入口', realm: 'moon-pool', realmLabel: '月潭', href: '/world/moon-pool/#inbox', mark: '收' },
   { id: 'focus', label: '专注', title: '星渊定时', description: '专注计时与当日专注记录', realm: 'star-abyss', realmLabel: '星渊', href: '/world/star-abyss/#focus', mark: '定' },
   { id: 'reading', label: '阅读', title: '阅读清单', description: '站内文章与外部链接的阅读队列', realm: 'wind-valley', realmLabel: '风谷', href: '/world/wind-valley/#wind-notes-title', mark: '阅' },
   { id: 'calendar', label: '日历', title: '生活日历', description: '月周视图、定时日程与生活期限', realm: 'moon-pool', realmLabel: '月潭', href: '/world/moon-pool/#calendar', mark: '历' },

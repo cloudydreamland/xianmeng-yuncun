@@ -16,9 +16,9 @@ export type ResolvedTimeMode = Exclude<TimeMode, 'auto'>;
 /** Plain-language labels shown beside the poetic realm names on the map. */
 export const worldMapFunctionLabels: Record<RegionId, string> = {
   'cloud-village': '总览与导航',
-  'rain-bridge': '搜索与随手记',
+  'rain-bridge': '课程与训练',
   'star-abyss': '成长与专注',
-  'wind-valley': '笔记与阅读',
+  'wind-valley': '资料与笔记',
   'moon-pool': '项目与计划',
   'snow-cliff': '关系与来信',
   'lantern-lane': '作品与收藏',
@@ -94,7 +94,7 @@ export const timeCopy: Record<ResolvedTimeMode, string> = {
 export const cloudVillageDestinations = [
   { href: '/world/wind-valley/', label: '风谷', meta: '风中札记与未成之思' },
   { href: '/world/moon-pool/', label: '月潭', meta: '造物旧录与来路回望' },
-  { href: '/world/rain-bridge/', label: '雨桥', meta: '七境舆图与云镜问津' },
+  { href: '/world/rain-bridge/', label: '雨桥', meta: '系统学习与问学渡口' },
   { href: '/world/star-abyss/', label: '星渊', meta: '问道来路与未至星群' },
   { href: '/world/snow-cliff/', label: '雪崖', meta: '故人雪信与炉边名帖' },
   { href: '/world/lantern-lane/', label: '浮屿·灯巷', meta: '镜中山河与纸上丹青' },

@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content';
+import { sortNotes } from '../utils/contentCatalog';
+
+const notes = sortNotes(await getCollection('notes', ({ data }) => !data.draft)).slice(0, 6);
+const files = [
+  { href: '/documents/cldelve-algorithm-notes.pdf', label: 'C++ 算法与数据结构笔记', meta: 'PDF · 原始笔记' },
+  { href: '/documents/nlp-algorithm-interview-notes.pdf', label: 'NLP 算法岗学习资料', meta: 'PDF · 面试资料' },
+  { href: '/documents/large-model-interview-1000-questions.pdf', label: '大模型面试 1000 题', meta: 'PDF · 题库原件' },
+  { href: '/downloads/pytorch-course/all-projects.zip', label: 'PyTorch 实践课完整项目', meta: 'ZIP · 课程源码' },
+  { href: '/downloads/pytorch-course/mini-lm-project.zip', label: '迷你语言模型项目', meta: 'ZIP · 项目源码' },
+  { href: '/downloads/pytorch-course/verification-report.json', label: 'PyTorch 课程验证报告', meta: 'JSON · 验证记录' },
+];
+const websites = [
+  { href: 'https://docs.pytorch.org/docs/stable/', label: 'PyTorch 官方文档', meta: '框架接口与工程参考' },
+  { href: 'https://huggingface.co/docs/transformers/', label: 'Transformers 文档', meta: '模型、Tokenizer 与生成工具' },
+  { href: 'https://docs.python.org/zh-cn/3/tutorial/', label: 'Python 中文教程', meta: '语言基础与标准库入口' },
+  { href: 'https://arxiv.org/abs/1706.03762', label: 'Attention Is All You Need', meta: 'Transformer 原始论文' },
+  { href: 'https://www.nist.gov/itl/ai-risk-management-framework', label: 'NIST AI 风险管理框架', meta: '评测、安全与治理参考' },
+  { href: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/', label: 'OWASP LLM Top 10', meta: '大模型应用安全清单' },
+];
+---
+
+<section class="wind-library" id="resource-library" aria-labelledby="wind-library-title">
+  <header class="section-heading">
+    <p class="pixel-kicker">风谷藏卷 · 知识资产</p>
+    <h2 id="wind-library-title">资料与笔记库</h2>
+    <p>风谷只负责保存和索引知识资产：原始文件、公开笔记与外部网站各归其架，不记录课程顺序和学习进度。</p>
+  </header>
+
+  <div class="wind-library__shelves">
+    <article>
+      <header><div><span>01</span><p>FILES</p></div><h3>原始文件</h3><small>{files.length} 份</small></header>
+      <ul>{files.map((item) => <li><a href={item.href}><strong>{item.label}</strong><span>{item.meta}</span></a></li>)}</ul>
+    </article>
+
+    <article>
+      <header><div><span>02</span><p>NOTES</p></div><h3>笔记链接</h3><small>{notes.length} 篇近期</small></header>
+      <ul>{notes.map((note) => <li><a href={`/notes/${note.data.slug}/`}><strong>{note.data.title}</strong><span>{note.data.category} · {note.data.tags.slice(0, 2).join(' / ')}</span></a></li>)}</ul>
+      <a class="wind-library__all" href="#wind-archive">查看全部公开笔记 →</a>
+    </article>
+
+    <article>
+      <header><div><span>03</span><p>WEBSITES</p></div><h3>网站链接</h3><small>{websites.length} 个</small></header>
+      <ul>{websites.map((item) => <li><a href={item.href} target="_blank" rel="noreferrer"><strong>{item.label}</strong><span>{item.meta} · 外部网站 ↗</span></a></li>)}</ul>
+    </article>
+  </div>
+
+  <p class="wind-library__boundary"><strong>与雨桥的关系：</strong>雨桥可以引用这里的资料来组成课程，但文件、笔记和网站链接只在风谷保存一份。</p>
+</section>
+
+<style>
+  .wind-library { color:#3f5d54; }
+  .wind-library__shelves { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:28px; }
+  .wind-library__shelves>article { display:flex; min-width:0; flex-direction:column; padding:22px; border:2px solid #708a78; background:rgba(249,251,235,.96); box-shadow:6px 6px 0 rgba(44,72,58,.14); }
+  .wind-library__shelves>article>header { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding-bottom:16px; border-bottom:1px dashed #8da08f; }
+  .wind-library__shelves>article>header>div { display:grid; place-items:center; width:40px; height:40px; color:#fff; background:#5c806b; }
+  .wind-library__shelves>article>header span { font-weight:900; }
+  .wind-library__shelves>article>header p { margin:1px 0 0; font-size:.42rem; letter-spacing:.08em; }
+  .wind-library__shelves h3 { margin:0; color:#3f6555; font-family:var(--serif); font-size:1.25rem; }
+  .wind-library__shelves header>small { color:#77877b; font-size:.6rem; }
+  .wind-library__shelves ul { display:grid; gap:6px; margin:15px 0 0; padding:0; list-style:none; }
+  .wind-library__shelves li a { display:grid; gap:4px; min-height:64px; padding:10px 11px; border:1px solid rgba(101,128,108,.35); color:#416352; background:#fffdf3; text-decoration:none; }
+  .wind-library__shelves li a:hover,.wind-library__shelves li a:focus-visible { border-color:#4c795f; background:#eef4df; }
+  .wind-library__shelves li a:focus-visible { outline:3px solid #d5ac45; outline-offset:2px; }
+  .wind-library__shelves li strong { overflow-wrap:anywhere; font-size:.72rem; line-height:1.5; }
+  .wind-library__shelves li span { color:#78867d; font-size:.58rem; line-height:1.45; }
+  .wind-library__all { margin-top:auto; padding-top:18px; color:#3f7258; font-size:.7rem; font-weight:900; }
+  .wind-library__boundary { margin:18px 0 0; padding:15px 18px; border-left:4px solid #60836d; color:#60756a; background:rgba(232,241,219,.95); font-size:.72rem; line-height:1.7; }
+  .wind-library__boundary strong { color:#3c6652; }
+  @media(max-width:1000px){ .wind-library__shelves { grid-template-columns:1fr; } }
+  @media(max-width:600px){ .wind-library__shelves>article { padding:18px 15px; } }
+</style>

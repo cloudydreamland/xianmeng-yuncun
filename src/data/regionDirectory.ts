@@ -27,11 +27,11 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
     ],
   },
   'rain-bridge': {
-    primary: { href: '#cloud-search', label: '云镜问津', description: '搜索全站的笔记、项目与工具。' },
+    primary: { href: '#learning-paths', label: '学习渡口', description: '进入大模型笔记、PyTorch 实践与面试题库。' },
     items: [
       ...commonItems,
-      { href: '#cloud-search', label: '云镜问津', description: '搜索散落诸境的内容' },
-      { href: '#inbox', label: '临时记录', description: '暂存尚未归类的想法' },
+      { href: '#learning-paths', label: '三路问学', description: '概念、代码与表达' },
+      { href: '#learning-route', label: '推荐顺序', description: '从理解到实践再到表达' },
       { href: '#world-directory', label: '七境名册', description: '按境域浏览全站' },
     ],
   },
@@ -46,9 +46,10 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
     ],
   },
   'wind-valley': {
-    primary: { href: '#wind-archive', label: '最新风信', description: '查看最新札记，并按分卷或标签浏览。' },
+    primary: { href: '#resource-library', label: '资料与笔记库', description: '查看原始文件、公开笔记和网站链接。' },
     items: [
       ...commonItems,
+      { href: '#resource-library', label: '知识资产', description: '文件、笔记与网站链接' },
       { href: '#wind-notes', label: '风信台', description: '札记入口与阅读说明' },
       { href: '#wind-filters', label: '分卷筛选', description: '按分类或标签缩小范围' },
       { href: '#wind-archive', label: '全部札记', description: '逐篇浏览风中来信' },
@@ -61,6 +62,7 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
       ...commonItems,
       { href: '#moon-projects', label: '项目旧录', description: '代表项目与案例复盘' },
       { href: '#plan-dashboard', label: '公开推进', description: '仍在水上的计划' },
+      { href: '#inbox', label: '随手收集', description: '想法与待整理记录' },
       { href: '#calendar', label: '生活日历', description: '月周视图与日程' },
       { href: '#local-planner', label: '本地计划', description: '只留在本机的安排' },
       { href: '#life-planning', label: '生活账册', description: '清单、期限与物品' },

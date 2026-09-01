@@ -1,6 +1,5 @@
 ---
 import { getCollection, render } from 'astro:content';
-import CloudSearch from '../../components/CloudSearch';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
 import AttentionLab from '../../components/AttentionLab.astro';
@@ -11,10 +10,12 @@ import LifeOrganizer from '../../components/LifeOrganizer.astro';
 import LifeCalendar from '../../components/LifeCalendar.astro';
 import MemoryJournal from '../../components/MemoryJournal.astro';
 import TodayDashboard from '../../components/TodayDashboard.astro';
+import WindResourceLibrary from '../../components/WindResourceLibrary.astro';
 import LifeInsights from '../../components/LifeInsights.astro';
 import IslandTag from '../../components/IslandTag';
 import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
+import RainLearningGateway from '../../components/RainLearningGateway.astro';
 import RegionFeatureTabs from '../../components/RegionFeatureTabs.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
@@ -123,10 +124,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'rain-bridge' && (
     <>
-      <section class="rain-search" id="cloud-search" aria-labelledby="rain-search-title" data-pagefind-ignore>
-        <CloudSearch client:visible variant="embedded" heading="全站搜索" description="搜索笔记、教程、面经、项目、计划与作品。" />
-      </section>
-      <LifeInbox />
+      <RainLearningGateway />
       <section class="world-directory" id="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
         <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
@@ -149,6 +147,8 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   )}
 
   {region.data.slug === 'wind-valley' && (
+    <>
+    <WindResourceLibrary />
     <section class="wind-notes notes-browser" id="wind-notes" data-notes-browser aria-labelledby="wind-notes-title" data-pagefind-ignore>
       <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>札记、术业碎章、尘世随笔与小小试作皆落于此，只候一阵风来翻页。</p></header>
       <div class="filter-panel" id="wind-filters" aria-label="筛选笔记">
@@ -302,6 +302,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
         }
       </script>
     </section>
+    </>
   )}
 
   {region.data.slug === 'moon-pool' && (
@@ -331,6 +332,9 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
       </div>
       <div id="region-pane-plan-dashboard" role="tabpanel" aria-labelledby="region-tab-plan-dashboard" data-region-tab-pane="plan-dashboard" data-pagefind-ignore>
         <PlanDashboard plans={plans} projects={projects} />
+      </div>
+      <div id="region-pane-inbox" role="tabpanel" aria-labelledby="region-tab-inbox" data-region-tab-pane="inbox">
+        <LifeInbox />
       </div>
       <div id="region-pane-calendar" role="tabpanel" aria-labelledby="region-tab-calendar" data-region-tab-pane="calendar">
         <LifeCalendar />

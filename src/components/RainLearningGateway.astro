@@ -1,0 +1,142 @@
+---
+import { getCollection, render } from 'astro:content';
+import { noteHeadings, sortLlmLearningChapters } from '../utils/llmLearning';
+import { lessonHeadings, sortPytorchChapters } from '../utils/pytorchTutorial';
+import { questionHeadings, sortInterviewChapters } from '../utils/interview';
+
+const llmChapters = sortLlmLearningChapters(await getCollection('llmLearning', ({ data }) => !data.draft));
+const pytorchChapters = sortPytorchChapters(await getCollection('pytorchTutorial', ({ data }) => !data.draft));
+const interviewChapters = sortInterviewChapters(await getCollection('llmInterview', ({ data }) => !data.draft));
+const llmSections = (await Promise.all(llmChapters.map(async (item) => noteHeadings((await render(item)).headings)))).flat().length;
+const pytorchLessons = (await Promise.all(pytorchChapters.map(async (item) => lessonHeadings((await render(item)).headings)))).flat().length;
+const interviewQuestions = (await Promise.all(interviewChapters.map(async (item) => questionHeadings((await render(item)).headings)))).flat().length;
+---
+
+<section class="rain-learning" id="learning-paths" aria-labelledby="rain-learning-title">
+  <header class="section-heading">
+    <p class="pixel-kicker">雨桥问学 · 三路并行</p>
+    <h2 id="rain-learning-title">从这里开始学习</h2>
+    <p>雨桥连接概念、代码与表达三条路径。选择当前最需要的一路，也可以沿推荐顺序完成一次完整学习闭环。</p>
+  </header>
+
+  <div class="rain-learning__resume" data-learning-resume data-llm-total={llmSections} data-pytorch-total={pytorchLessons}>
+    <header><div><p class="pixel-kicker">学习工作台</p><h3>继续上次学习</h3></div><p>这里只记录课程进度；引用的文件与网站资料仍由风谷统一保管。</p></header>
+    <div>
+      <a href="/learn/llm/" data-resume-track="llm"><small>系统笔记</small><strong data-resume-title>从第一章开始</strong><span data-resume-progress>尚无学习记录</span></a>
+      <a href="/learn/pytorch/" data-resume-track="pytorch"><small>PyTorch 实践</small><strong data-resume-title>从基础课程开始</strong><span data-resume-progress>尚无学习记录</span></a>
+      <a href="/interview/llm/"><small>问道录</small><strong>开始问题训练</strong><span>用问答检查理解与表达</span></a>
+    </div>
+  </div>
+
+  <div class="rain-learning__paths">
+    <article class="rain-learning__card rain-learning__card--primary">
+      <div class="rain-learning__meta"><span>01</span><strong>概念与原理</strong></div>
+      <h3>大模型从零学习笔记</h3>
+      <p>逐步看懂 Token、Transformer、预训练、微调、推理、RAG、Agent 与多模态。</p>
+      <dl><div><dt>{llmChapters.length}</dt><dd>章</dd></div><div><dt>{llmSections}</dt><dd>节笔记</dd></div></dl>
+      <a href="/learn/llm/">开始系统学习 <span aria-hidden="true">→</span></a>
+    </article>
+
+    <article class="rain-learning__card">
+      <div class="rain-learning__meta"><span>02</span><strong>代码与实验</strong></div>
+      <h3>PyTorch 工程实践课</h3>
+      <p>从 Tensor 和自动求导出发，亲手完成训练循环、Transformer、分布式训练与迷你语言模型。</p>
+      <dl><div><dt>{pytorchChapters.length}</dt><dd>章</dd></div><div><dt>{pytorchLessons}</dt><dd>节课程</dd></div></dl>
+      <a href="/learn/pytorch/">进入实践课程 <span aria-hidden="true">→</span></a>
+    </article>
+
+    <article class="rain-learning__card">
+      <div class="rain-learning__meta"><span>03</span><strong>问题与表达</strong></div>
+      <h3>大模型面经 · 问道录</h3>
+      <p>用简答、原理、追问和常见误区检验理解，并把学过的机制组织成清晰回答。</p>
+      <dl><div><dt>{interviewChapters.length}</dt><dd>章</dd></div><div><dt>{interviewQuestions}</dt><dd>道题</dd></div></dl>
+      <a href="/interview/llm/">进入面试题库 <span aria-hidden="true">→</span></a>
+    </article>
+  </div>
+
+  <div class="rain-learning__route" id="learning-route">
+    <div><p class="pixel-kicker">推荐顺序</p><h3>先理解，再动手，最后表达</h3></div>
+    <ol>
+      <li><span>01</span><p><strong>系统笔记</strong><small>建立概念与机制地图</small></p></li>
+      <li><span>02</span><p><strong>PyTorch 实践</strong><small>把机制写成可运行代码</small></p></li>
+      <li><span>03</span><p><strong>问道录</strong><small>用问题检验理解与表达</small></p></li>
+    </ol>
+  </div>
+</section>
+
+<script>
+  const resume = document.querySelector<HTMLElement>('[data-learning-resume]');
+  if (resume) {
+    const tracks = {
+      llm: {
+        progressKey: 'xianmeng:llm-learning-progress:v1',
+        lastKey: 'xianmeng:llm-learning-last-read:v1',
+        total: Number(resume.dataset.llmTotal || 0),
+        prefix: '/learn/llm/',
+      },
+      pytorch: {
+        progressKey: 'xianmeng:pytorch-progress:v1',
+        lastKey: 'xianmeng:pytorch-last-read:v1',
+        total: Number(resume.dataset.pytorchTotal || 0),
+        prefix: '/learn/pytorch/',
+      },
+    } as const;
+    Object.entries(tracks).forEach(([name, config]) => {
+      const link = resume.querySelector<HTMLAnchorElement>(`[data-resume-track="${name}"]`);
+      if (!link) return;
+      let completed: string[] = [];
+      let last: { href?: string; title?: string } | null = null;
+      try {
+        completed = JSON.parse(localStorage.getItem(config.progressKey) || '[]');
+        last = JSON.parse(localStorage.getItem(config.lastKey) || 'null');
+      } catch {}
+      const count = Math.min(config.total, new Set(completed).size);
+      const title = link.querySelector<HTMLElement>('[data-resume-title]');
+      const progress = link.querySelector<HTMLElement>('[data-resume-progress]');
+      if (last?.href?.startsWith(config.prefix)) {
+        link.href = last.href;
+        if (title) title.textContent = last.title || '继续上次内容';
+      }
+      if (progress) progress.textContent = count > 0 ? `已完成 ${count} / ${config.total} 节` : '尚无学习记录';
+    });
+  }
+</script>
+
+<style>
+  .rain-learning { color:#365f67; }
+  .rain-learning__resume { margin-top:28px; padding:24px; border:2px solid #557f88; background:rgba(230,244,242,.96); box-shadow:6px 6px 0 rgba(39,75,82,.14); }
+  .rain-learning__resume>header { display:flex; align-items:end; justify-content:space-between; gap:24px; }
+  .rain-learning__resume>header h3 { margin:5px 0 0; color:#315e68; font-family:var(--serif); font-size:1.55rem; }
+  .rain-learning__resume>header>p { max-width:400px; margin:0; color:#60787c; font-size:.7rem; line-height:1.65; text-align:right; }
+  .rain-learning__resume>div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-top:18px; }
+  .rain-learning__resume a { display:grid; gap:5px; min-height:112px; padding:16px; border:1px solid #78999d; color:#3c626a; background:#fffdf3; text-decoration:none; }
+  .rain-learning__resume a:hover,.rain-learning__resume a:focus-visible { border-color:#3f747f; background:#f0f6e8; }
+  .rain-learning__resume a:focus-visible { outline:3px solid #d7ad47; outline-offset:2px; }
+  .rain-learning__resume small { color:#71878a; font-size:.6rem; letter-spacing:.08em; }
+  .rain-learning__resume strong { font-family:var(--serif); font-size:.9rem; }
+  .rain-learning__resume a span { align-self:end; color:#6c8184; font-size:.64rem; }
+  .rain-learning__paths { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:28px; }
+  .rain-learning__card { display:flex; min-height:370px; flex-direction:column; padding:clamp(22px,3vw,30px); border:2px solid #6f9298; color:#3f6066; background:rgba(248,253,247,.95); box-shadow:6px 6px 0 rgba(39,75,82,.15); }
+  .rain-learning__card--primary { border-color:#467784; background:linear-gradient(155deg,rgba(235,249,249,.98),rgba(249,247,225,.96)); }
+  .rain-learning__meta { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#638087; font-size:.66rem; letter-spacing:.08em; }
+  .rain-learning__meta span { display:grid; place-items:center; width:34px; height:34px; border:1px solid #75979c; color:#fff; background:#4e7d86; font-weight:900; }
+  .rain-learning__card h3 { margin:24px 0 12px; color:#315e68; font-family:var(--serif); font-size:clamp(1.35rem,2.4vw,1.75rem); }
+  .rain-learning__card>p { flex:1; margin:0; color:#61777b; font-size:.78rem; line-height:1.8; }
+  .rain-learning__card dl { display:flex; gap:20px; margin:24px 0 18px; }
+  .rain-learning__card dl div { display:flex; align-items:baseline; gap:4px; }
+  .rain-learning__card dt { color:#3f7480; font-family:var(--serif); font-size:1.45rem; font-weight:900; }
+  .rain-learning__card dd { margin:0; color:#73878a; font-size:.64rem; }
+  .rain-learning__card>a { display:flex; min-height:46px; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px; color:#fff; background:#4c7882; font-size:.74rem; font-weight:900; text-decoration:none; }
+  .rain-learning__card>a:hover,.rain-learning__card>a:focus-visible { background:#365f69; }
+  .rain-learning__card>a:focus-visible { outline:3px solid #d7ad47; outline-offset:3px; }
+  .rain-learning__route { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr); gap:26px; margin-top:22px; padding:28px; border:2px solid #789298; background:rgba(229,242,239,.96); }
+  .rain-learning__route h3 { margin:7px 0 0; color:#365f67; font-family:var(--serif); font-size:1.45rem; }
+  .rain-learning__route ol { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0; padding:0; list-style:none; }
+  .rain-learning__route li { display:flex; align-items:center; gap:10px; padding:14px; border-left:3px solid #5d8790; background:#fffdf3; }
+  .rain-learning__route li>span { color:#729096; font-family:var(--serif); font-weight:900; }
+  .rain-learning__route p { display:grid; gap:3px; margin:0; }
+  .rain-learning__route strong { color:#3d646c; font-size:.75rem; }
+  .rain-learning__route small { color:#748387; font-size:.62rem; line-height:1.5; }
+  @media(max-width:960px){ .rain-learning__resume>header { align-items:start; flex-direction:column; } .rain-learning__resume>header>p { max-width:none; text-align:left; } .rain-learning__resume>div,.rain-learning__paths { grid-template-columns:1fr; } .rain-learning__card { min-height:0; } .rain-learning__route { grid-template-columns:1fr; } }
+  @media(max-width:650px){ .rain-learning__resume { padding:20px 16px; } .rain-learning__route { padding:20px 16px; } .rain-learning__route ol { grid-template-columns:1fr; } }
+</style>

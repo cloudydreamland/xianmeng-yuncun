@@ -61,24 +61,18 @@ const newcomerRoute = newcomerRouteIds.map((id, index) => {
   if (!region) throw new Error(`缺少新手路线节点：${id}`);
   return { ...region, step: index + 1 };
 });
+const newcomerRouteLine = newcomerRoute
+  .map(({ x, y }) => `${x},${y}`)
+  .join(' ');
 const newcomerGuideCopy: Record<typeof newcomerRouteIds[number], string> = {
   'cloud-village': '网站的总入口。先看七境全貌、常用入口和推荐路线，再决定去学习、阅读、看项目，适合第一次来时建立整体认识。',
-  'rain-bridge': '用云镜搜索笔记、教程、面经、项目、计划和作品；也能把临时想到的任务、灵感与链接先收入收件箱，之后再整理。',
-  'wind-valley': '集中浏览公开笔记、学习记录和随笔。可以按标签筛选、加入稍后阅读，并从相关文章继续深入。',
-  'moon-pool': '查看项目档案、公开计划、里程碑与下一步；生活日历、重复清单、期限、账目和物品位置等私人安排也放在这里。',
+  'rain-bridge': '负责课程顺序与学习进度。可以继续上次学习，或沿大模型系统笔记、PyTorch 实践和面试训练三条路径完成学习闭环。',
+  'wind-valley': '统一保存原始文件、公开笔记和网站链接。可以按资料类型进入对应书架，也能继续筛选、阅读和收藏公开笔记。',
+  'moon-pool': '查看项目档案、公开计划、里程碑与下一步；随手记下的灵感可在这里整理并转成任务，生活日历、期限与账目等私人安排也归于此处。',
   'lantern-lane': '浏览摄影、绘画等作品及创作说明，用灯箱查看细节；也可以把日常片段记入只保存在当前浏览器的回忆手记。',
   'star-abyss': '把技能、学习路线和项目经验串成成长星图，直达大模型、PyTorch 与面试学习内容；需要沉浸时还能开启专注计时。',
   'snow-cliff': '用于习惯打卡、查看联系说明和友人链接。习惯数据默认保存在当前浏览器，访客也能在这里了解联系边界。',
 };
-const newcomerPositions = [
-  { x: 14, y: 28, mx: 18, my: 13 },
-  { x: 31, y: 34, mx: 42, my: 27 },
-  { x: 46, y: 48, mx: 24, my: 43 },
-  { x: 59, y: 61, mx: 50, my: 58 },
-  { x: 75, y: 50, mx: 76, my: 50 },
-  { x: 87, y: 64, mx: 56, my: 72 },
-  { x: 70, y: 76, mx: 75, my: 88 },
-];
 const newcomerMapStyle = Object.entries(worldBackgrounds)
   .map(([time, image]) => `--home-guide-map-${time}:url("${image.cssImageMobile ?? image.cssImage ?? image.fallback}")`)
   .join(';');
@@ -114,24 +108,18 @@ const newcomerMapStyle = Object.entries(worldBackgrounds)
           </div>
           <div class="home-constellation__map" style={newcomerMapStyle}>
             <div class="home-constellation__shade" aria-hidden="true"></div>
-            <svg class="home-constellation__lines home-constellation__lines--desktop" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <polyline points="14,28 31,34 46,48 59,61 75,50 87,64 70,76 59,61" />
-            </svg>
-            <svg class="home-constellation__lines home-constellation__lines--mobile" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <polyline points="18,13 42,27 24,43 50,58 76,50 56,72 75,88 50,58" />
+            <svg class="home-constellation__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points={newcomerRouteLine} />
             </svg>
             <ol class="home-constellation__route">
-              {newcomerRoute.map((region, index) => {
-                const position = newcomerPositions[index];
-                return (
-                  <li style={`--star-x:${position.x}%;--star-y:${position.y}%;--star-mobile-x:${position.mx}%;--star-mobile-y:${position.my}%`}>
+              {newcomerRoute.map((region) => (
+                  <li data-label-side={region.labelSide} style={`--star-x:${region.x}%;--star-y:${region.y}%`}>
                     <a class="home-constellation__node" href={region.href} aria-label={`第 ${region.step} 站，${region.functionLabel}，进入${region.title}`}>
                       <i aria-hidden="true">{String(region.step).padStart(2, '0')}</i>
                       <span><small>第 {String(region.step).padStart(2, '0')} 站</small><strong>{region.functionLabel}</strong></span>
                     </a>
                   </li>
-                );
-              })}
+              ))}
             </ol>
             <p class="home-constellation__hint"><span aria-hidden="true">✦</span> 地图随现实时间变换天光</p>
           </div>
@@ -193,15 +181,14 @@ const newcomerMapStyle = Object.entries(worldBackgrounds)
   .home-constellation__heading { display:flex; align-items:end; justify-content:space-between; gap:22px; margin-bottom:12px; }
   .home-constellation__heading h2 { margin:3px 0 0; }
   .home-constellation__heading>p { max-width:260px; margin:0 0 2px; color:#687a73; font-size:.72rem; line-height:1.65; text-align:right; }
-  .home-constellation__map { position:relative; min-height:500px; overflow:hidden; border:3px solid #5c706a; background-color:#223f47; background-image:var(--home-guide-map-current,var(--home-guide-map-day)); background-position:center; background-size:cover; box-shadow:7px 7px 0 rgba(55,76,69,.2); isolation:isolate; }
+  .home-constellation__map { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border:3px solid #5c706a; background-color:#dce9e8; background-image:var(--home-guide-map-current,var(--home-guide-map-day)); background-position:center; background-repeat:no-repeat; background-size:contain; box-shadow:7px 7px 0 rgba(55,76,69,.2); isolation:isolate; }
   html[data-time="dawn"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-dawn); }
   html[data-time="day"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-day); }
   html[data-time="dusk"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-dusk); }
   html[data-time="night"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-night); }
-  .home-constellation__shade { position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(10,30,37,.26),rgba(7,22,30,.58)),radial-gradient(circle at 51% 48%,transparent 18%,rgba(7,23,31,.34) 84%); backdrop-filter:saturate(.72); }
+  .home-constellation__shade { position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(255,252,225,.04),rgba(8,31,38,.12)),radial-gradient(circle at 51% 48%,transparent 35%,rgba(15,39,45,.08) 100%); backdrop-filter:saturate(.96) brightness(1.1); }
   .home-constellation__lines { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
   .home-constellation__lines polyline { fill:none; stroke:#f4d477; stroke-width:.34; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 0 5px rgba(255,230,147,.92)); opacity:.88; }
-  .home-constellation__lines--mobile { display:none; }
   .home-constellation__route { position:absolute; inset:0; margin:0; padding:0; list-style:none; }
   .home-constellation__route li { position:absolute; left:var(--star-x); top:var(--star-y); transform:translate(-50%,-50%); }
   .home-constellation__node { position:relative; display:flex; align-items:center; gap:8px; color:#fff9e6; text-decoration:none; filter:drop-shadow(0 2px 3px rgba(5,19,24,.85)); }
@@ -211,8 +198,8 @@ const newcomerMapStyle = Object.entries(worldBackgrounds)
   .home-constellation__node strong { color:#fff9df; font-family:var(--serif); font-size:.78rem; letter-spacing:.03em; }
   .home-constellation__node:hover>i,.home-constellation__node:focus-visible>i { transform:scale(1.16); box-shadow:0 0 0 7px rgba(246,220,128,.18),0 0 24px rgba(255,225,117,1); }
   .home-constellation__node:focus-visible { outline:3px solid #fff2a7; outline-offset:6px; }
-  .home-constellation__route li:nth-child(n+5) .home-constellation__node { flex-direction:row-reverse; }
-  .home-constellation__route li:nth-child(n+5) .home-constellation__node>span { text-align:right; }
+  .home-constellation__route li[data-label-side="left"] .home-constellation__node { flex-direction:row-reverse; }
+  .home-constellation__route li[data-label-side="left"] .home-constellation__node>span { text-align:right; }
   .home-constellation__hint { position:absolute; right:12px; bottom:10px; margin:0; padding:5px 8px; color:#f8efd4; background:rgba(17,40,44,.68); font-size:.54rem; letter-spacing:.05em; }
   .home-constellation__hint span { color:#f0d373; }
   .home-bulletin__details { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.55fr); gap:22px; margin-top:34px; }
@@ -245,22 +232,16 @@ const newcomerMapStyle = Object.entries(worldBackgrounds)
   .home-follow h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:clamp(1.7rem,3vw,2.4rem); }
   .home-follow p:not(.pixel-kicker) { margin:10px 0 0; color:#617067; }
   .home-follow > div:last-child { display:flex; flex:0 0 auto; gap:12px; }
-  @media (max-width:1100px) { .home-constellation__map { min-height:470px; } .home-constellation__node>span { padding-inline:7px; } .home-constellation__node strong { font-size:.7rem; } .home-bulletin__details { grid-template-columns:1fr; } }
-  @media (max-width:900px) { .home-constellation__map { min-height:440px; } .home-follow { align-items:flex-start; flex-direction:column; } }
+  @media (max-width:1100px) { .home-constellation__node>span { padding-inline:7px; } .home-constellation__node strong { font-size:.7rem; } .home-bulletin__details { grid-template-columns:1fr; } }
+  @media (max-width:900px) { .home-follow { align-items:flex-start; flex-direction:column; } }
   @media (max-width:600px) {
     .home-bulletin { margin-top:158px; padding:22px 18px 24px; }
     .home-bulletin__header,.home-constellation__heading,.home-place-directory>header { align-items:flex-start; flex-direction:column; }
     .home-constellation__heading { gap:2px; }
     .home-constellation__heading>p,.home-place-directory>header>p { max-width:none; text-align:left; }
-    .home-constellation__map { min-height:680px; background-position:center; }
-    .home-constellation__lines--desktop { display:none; }
-    .home-constellation__lines--mobile { display:block; }
-    .home-constellation__route li { left:var(--star-mobile-x); top:var(--star-mobile-y); }
-    .home-constellation__node>span { min-width:116px; }
-    .home-constellation__route li:nth-child(n) .home-constellation__node { flex-direction:row; }
-    .home-constellation__route li:nth-child(n) .home-constellation__node>span { text-align:left; }
-    .home-constellation__route li:nth-child(2n) .home-constellation__node { flex-direction:row-reverse; }
-    .home-constellation__route li:nth-child(2n) .home-constellation__node>span { text-align:right; }
+    .home-constellation__map { background-position:center; }
+    .home-constellation__node>i { width:24px; height:24px; flex-basis:24px; border-width:1px; box-shadow:0 0 0 3px rgba(246,220,128,.16),0 0 11px rgba(255,225,117,.92); font-size:.44rem; }
+    .home-constellation__node>span { display:none; }
     .home-constellation__hint { right:9px; bottom:8px; }
     .home-place-directory ol { grid-template-columns:1fr; }
     .home-place-directory li:last-child { grid-column:auto; }

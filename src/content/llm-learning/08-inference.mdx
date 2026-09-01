@@ -5,13 +5,17 @@ order: 8
 stage: 工程
 description: 从 Prefill、Decode 和 KV Cache 出发，理解批处理、量化与服务指标。
 topics: [Prefill, Decode, KV Cache, 量化]
-estimatedMinutes: 90
+estimatedMinutes: 180
 prerequisites: [因果注意力, GPU 显存基础]
 outcomes: [区分 Prefill 与 Decode, 解释 KV Cache 的收益和代价, 看懂延迟与吞吐指标]
 interviewHref: /interview/llm/inference-and-serving/
 updatedAt: 2026-09-01
 draft: false
 ---
+
+## 本章路线图
+
+推理服务把固定权重变成可用 API。需要同时理解单请求生成、显存管理、多请求调度和服务指标。本章从一次请求出发，再扩展到并发系统。
 
 ## Prefill 和 Decode 为什么表现不同
 
@@ -36,3 +40,105 @@ Prefill 一次处理整段提示，可以对多个 Token 并行计算，通常�
 量化用更低位宽表示权重或激活，可减少显存和带宽，有时也能加速。但实际效果取决于硬件内核、量化粒度、校准数据和敏感层处理。
 
 评估量化不能只看困惑度，还要看目标任务、长上下文、结构化输出和安全行为。若硬件不支持对应低精度高效计算，模型虽然更小，却未必更快。
+
+## 自回归生成循环
+
+每次 Decode 取最后位置 logits，经过温度与过滤后选择新 Token：
+
+```python
+for _ in range(max_new_tokens):
+    logits, cache = model(next_input, past_key_values=cache)
+    next_token = sample(logits[:, -1], temperature, top_p)
+    output.append(next_token)
+    if next_token == eos_id:
+        break
+    next_input = next_token
+```
+
+贪心适合确定性任务；采样适合需要多样性的生成。`temperature → 0` 使分布更尖锐，top-p 保留累计概率达到阈值的最小候选集。参数应随任务验证，不能用同一套配置覆盖代码、抽取和创作。
+
+## KV Cache 的形状与容量
+
+历史 Token 的 K/V 在后续步骤不变，可以缓存而不重复投影。一个简化缓存大小为：
+
+$$
+M_{KV}=2\times L\times B\times T\times H_{kv}\times d_h\times b
+$$
+
+`2` 代表 K 与 V，`L` 是层数，`B` 是并发序列数，`T` 是已缓存长度，`Hkv` 是 KV 头数，`dh` 是每头维度，`b` 是每元素字节数。
+
+因此长上下文与高并发会线性放大缓存。GQA/MQA 通过减少 KV 头降低容量。部分框架还支持滑动窗口、缓存卸载或 KV 量化，但都会在质量、延迟和实现复杂度之间交换。
+
+## Paged KV Cache 解决碎片
+
+请求长度不同、持续加入和结束时，若为每条序列预留连续最大缓存，会浪费显存并造成碎片。分页缓存把 KV 划成固定大小 block，通过映射表让逻辑连续序列落在非连续物理页上。
+
+这样可以按需增长、回收和共享前缀，提高可容纳并发数。代价是需要额外地址管理和适配的注意力内核。PagedAttention 主要是内存管理设计，不是新的注意力数学公式。
+
+## 连续批处理与请求调度
+
+静态 batching 等一批请求全部结束再换下一批，短请求会被最长请求拖住。连续批处理在每个调度周期移除已完成序列并加入新请求，使 GPU 持续工作。
+
+调度器要在吞吐、首字延迟和公平性之间取舍。长提示会占用较多 Prefill 计算，长输出会长期占用 KV Cache。常见控制包括最大 batch Token、分块 Prefill、优先级、抢占和每租户配额。
+
+## Prefix Cache 与重复上下文
+
+多个请求若共享完全相同的系统提示或文档前缀，可以复用其 KV Cache，省去重复 Prefill。命中通常要求 Token 序列、模型、位置和相关配置完全一致。
+
+缓存键必须包含影响结果的全部变量，并处理用户权限。不能让一个用户通过共享缓存接触另一个用户的私有前缀；模型或模板升级时也要使旧缓存失效。
+
+## 权重量化、激活量化与 KV 量化
+
+- **Weight-only** 主要减少权重存储和带宽，激活仍较高精度。
+- **Weight + Activation** 可能获得更高吞吐，但校准和算子要求更高。
+- **KV Cache 量化** 针对长上下文缓存，可能增加反量化开销和质量损失。
+
+量化粒度可以按张量、通道或分组；更细粒度通常质量更好，但元数据和内核更复杂。异常值处理对大模型尤为重要。是否加速取决于目标硬件是否有高效内核，而非只看文件大小。
+
+## 推理并行与模型放置
+
+模型权重单卡装不下时，可使用张量并行切分层内矩阵，或流水线并行切分层。副本式数据并行则启动多份完整模型，适合扩展独立请求吞吐。
+
+张量并行每个生成步都有通信，对互联带宽敏感；流水线在单 Token Decode 时不易填满；多副本简单但每份都占权重显存。部署方案应根据模型大小、节点拓扑、请求长度和并发选择。
+
+## 服务指标怎样定义
+
+| 指标 | 含义 |
+| --- | --- |
+| TTFT | 请求到首个输出 Token 的时间，受排队与 Prefill 影响 |
+| TPOT | 首字后相邻输出 Token 的平均间隔 |
+| E2E latency | 完整请求总耗时 |
+| Throughput | 单位时间完成的请求或生成的 Token |
+| Goodput | 满足延迟目标的有效吞吐 |
+
+平均值会掩盖尾部，应同时看 P50、P95、P99，并按提示长度、输出长度和租户分桶。压测必须使用接近真实分布的输入与到达率。
+
+## 容量规划与过载保护
+
+服务容量由权重显存、可用 KV block、单步吞吐和延迟目标共同决定。并发增加时，吞吐可能上升但每请求延迟恶化；达到饱和后继续接收只会让队列无限增长。
+
+生产系统需要队列上限、超时、最大 Token、速率限制、降级和取消传播。用户取消后应尽快释放正在使用的计算与缓存，避免“请求已断开，GPU 仍在生成”。
+
+## 线上排查顺序
+
+1. 区分排队、Prefill、Decode 和网络时间。
+2. 按输入/输出长度分桶，检查是否由流量结构变化造成。
+3. 观察 KV block 使用、碎片、抢占与 cache hit。
+4. 检查 GPU 利用率、显存带宽、通信和 CPU tokenizer。
+5. 对比模型、量化、内核、模板和采样配置版本。
+6. 结合质量指标，避免以错误输出换取漂亮延迟。
+
+## 章末检查
+
+- 为什么 Prefill 更偏计算密集，Decode 更偏带宽受限？
+- 根据模型层数、KV 头和上下文长度估算缓存变化。
+- Paged KV Cache 与连续批处理分别解决什么问题？
+- TTFT、TPOT 和吞吐为何不能用一个数字替代？
+- 量化模型更小却可能不更快的原因有哪些？
+
+## 延伸资料
+
+- [PagedAttention](https://arxiv.org/abs/2309.06180)
+- [FlashAttention](https://arxiv.org/abs/2205.14135)
+- [Hugging Face Cache Strategies](https://huggingface.co/docs/transformers/main/en/kv_cache)
+- [GPTQ](https://arxiv.org/abs/2210.17323)

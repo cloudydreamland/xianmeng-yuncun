@@ -5,7 +5,7 @@ order: 2
 stage: 基础
 description: 从分词、词表和 Embedding 出发，看懂文字如何变成神经网络可计算的数字。
 topics: [Tokenizer, Embedding, 词表, 位置编码]
-estimatedMinutes: 60
+estimatedMinutes: 115
 prerequisites: [知道模型会预测下一个 Token]
 outcomes: [解释 Tokenizer 的作用, 看懂 Embedding 矩阵, 理解序列位置为何需要额外编码]
 interviewHref: /interview/llm/tokenization-and-embeddings/
@@ -13,26 +13,146 @@ updatedAt: 2026-09-01
 draft: false
 ---
 
-## Token 为什么不是简单的“一个汉字或一个单词”
+## 本章路线图
 
-计算机需要把文本映射成有限词表里的整数编号。若按整词建词表，生僻词会爆炸；若按单字符处理，序列又会过长。常见 Tokenizer 因而采用子词：高频片段可以整体出现，低频词则拆成更小单元。
+模型不能直接计算文字。文本必须经过标准化、切分、编号和向量查表；位置编码再告诉模型各 Token 的顺序。
 
-同一句话在不同模型里可能得到不同 Token 数。Token 数会直接影响上下文容量、推理费用和速度，所以“多少字”并不等于“多少 Token”。中文、英文、代码和数字的切分效率也不同。
+```text
+原始文本 → 规范化 → Tokenizer → Token ID
+→ Embedding → 位置信息 → [B, T, D] 隐藏状态
+```
 
-## 从 Token ID 到 Embedding 向量
+学完后，应能根据一段文本估计 Token 成本，解释词表与序列长度的权衡，并检查模型与 Tokenizer 是否匹配。
 
-Token ID 只是索引，本身没有大小关系。Embedding 层维护一个形状为“词表大小 × 隐藏维度”的可学习矩阵，每个 ID 取出其中一行，得到连续向量。训练过程中，含义相近或使用环境相似的 Token 往往形成某些可利用的几何关系。
+## Token 为什么不是字或单词
 
-若 batch 大小为 `B`、序列长度为 `T`、隐藏维度为 `D`，Embedding 输出通常是 `[B, T, D]`。后面每一层 Transformer 都在保持或变换这组位置向量。
+如果只按完整单词建词表，生僻词、拼写变化和新词会造成大量未知项；如果只按字符或字节切分，词表虽小，序列却会变长。子词 Tokenizer 在两者之间取平衡：常见片段保留为一个 Token，罕见内容拆成更小单元。
 
-## 模型为什么还需要知道位置
+英文 `unbelievable` 可能被拆成 `un`、`believ`、`able`；中文词组可能是一项，也可能按单字或 UTF-8 字节片段拆开。结果由具体词表决定，不存在“一个汉字固定等于一个 Token”的通用规则。
 
-注意力本身会比较任意两个位置，却不会天然知道“谁在前、谁在后”。因此模型要加入位置信息。绝对位置编码给每个位置一个向量；相对位置偏置描述两者距离；RoPE 则通过旋转 Query 和 Key，让点积包含相对位置信息。
+Tokenizer 的目标不是得到语言学上最漂亮的分词，而是构造适合模型训练的有限符号集合。
 
-位置方法还影响模型能否外推到更长上下文。把窗口从 8K 拉到 128K 不是简单改一个数字，还要处理位置缩放、训练分布、显存和注意力计算成本。
+## BPE、WordPiece 与 Unigram
 
-## Tokenizer 带来的真实边界
+| 方法 | 核心直觉 | 常见特点 |
+| --- | --- | --- |
+| BPE | 反复合并高频相邻单元 | 实现直观，GPT 系模型常见 |
+| WordPiece | 选择能改善语言模型似然的合并 | BERT 系模型常见 |
+| Unigram | 从较大候选词表中逐步删减 | 可保留多种切分概率，SentencePiece 常用 |
 
-特殊 Token 用于表示开始、结束、填充、角色或工具调用边界；聊天模板再把系统、用户和助手消息拼成模型训练时见过的格式。模板不匹配时，模型能力可能明显下降。
+SentencePiece 可以直接在原始 Unicode 文本上训练，不要求先按空格切词，适合多语言场景。实际工程中，算法名字不如最终词表、规范化规则和特殊 Token 配置重要。
 
-数字被拆分的方式会影响算术，代码缩进和空格会影响序列，罕见语言可能需要更多 Token。分析模型错误时，不要只看原始文字，也要查看实际 Token 与模板。
+## 从文本到 Token ID
+
+一条可靠管线通常包含：
+
+1. Unicode 规范化和必要的空白处理。
+2. 预切分或字节级编码。
+3. 按词表规则拆成 Token。
+4. 映射为整数 ID。
+5. 加入 BOS、EOS、角色、分隔符等特殊 Token。
+
+整数 ID 本身没有大小语义。ID `9000` 不比 ID `12` 更重要，它们只是词表中的行号。模型训练和部署必须绑定同一份 Tokenizer 文件、特殊 Token 表与聊天模板；只替换权重而沿用错误词表，会让每个 ID 指向错误内容。
+
+## 聊天模板也是输入协议
+
+对话接口中的 `system`、`user`、`assistant` 最终也会被序列化成普通 Token。一个简化模板可能类似：
+
+```text
+<|system|>你是学习助手<|end|>
+<|user|>解释梯度下降<|end|>
+<|assistant|>
+```
+
+不同模型使用不同控制符和换行规则。推理时缺少 generation prompt，模型可能继续用户文本；训练时把用户部分也计入 loss，可能让模型学着生成问题。模板属于模型协议，而不是可随意替换的展示格式。
+
+## Padding、Truncation 与 Attention Mask
+
+同一个 batch 中序列长度不同，需要 padding 到共同长度。`attention_mask` 标记哪些位置是真实 Token，哪些只是补齐。训练时还要用 `ignore_index` 排除 padding 标签，否则模型会被迫学习输出 PAD。
+
+截断决定超长文本保留哪一段。只留开头可能丢掉问题，只留末尾可能丢掉系统规则。RAG 和长对话应显式安排系统提示、历史、检索文档和当前问题的 Token 预算。
+
+```python
+encoded = tokenizer(
+    texts,
+    padding=True,
+    truncation=True,
+    max_length=2048,
+    return_tensors="pt",
+)
+print(encoded.input_ids.shape)       # [B, T]
+print(encoded.attention_mask.shape)  # [B, T]
+```
+
+## Embedding 是可学习的查找表
+
+设词表大小为 $V$、隐藏维为 $D$，Token Embedding 矩阵为：
+
+$$
+E\in\mathbb{R}^{V\times D}
+$$
+
+输入 ID 形状 `[B, T]`，查表后得到 `[B, T, D]`。这一步等价于用 one-hot 向量乘矩阵，但查表更高效。训练会更新被访问行的表示，使模型能够利用上下文关系。
+
+Embedding 的“相似”不是固定字典含义。一个 Token 的向量只有放入后续网络与上下文中才发挥作用；同一个词在不同句子里的最终隐藏状态会不同。静态 Embedding 是入口，Transformer 输出的才是上下文化表示。
+
+许多语言模型让输入 Embedding 与输出投影共享权重，称为 weight tying。这样可减少约 `V × D` 参数，并让输入、输出空间保持联系，但具体架构仍需查看模型配置。
+
+## 位置为什么必须单独编码
+
+自注意力若不加入位置信息，对输入排列本身没有顺序感。模型需要区分“猫追狗”和“狗追猫”，也要知道当前 Token 与前文相距多远。
+
+- **学习式绝对位置**：每个位置有可训练向量，简单但最大长度通常固定。
+- **正弦位置编码**：用不同频率的 sin/cos 表示位置，无需学习。
+- **RoPE**：按位置旋转 Query 和 Key，使点积自然包含相对距离信息。
+- **ALiBi**：在注意力分数中加入与距离相关的线性偏置。
+
+RoPE 不是把位置向量加到 Token 上，而是对注意力空间中的 Q/K 成对维度做旋转。长上下文扩展会改变位置频率分布，不能只把配置里的最大长度调大；还要验证短上下文能力、远距离检索和真实任务效果。
+
+## 词表设计影响成本与公平性
+
+上下文按 Token 计数，不按字数。代码、数字、少数语言、罕见符号可能被切得更碎，从而增加序列长度、推理费用和注意力计算。词表过大又会扩大 Embedding 与输出层，并提高 Softmax 成本。
+
+构建多语言 Tokenizer 时要检查各语言平均字符/Token 比率、数字与代码的切分、Unicode 规范化、特殊 Token 冲突，以及训练数据对目标语言的覆盖。
+
+## 一个最小形状实验
+
+```python
+import torch
+
+B, T, V, D = 2, 5, 1000, 64
+input_ids = torch.randint(0, V, (B, T))
+token_embedding = torch.nn.Embedding(V, D)
+position_embedding = torch.nn.Embedding(128, D)
+
+positions = torch.arange(T).unsqueeze(0)
+x = token_embedding(input_ids) + position_embedding(positions)
+assert x.shape == (B, T, D)
+```
+
+真实 Decoder-only 模型可能使用 RoPE，因此不一定执行位置向量相加，但 Transformer 入口最终仍要得到 `[B, T, D]` 的表示。
+
+## 常见错误与排查
+
+- 出现乱码或输出完全失常：核对模型权重、Tokenizer 和聊天模板版本。
+- batch 结果受 padding 影响：检查 `attention_mask`、padding 方向和 `position_ids`。
+- loss 异常偏低：确认 padding、提示部分和答案部分的标签遮罩。
+- 长文本效果骤降：记录真实 Token 数、截断位置与各段预算。
+- 新增特殊 Token 后无效：通常还需扩展 Embedding，并训练这些新行。
+
+## 章末检查
+
+1. 为什么 ID 的数值大小没有语义，而 Embedding 有可学习含义？
+2. 词表更大和序列更短之间有什么代价交换？
+3. 聊天模板错误为什么会让同一模型表现完全不同？
+4. 输入 `[B, T]` 经过 Embedding 后形状为什么是 `[B, T, D]`？
+5. RoPE 与绝对位置向量的注入位置有何不同？
+
+动手练习：任选三段中文、英文和代码，分别统计字符数与 Token 数，写出差异原因，并记录特殊 Token 后的实际上下文长度。
+
+## 延伸资料
+
+- [SentencePiece](https://arxiv.org/abs/1808.06226)
+- [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
+- [RoFormer：RoPE](https://arxiv.org/abs/2104.09864)
+- [Hugging Face Tokenizer 文档](https://huggingface.co/docs/transformers/main_classes/tokenizer)
