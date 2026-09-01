@@ -1,8 +1,8 @@
 <section class="life-inbox life-panel" id="inbox" aria-labelledby="life-inbox-title" data-life-inbox data-pagefind-ignore>
-  <header class="life-panel__heading"><div><p class="pixel-kicker">RAIN BRIDGE · 收集</p><h2 id="life-inbox-title">灵念收集箱</h2><p>先接住散落的念头；处理、转为任务或删除，都留到安静的时候。</p></div><button class="pixel-button pixel-button--primary" type="button" data-quick-capture-open data-capture-kind="idea">＋ 收一条</button></header>
+  <header class="life-panel__heading"><div><p class="pixel-kicker">RAIN BRIDGE · 收集</p><h2 id="life-inbox-title">临时记录</h2><p>保存尚未分类的想法，可标记处理、转为任务或删除。</p></div><button class="pixel-button pixel-button--primary" type="button" data-quick-capture-open data-capture-kind="idea">＋ 新增记录</button></header>
   <div class="life-inbox__filters" role="group" aria-label="筛选收集箱"><button class="active" type="button" data-inbox-filter="open">待整理</button><button type="button" data-inbox-filter="all">全部</button><span data-inbox-count>0 条</span></div>
   <div class="life-inbox__list" data-inbox-list></div>
-  <p class="life-inbox__empty" data-inbox-empty>桥面清朗，没有等待归卷的灵念。</p>
+  <p class="life-inbox__empty" data-inbox-empty>没有待整理的记录。</p>
 </section>
 
 <script>
@@ -18,11 +18,11 @@
       if (count) count.textContent = `${shown.length} 条`;
       list?.replaceChildren(...shown.map((item) => {
         const article=document.createElement('article'); article.className=item.handled?'is-handled':'';
-        const header=document.createElement('header'); const meta=document.createElement('span'); meta.textContent=`${item.category || '日常'} · ${item.date || ''}`; const status=document.createElement('strong'); status.textContent=item.handled?'已归卷':'待整理'; header.append(meta,status);
+        const header=document.createElement('header'); const meta=document.createElement('span'); meta.textContent=`${item.category || '日常'} · ${item.date || ''}`; const status=document.createElement('strong'); status.textContent=item.handled?'已处理':'待整理'; header.append(meta,status);
         const title=document.createElement('h3'); title.textContent=item.title; const detail=document.createElement('p'); detail.textContent=item.detail || '没有补充。';
         const footer=document.createElement('footer'); const toggle=document.createElement('button'); toggle.type='button'; toggle.textContent=item.handled?'重新打开':'标记处理'; toggle.addEventListener('click',()=>{ const now=read(); const target=now.find((entry)=>entry.id===item.id); if(target)target.handled=!target.handled; save(now); render(); });
         const task=document.createElement('button'); task.type='button'; task.textContent='转为任务'; task.addEventListener('click',()=>{ const plans=readStored<any[]>(localStorage,LIFE_KEYS.plans,[]); const now=new Date().toISOString(); plans.push({id:lifeId('plan'),title:item.title,date:item.date||'',priority:'medium',notes:item.detail||'',completed:false,createdAt:now,updatedAt:now}); writeStored(localStorage,LIFE_KEYS.plans,plans); const inbox=read(); const target=inbox.find((entry)=>entry.id===item.id); if(target)target.handled=true; save(inbox); window.dispatchEvent(new CustomEvent('yuncun-local-plans-updated')); render(); });
-        const remove=document.createElement('button'); remove.type='button'; remove.textContent='删除'; remove.className='danger'; remove.addEventListener('click',()=>{ if(confirm('删除这条灵念？')){save(read().filter((entry)=>entry.id!==item.id));render();} }); footer.append(toggle,task,remove); article.append(header,title,detail,footer); return article;
+        const remove=document.createElement('button'); remove.type='button'; remove.textContent='删除'; remove.className='danger'; remove.addEventListener('click',()=>{ if(confirm('删除这条记录？')){save(read().filter((entry)=>entry.id!==item.id));render();} }); footer.append(toggle,task,remove); article.append(header,title,detail,footer); return article;
       }));
       if(empty)empty.hidden=shown.length>0;
     };

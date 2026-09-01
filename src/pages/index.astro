@@ -5,9 +5,7 @@ import CloudEntrance from '../components/CloudEntrance.astro';
 import HomeSceneBridge from '../components/HomeSceneBridge.astro';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
-import RealmOracleSigil from '../components/RealmOracleSigil.astro';
 import HomeGeometryField from '../components/HomeGeometryField.astro';
-import CloudJourneyGuide from '../components/CloudJourneyGuide.astro';
 import {
   cloudVillageDestinations,
   timeCopy,
@@ -25,11 +23,6 @@ const regions = (await getCollection('regions'))
   .sort((a, b) => a.data.order - b.data.order);
 const latestActivityAt = notes[0]?.data.updatedAt ?? notes[0]?.data.publishedAt;
 const formatFullDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-const randomDestinations = [
-  ...notes.map((note) => `/notes/${note.data.slug}/`),
-  ...projects.map((project) => `/projects/${project.data.slug}/`),
-];
-const randomFallback = randomDestinations[0] ?? '/world/cloud-village/';
 const latestNoteHref = notes[0] ? `/notes/${notes[0].data.slug}/` : '/world/wind-valley/';
 
 const pointsById = new Map(worldMapPoints.map((point) => [point.id, point]));
@@ -71,102 +64,79 @@ const mapRegions = regions.map((region) => {
       <i aria-hidden="true">↑</i><span>返回全境图</span>
     </a>
     <HomeGeometryField />
-    <section class="home-intro page-shell" aria-labelledby="home-intro-title">
-      <div class="home-intro__copy pixel-frame">
-        <p class="pixel-kicker">王选默的数字世界</p>
-        <h1 id="home-intro-title">在七境之间，记录学习、造物与日常。</h1>
-        <p>这里以云村为中心，收纳软件工程、机器学习与自然语言处理的学习札记，也保存项目复盘、公开计划和偶然拾得的灵感。</p>
-        <nav class="home-intro__actions" aria-label="主页快速入口">
-          <a class="pixel-button pixel-button--primary" href={latestNoteHref}>读最新笔记 →</a>
-          <a class="pixel-button" href="/world/moon-pool/">看项目</a>
-          <a class="pixel-button" href="/about">认识我</a>
-          <a class="pixel-button home-random-link" href={randomFallback} data-random-portal data-random-links={JSON.stringify(randomDestinations)}>随缘一阅 ↝</a>
-        </nav>
-      </div>
-      <aside class="home-intro__ledger pixel-frame" aria-label="站点内容概况">
-        <p class="pixel-kicker">此间已有</p>
-        <dl>
-          <div><dt>公开笔记</dt><dd>{notes.length}</dd></div>
-          <div><dt>项目档案</dt><dd>{projects.length}</dd></div>
-          <div><dt>开放境域</dt><dd>{regions.filter(({ data }) => data.status === 'active').length}</dd></div>
-        </dl>
-        {latestActivityAt && <p class="home-intro__updated">最近更新 <time datetime={latestActivityAt.toISOString()}>{formatFullDate(latestActivityAt)}</time></p>}
-        <a href="/rss.xml">以 RSS 接收新风信 →</a>
-      </aside>
-    </section>
+    <section class="home-bulletin page-shell pixel-frame" aria-labelledby="home-bulletin-title">
+      <header class="home-bulletin__header">
+        <div><p class="pixel-kicker">网站公告 · 使用说明</p><h1 id="home-bulletin-title">欢迎来到闲梦world</h1><p>这是王选默的个人网站，用来公开整理学习笔记、项目经历与持续推进的计划。上方全境地图负责按主题浏览；这里负责告诉你最快的使用方式。</p></div>
+        {latestActivityAt && <p class="home-bulletin__date"><span>最近更新</span><time datetime={latestActivityAt.toISOString()}>{formatFullDate(latestActivityAt)}</time></p>}
+      </header>
 
-    <CloudJourneyGuide />
+      <div class="home-bulletin__body">
+        <section aria-labelledby="home-guide-title">
+          <h2 id="home-guide-title">网站怎么用</h2>
+          <ol class="home-guide">
+            <li><span>01</span><div><strong>大模型学习</strong><p>学习中心收录系统笔记、PyTorch 实践课和面试题库。</p><a href="/learn/">进入学习中心 →</a></div></li>
+            <li><span>02</span><div><strong>笔记与项目</strong><p>风谷收录公开笔记，月潭展示项目经历和公开计划。</p><p><a href="/world/wind-valley/">浏览笔记</a><a href="/world/moon-pool/">查看项目</a></p></div></li>
+            <li><span>03</span><div><strong>七境地图</strong><p>全境地图按内容主题划分七个区域，云游路线则把相关页面串成专题。</p><a href="/journeys/">查看云游路线 →</a></div></li>
+            <li><span>04</span><div><strong>个人工作台</strong><p>待办、随手记和阅读清单默认保存在当前浏览器，不会出现在公开页面。</p><a href="/workspace/">打开工作台 →</a></div></li>
+          </ol>
+        </section>
 
-    <section class="realm-overview page-shell" aria-labelledby="realm-overview-title">
-      <header class="section-heading"><p class="pixel-kicker">七境灵图</p><h2 id="realm-overview-title">七境各司一念，<br />万象皆有归处。</h2><p>循图认路，依境藏心。择一方灵域，便可抵达与之相守的文字、造物与日常。</p></header>
-      <div class="realm-overview-grid">
-        {mapRegions.map((region) => <a class="realm-overview-card" href={region.href}><div class="realm-overview-card__seal"><RealmOracleSigil realm={region.id} size={42} /><span>{region.realm}</span></div><h2>{region.title}</h2><strong>{region.functionTitle}</strong><p>{region.functionDescription}</p><em>{region.status === 'active' ? '门扉已启' : '灵境将启'} →</em></a>)}
+        <aside class="home-bulletin__notice" aria-labelledby="home-notice-title">
+          <p class="pixel-kicker">本次更新</p><h2 id="home-notice-title">大模型学习入口已重整</h2>
+          <p>新增 12 章零基础系统笔记；原有 14 章、150 题面经继续保留，并已拆分为独立入口。</p>
+          <a href="/learn/llm/">从第一章开始 →</a>
+          <dl aria-label="站点内容概况"><div><dt>公开笔记</dt><dd>{notes.length}</dd></div><div><dt>项目档案</dt><dd>{projects.length}</dd></div><div><dt>开放境域</dt><dd>{regions.filter(({ data }) => data.status === 'active').length}</dd></div></dl>
+          <div class="home-bulletin__tips"><strong>两个常用入口</strong><p><button type="button" data-search-open>云镜：搜索全站内容</button><a href={latestNoteHref}>最新笔记：直接开始阅读</a></p></div>
+        </aside>
       </div>
     </section>
 
     <div class="home-plan-summary-wrap page-shell">
       <PlanSummary plans={plans} />
     </div>
-    <section class="home-workspace-cta page-shell"><div><p class="pixel-kicker">境外云案</p><h2>七境之外，尚有一方独属你的案几。</h2><p>今日诸务、待阅之笺、初生的念头与七日回望，皆可暂寄案上，待你亲手归卷。</p></div><a class="pixel-button pixel-button--primary" href="/workspace/">启案入席 →</a></section>
     <section class="home-follow page-shell pixel-frame" aria-labelledby="home-follow-title">
-      <div><p class="pixel-kicker">风信不断</p><h2 id="home-follow-title">下次再来，也不必从头寻路。</h2><p>订阅 RSS 接收新内容，或打开云镜，从标题、分类与标签中检索全境。</p></div>
+      <div><p class="pixel-kicker">查找与订阅</p><h2 id="home-follow-title">找内容，用云镜；等更新，用 RSS。</h2><p>云镜支持按笔记、教程、面经和项目筛选，RSS 用于接收公开内容更新。</p></div>
       <div><a class="pixel-button pixel-button--primary" href="/rss.xml">订阅 RSS</a><button class="pixel-button" type="button" data-search-open>打开云镜 ⌕</button></div>
     </section>
   </div>
 </BaseLayout>
 
-<script>
-  document.querySelectorAll<HTMLElement>('[data-random-portal]').forEach((element) => {
-    element.addEventListener('click', (event) => {
-      if (!(event instanceof MouseEvent) || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const links = JSON.parse(element.dataset.randomLinks ?? '[]') as string[];
-      if (links.length < 2) return;
-      event.preventDefault();
-      const currentPath = window.location.pathname;
-      const choices = links.filter((href) => href !== currentPath);
-      window.location.assign(choices[Math.floor(Math.random() * choices.length)] ?? links[0]);
-    });
-  });
-</script>
-
 <style>
-  .home-intro { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.65fr); gap:20px; padding-top:176px; }
-  .home-intro__copy,.home-intro__ledger { padding:clamp(24px,3vw,38px); background:rgba(242,251,248,.94); }
-  .home-intro__copy h1 { max-width:800px; margin:4px 0 18px; color:#3c514c; font-family:var(--serif); font-size:clamp(2.35rem,5vw,4.9rem); line-height:1.08; text-wrap:balance; }
-  .home-intro__copy > p:not(.pixel-kicker) { max-width:780px; margin:0; color:#566b66; line-height:1.85; }
-  .home-intro__actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:30px; }
-  .home-intro__ledger { display:flex; flex-direction:column; color:#50635d; background:rgba(231,242,226,.95); }
-  .home-intro__ledger dl { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 22px; }
-  .home-intro__ledger dl div { display:flex; min-height:94px; flex-direction:column-reverse; justify-content:center; padding:10px 8px; border:2px solid #789285; background:#f5f2dd; text-align:center; }
-  .home-intro__ledger dt { color:#607067; font-size:.68rem; font-weight:800; letter-spacing:.08em; }
-  .home-intro__ledger dd { margin:0 0 4px; color:#4e5a4f; font-family:var(--serif); font-size:2rem; font-weight:800; }
-  .home-intro__updated { margin:auto 0 12px; padding-top:14px; border-top:1px dashed #8ca097; font-size:.75rem; }
-  .home-intro__updated time { display:block; margin-top:5px; color:#42695a; font-weight:900; }
-  .home-intro__ledger > a { color:#416956; font-size:.75rem; font-weight:900; }
+  .home-bulletin { margin-top:176px; padding:clamp(26px,4vw,48px); color:#4f625c; background:rgba(242,248,235,.96); }
+  .home-bulletin__header { display:flex; align-items:end; justify-content:space-between; gap:30px; padding-bottom:28px; border-bottom:2px solid #81958b; }
+  .home-bulletin__header>div { max-width:790px; }
+  .home-bulletin__header h1 { margin:5px 0 13px; color:#3d554e; font-family:var(--serif); font-size:clamp(2.5rem,6vw,5rem); line-height:1.08; }
+  .home-bulletin__header>div>p:last-child { margin:0; color:#5c7069; line-height:1.85; }
+  .home-bulletin__date { flex:none; margin:0; padding:13px 16px; border:2px solid #7d9087; background:#f6f1d8; text-align:center; }
+  .home-bulletin__date span,.home-bulletin__date time { display:block; }
+  .home-bulletin__date span { color:#748179; font-size:.62rem; letter-spacing:.12em; }
+  .home-bulletin__date time { margin-top:5px; color:#48675c; font-size:.75rem; font-weight:900; }
+  .home-bulletin__body { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.65fr); gap:22px; margin-top:28px; }
+  .home-bulletin__body h2 { margin:0 0 17px; color:#435b52; font-family:var(--serif); font-size:1.55rem; }
+  .home-guide { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
+  .home-guide li { display:grid; grid-template-columns:34px 1fr; gap:9px; min-height:185px; padding:17px; border:2px solid #8a9b91; background:#fffdf1; }
+  .home-guide li>span { color:#779188; font-family:var(--serif); font-size:1.15rem; font-weight:900; }
+  .home-guide strong { color:#405d53; }
+  .home-guide p { margin:8px 0; color:#65756f; font-size:.76rem; line-height:1.7; }
+  .home-guide a { color:#367063; font-size:.72rem; font-weight:900; }
+  .home-guide div>p:last-child a+a { margin-left:14px; }
+  .home-bulletin__notice { padding:23px; border:3px solid #5f776d; background:#e6efdd; box-shadow:5px 5px 0 rgba(59,79,69,.16); }
+  .home-bulletin__notice>p:not(.pixel-kicker) { color:#5c6d66; font-size:.8rem; line-height:1.75; }
+  .home-bulletin__notice>a { display:inline-block; margin:6px 0 20px; color:#fff; padding:10px 13px; background:#527568; font-size:.72rem; font-weight:900; }
+  .home-bulletin__notice dl { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0; }
+  .home-bulletin__notice dl div { display:flex; min-height:78px; flex-direction:column-reverse; justify-content:center; padding:8px 5px; border:1px solid #85968b; background:#f6f2dc; text-align:center; }
+  .home-bulletin__notice dt { color:#6d7b73; font-size:.58rem; }
+  .home-bulletin__notice dd { margin:0 0 3px; color:#496158; font-family:var(--serif); font-size:1.45rem; font-weight:900; }
+  .home-bulletin__tips { margin-top:18px; padding-top:15px; border-top:1px dashed #809188; }
+  .home-bulletin__tips strong { color:#4b6259; font-size:.72rem; }
+  .home-bulletin__tips p { display:grid; gap:6px; margin:8px 0 0; }
+  .home-bulletin__tips button,.home-bulletin__tips a { min-height:40px; padding:9px 11px; border:1px solid #7a9085; color:#42685b; background:#f9f7e8; text-align:left; font:inherit; font-size:.7rem; font-weight:900; cursor:pointer; }
   .home-plan-summary-wrap { padding-block: 30px 52px; }
-  .realm-overview { padding:74px 0 70px; }
-  .realm-overview .section-heading { width:min(900px,100%); max-width:900px; padding:clamp(24px,3vw,38px); border:1px solid var(--home-heading-border); border-left:5px solid var(--home-accent); background:var(--home-heading-panel); box-shadow:var(--home-panel-shadow); backdrop-filter:blur(16px) saturate(1.08); transition:background .65s ease,border-color .65s ease,box-shadow .65s ease; }
-  .realm-overview .section-heading h2 { margin:0; color:var(--home-heading); font-family:var(--serif); font-size:clamp(2.2rem,5vw,4.3rem); text-shadow:var(--home-heading-shadow); transition:color .65s ease,text-shadow .65s ease; }
-  .realm-overview .section-heading .pixel-kicker { color:var(--home-accent); letter-spacing:.32em; transition:color .65s ease; }
-  .realm-overview .section-heading > p:last-child { color:var(--home-copy); line-height:1.8; text-shadow:var(--home-copy-shadow); transition:color .65s ease,text-shadow .65s ease; }
-  .realm-overview-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:34px; }
-  .realm-overview-card { display:grid; align-content:start; min-height:230px; padding:21px; border:2px solid #58a4bd; color:#3d5e68; background:rgba(247,253,255,.92); box-shadow:0 6px 0 rgba(47,135,157,.15),inset 0 0 28px rgba(114,220,233,.1); transition:transform .2s ease,box-shadow .2s ease; }
-  .realm-overview-card:hover { transform:translateY(-5px); box-shadow:0 12px 0 rgba(47,135,157,.14),0 18px 38px rgba(26,153,186,.2),inset 0 0 28px rgba(114,220,233,.16); }
-  .realm-overview-card__seal { display:flex; align-items:center; justify-content:space-between; min-height:46px; color:#6d5741; }
-  .realm-overview-card__seal span,.realm-overview-card em { color:#7d856f; font-size:.7rem; font-style:normal; letter-spacing:.18em; }
-  .realm-overview-card__seal :global(.oracle-sigil) { filter:drop-shadow(2px 2px 0 rgba(94,69,39,.12)); transform:rotate(-2deg); }
-  .realm-overview-card h2 { margin:10px 0 7px; color:#514838; font-family:var(--serif); font-size:1.55rem; }
-  .realm-overview-card strong { color:#3e6a53; }
-  .realm-overview-card p { margin:9px 0 16px; font-size:.79rem; line-height:1.65; }
-  .home-workspace-cta { display:flex; align-items:center; justify-content:space-between; gap:22px; margin-block:24px 44px; padding:30px; border:2px solid #58a9bb; background:rgba(241,253,255,.94); box-shadow:0 8px 0 rgba(53,151,166,.16),0 18px 42px rgba(50,168,192,.17); }
-  .home-workspace-cta h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:2rem; }
-  .home-workspace-cta p:not(.pixel-kicker) { margin-bottom:0; color:#617067; }
   .home-follow { display:flex; align-items:center; justify-content:space-between; gap:28px; margin-bottom:94px; padding:30px 34px; background:rgba(232,240,220,.94); }
   .home-follow h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:clamp(1.7rem,3vw,2.4rem); }
   .home-follow p:not(.pixel-kicker) { margin:10px 0 0; color:#617067; }
   .home-follow > div:last-child { display:flex; flex:0 0 auto; gap:12px; }
-  @media (max-width:900px) { .realm-overview-grid { grid-template-columns:repeat(2,1fr); } }
-  @media (max-width:900px) { .home-intro { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
-  @media (max-width:600px) { .home-intro { padding-top:158px; } .home-intro__copy,.home-intro__ledger { padding:22px 20px 24px; } .home-intro__actions { display:grid; grid-template-columns:1fr 1fr; } .home-intro__ledger dl { grid-template-columns:repeat(3,1fr); } .realm-overview { padding-top:54px; } .realm-overview .section-heading { padding:22px 20px 24px; } .realm-overview-grid { grid-template-columns:1fr; } .home-workspace-cta { align-items:start; flex-direction:column; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
-  @media (max-width:420px) { .home-intro__actions,.home-intro__ledger dl { grid-template-columns:1fr; } .home-intro__ledger dl div { min-height:72px; } }
+  @media (max-width:900px) { .home-bulletin__body { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
+  @media (max-width:600px) { .home-bulletin { margin-top:158px; padding:22px 18px 24px; } .home-bulletin__header { align-items:flex-start; flex-direction:column; } .home-guide { grid-template-columns:1fr; } .home-guide li { min-height:0; } .home-bulletin__notice { padding:20px 16px; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
+  @media (max-width:420px) { .home-bulletin__notice dl { grid-template-columns:1fr; } .home-bulletin__notice dl div { min-height:62px; } }
 </style>

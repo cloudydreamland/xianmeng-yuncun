@@ -59,21 +59,18 @@ test('手机端首页背景和工作台背景使用一致画面的响应式资�
   expect(workspaceBackground).toContain('workspace-starriver-v6-1536.avif');
 });
 
-test('手机组件改为单列，平板组件保持紧凑双列', async ({ page }) => {
+test('公告步骤在手机改为单列，平板保持紧凑双列', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
-  await expect(page.locator('.realm-overview-grid')).toHaveCSS('grid-template-columns', /.+/);
-  const phoneColumns = await page.locator('.realm-overview-grid').evaluate((element) => (
-    getComputedStyle(element).gridTemplateColumns.split(' ').length
-  ));
-  expect(phoneColumns).toBe(1);
+  const phonePositions = await page.locator('.home-guide > li').evaluateAll((items) => items.slice(0, 2).map((item) => item.getBoundingClientRect().x));
+  expect(Math.abs(phonePositions[0] - phonePositions[1])).toBeLessThan(2);
 
   await page.setViewportSize({ width: 768, height: 1024 });
-  const tabletColumns = await page.locator('.realm-overview-grid').evaluate((element) => (
-    getComputedStyle(element).gridTemplateColumns.split(' ').length
-  ));
-  expect(tabletColumns).toBe(2);
+  await expect(page.locator('.home-guide')).toBeVisible();
+  const tabletPositions = await page.locator('.home-guide > li').evaluateAll((items) => items.slice(0, 3).map((item) => item.getBoundingClientRect().x));
+  expect(tabletPositions[1]).toBeGreaterThan(tabletPositions[0] + 10);
+  expect(Math.abs(tabletPositions[0] - tabletPositions[2])).toBeLessThan(2);
 });
 
 test('高 DPR 手机为首页和工作台选用 2560 清晰背景', async ({ browser }) => {
@@ -107,7 +104,7 @@ test('手机主要导航与地图控件保持至少 44px 触控高度', async ({
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/');
 
-  const controls = page.locator('.mobile-nav summary, .world-map__descent, .world-time-dial__toggle');
+  const controls = page.locator('.mobile-nav > summary, .world-map__descent, .world-time-dial__toggle');
   await expect(controls).toHaveCount(3);
   for (let index = 0; index < await controls.count(); index += 1) {
     const height = await controls.nth(index).evaluate((element) => element.getBoundingClientRect().height);
@@ -169,8 +166,8 @@ test('手机端加密云卷区分访问密钥与同步密码且不横向溢出',
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/workspace/');
 
-  const accessToken = page.getByLabel('访问密钥');
-  const passphrase = page.getByLabel('同步密码');
+  const accessToken = page.getByLabel('访问密钥', { exact: true });
+  const passphrase = page.getByLabel('同步密码', { exact: true });
   await expect(accessToken).toBeVisible();
   await expect(passphrase).toBeVisible();
   await expect(page.getByText('保存访问密钥，用于自动同步')).toBeVisible();

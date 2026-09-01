@@ -57,7 +57,7 @@ function loadPagefind() {
 export default function CloudSearch({
   variant = 'dialog',
   heading = '云镜检索',
-  description = '投下一枚词语，散落七境的笔墨便会显影。',
+  description = '搜索全站的笔记、教程、面经、项目与作品。',
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -176,7 +176,7 @@ export default function CloudSearch({
       </header>
       <label className="search-field">
         <span aria-hidden="true">⌕</span>
-        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleInputKeyDown} placeholder="让云镜照见一段文字……" aria-label="搜索雲梦世界内容" autoComplete="off" spellCheck={false} />
+        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleInputKeyDown} placeholder="搜索标题、正文或标签" aria-label="搜索雲梦世界内容" autoComplete="off" spellCheck={false} />
         <kbd>⌘ K</kbd>
       </label>
       <div className="search-filters" aria-label="筛选搜索结果">

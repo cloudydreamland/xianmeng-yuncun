@@ -14,7 +14,7 @@ const entries = [directory.primary, ...directory.items.filter((item) => item.hre
   <details class="region-directory__details">
     <summary>
       <span><small>{title} · 境内目录</small><strong>{entries.length} 处可访</strong></span>
-      <span class="region-directory__recommendation"><small>建议先看</small><strong>{directory.primary.label}</strong></span>
+      <span class="region-directory__recommendation"><small>主要入口</small><strong>{directory.primary.label}</strong></span>
       <em data-directory-state>展开</em>
     </summary>
     <ol>
@@ -22,7 +22,7 @@ const entries = [directory.primary, ...directory.items.filter((item) => item.hre
         <li class:list={[{ 'is-recommended': item.href === directory.primary.href }]}>
           <a href={item.href}>
             <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{item.label}{item.href === directory.primary.href && <em>建议先看</em>}</strong>
+            <strong>{item.label}{item.href === directory.primary.href && <em>主要入口</em>}</strong>
             <small>{item.description}</small>
           </a>
         </li>

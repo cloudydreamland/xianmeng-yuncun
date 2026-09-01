@@ -99,7 +99,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', {
 
         {extra && (
           <section class="course-practice" data-pagefind-ignore>
-            <header><p class="pixel-kicker">本章收束</p><h2>小测、项目与面经联动</h2></header>
+            <header><p class="pixel-kicker">章末资料</p><h2>小测、项目与相关面试题</h2></header>
             <div class="course-practice__quiz">
               {extra.quiz.map((item, index) => (
                 <details><summary>{index + 1}. {item.question}</summary><p>{item.answer}</p></details>
@@ -107,7 +107,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', {
             </div>
             <div class="course-practice__actions">
               {extra.project && <a href={extra.project.href} download><strong>{extra.project.label}</strong><span>{extra.project.detail}</span></a>}
-              {extra.interviewLink && <a href={extra.interviewLink.href}><strong>{extra.interviewLink.label}</strong><span>把刚学会的原理练成可以口述的答案。</span></a>}
+              {extra.interviewLink && <a href={extra.interviewLink.href}><strong>{extra.interviewLink.label}</strong><span>查看与本章主题相关的面试问题。</span></a>}
               <a href="/downloads/pytorch-course/verification-report.json"><strong>查看代码验证报告</strong><span>74 段语法校验、CPU 实跑与硬件边界均有记录。</span></a>
             </div>
           </section>

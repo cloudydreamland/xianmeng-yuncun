@@ -1,15 +1,15 @@
 <section class="today-dashboard life-panel" id="today" aria-labelledby="today-dashboard-title" data-today-dashboard data-pagefind-ignore>
-  <header class="life-panel__heading"><div><p class="pixel-kicker">CLOUD VILLAGE · 今日</p><h2 id="today-dashboard-title">今天，只看眼前这一程。</h2><p>从各境拣出今日重点、临期私务、习惯与未归卷的灵念。</p></div><time data-today-date></time></header>
-  <div class="today-dashboard__focus"><span>今日一桩</span><strong data-today-focus>尚未落笔</strong><button type="button" data-quick-capture-open data-capture-kind="task">＋ 记一项</button></div>
+  <header class="life-panel__heading"><div><p class="pixel-kicker">CLOUD VILLAGE · 今日</p><h2 id="today-dashboard-title">今日概览</h2><p>汇总今日重点、临期事项、习惯和待整理记录。</p></div><time data-today-date></time></header>
+  <div class="today-dashboard__focus"><span>今日重点</span><strong data-today-focus>尚未填写</strong><button type="button" data-quick-capture-open data-capture-kind="task">＋ 新增任务</button></div>
   <div class="today-dashboard__metrics">
     <a href="/workspace/"><strong data-today-task-count>0</strong><span>今日任务</span></a>
-    <a href="/world/rain-bridge/#inbox"><strong data-today-inbox-count>0</strong><span>待整理灵念</span></a>
+    <a href="/world/rain-bridge/#inbox"><strong data-today-inbox-count>0</strong><span>待整理记录</span></a>
     <a href="/world/snow-cliff/#habits"><strong data-today-habit-count>0/0</strong><span>今日习惯</span></a>
     <a href="/world/moon-pool/#expiries"><strong data-today-expiry-count>0</strong><span>三十日内到期</span></a>
   </div>
   <div class="today-dashboard__columns">
-    <section><h3>眼前事项</h3><ol data-today-tasks></ol><p data-today-tasks-empty>今天没有必须完成的事项。</p></section>
-    <section><h3>快速启程</h3><div class="today-dashboard__actions"><button type="button" data-quick-capture-open data-capture-kind="idea">收一条灵感</button><a href="/world/star-abyss/#focus">开始专注</a><a href="/world/snow-cliff/#habits">习惯打卡</a><button type="button" data-quick-capture-open data-capture-kind="journal">写一句手记</button></div></section>
+    <section><h3>今日任务</h3><ol data-today-tasks></ol><p data-today-tasks-empty>今天没有必须完成的事项。</p></section>
+    <section><h3>快捷操作</h3><div class="today-dashboard__actions"><button type="button" data-quick-capture-open data-capture-kind="idea">记录灵感</button><a href="/world/star-abyss/#focus">开始专注</a><a href="/world/snow-cliff/#habits">习惯打卡</a><button type="button" data-quick-capture-open data-capture-kind="journal">记录手记</button></div></section>
   </div>
 </section>
 
@@ -29,7 +29,7 @@
       const expiries = readStored<any[]>(localStorage, LIFE_KEYS.expiries, []).filter((item) => item && !item.completed && item.date && Date.parse(`${item.date}T23:59:59`) <= month);
       const focus = readStored<any>(localStorage, LIFE_KEYS.focus, null);
       set('[data-today-task-count]', todayPlans.length); set('[data-today-inbox-count]', inbox.length); set('[data-today-habit-count]', `${doneHabits.filter((id) => habits.some((habit) => habit.id === id)).length}/${habits.length}`); set('[data-today-expiry-count]', expiries.length);
-      set('[data-today-focus]', focus?.date === today && focus.title ? focus.title : todayPlans[0]?.title || '尚未落笔');
+      set('[data-today-focus]', focus?.date === today && focus.title ? focus.title : todayPlans[0]?.title || '尚未填写');
       const list = root.querySelector<HTMLOListElement>('[data-today-tasks]'); const empty = root.querySelector<HTMLElement>('[data-today-tasks-empty]');
       list?.replaceChildren(...todayPlans.slice(0, 5).map((plan) => { const li = document.createElement('li'); const strong = document.createElement('strong'); strong.textContent = plan.title; const span = document.createElement('span'); span.textContent = plan.priority === 'high' ? '高优先' : '今日'; li.append(strong, span); return li; }));
       if (empty) empty.hidden = todayPlans.length > 0;

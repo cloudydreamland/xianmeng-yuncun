@@ -11,6 +11,7 @@ test('云游路线记录本地足迹并提供继续入口', async ({ page }) => 
   await page.evaluate(() => window.localStorage.removeItem('yuncun:trail:v1'));
   await page.reload();
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
+  await page.getByRole('link', { name: '查看云游路线 →' }).click();
   const guide = page.locator('[data-journey-guide]');
   await expect(guide.locator('[data-journey-card]')).toHaveCount(3);
   await expect(guide.getByText('尚未启程 · 0/4').first()).toBeVisible();
@@ -29,11 +30,12 @@ test('雲梦世界项目展示结构化案例证据', async ({ page }) => {
   await expect(caseStudy.getByRole('heading', { name: '这项工作如何被做出来' })).toBeVisible();
   await expect(caseStudy.getByText('独立完成产品定位、视觉设计、内容建模、前端开发与质量验证')).toBeVisible();
   await expect(caseStudy.getByText('关键取舍')).toBeVisible();
-  await expect(caseStudy.getByText('再来一次')).toBeVisible();
+  await expect(caseStudy.getByText('复盘结论')).toBeVisible();
 });
 
 test('星渊注意力实验计算六个词的归一化权重', async ({ page }) => {
   await page.goto('/world/star-abyss/');
+  await page.getByRole('tab', { name: /术法试验/ }).click();
   const lab = page.locator('[data-attention-lab]');
   await expect(lab.getByRole('heading', { name: /一句话里的目光/ })).toBeVisible();
   const progressbars = lab.getByRole('progressbar');

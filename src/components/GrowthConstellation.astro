@@ -2,7 +2,7 @@
   <header class="section-heading">
     <p class="pixel-kicker">问道星图</p>
     <h2 id="constellation-title">循星火，渡长夜</h2>
-    <p>凡已点亮之星，皆有旧卷或造物为凭；“下一程”只记所向，不以愿望冒充抵达。</p>
+    <p>已完成内容均关联公开笔记或项目；后续方向单独列在“下一程”。</p>
   </header>
   <div class="constellation__sky">
     <article class="star-cluster star-cluster--foundation">
@@ -19,10 +19,10 @@
       <span class="star-cluster__index">02</span>
       <p>此夜航道</p>
       <h3>机器学习、NLP 与应用实践</h3>
+      <a class="star-cluster__learning-gate" href="/learn/"><strong>进入学习中心</strong><span>系统笔记 · PyTorch 实践 · 面试问答</span></a>
       <ul>
-        <li><a href="/interview/llm/">大模型面经 · 问道录（150 题）</a></li>
-        <li><a href="/learn/pytorch/">PyTorch 从零到大模型工程</a></li>
-        <li><a href="/notes/nlp-interview-study-index/">NLP 算法岗学习索引</a></li>
+        <li><a href="/learn/llm/">零基础推荐：大模型从零学习笔记</a></li>
+        <li><a href="/notes/nlp-interview-study-index/">NLP 算法岗资料索引</a></li>
         <li><a href="/projects/replaygain-ml/">ReplayGain ML 音频机器学习工具</a></li>
         <li><a href="/projects/smart-cloud-brain/">智慧云脑诊疗微服务平台</a></li>
       </ul>
@@ -30,7 +30,7 @@
     <article class="star-cluster star-cluster--next">
       <span class="star-cluster__index">03</span>
       <p>未至之境</p>
-      <h3>使所学有迹，使所得有凭</h3>
+      <h3>后续学习方向</h3>
       <ul>
         <li>继续补齐机器学习与自然语言处理基础</li>
         <li>参与可复现的科研或项目实践</li>
@@ -39,3 +39,9 @@
     </article>
   </div>
 </section>
+
+<style>
+  .star-cluster__learning-gate{display:grid;gap:3px;margin:14px 0 10px;padding:13px 14px;border:1px solid rgba(118,166,210,.5);border-radius:14px;color:#eaf5ff;background:rgba(37,72,112,.48)}
+  .star-cluster__learning-gate strong{font-family:var(--serif);font-size:.95rem}
+  .star-cluster__learning-gate span{color:#bcd4e5;font-size:.66rem}
+</style>

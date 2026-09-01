@@ -79,7 +79,7 @@ linkedPlans.sort((left, right) => comparePlans(left.data, right.data));
         <div class="project-case-study__columns">
           {caseStudy.constraints.length > 0 && <section><h3>现实限制</h3><ul>{caseStudy.constraints.map((item: string) => <li>{item}</li>)}</ul></section>}
           {caseStudy.decisions.length > 0 && <section><h3>关键取舍</h3><ul>{caseStudy.decisions.map((item: string) => <li>{item}</li>)}</ul></section>}
-          {caseStudy.lessons.length > 0 && <section><h3>再来一次</h3><ul>{caseStudy.lessons.map((item: string) => <li>{item}</li>)}</ul></section>}
+          {caseStudy.lessons.length > 0 && <section><h3>复盘结论</h3><ul>{caseStudy.lessons.map((item: string) => <li>{item}</li>)}</ul></section>}
         </div>
       </section>
     )}

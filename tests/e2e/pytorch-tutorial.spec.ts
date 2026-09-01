@@ -47,7 +47,7 @@ test('课程支持运行标记、代码复制下载、练习答案和本机进�
 
 test('章末小测、项目下载和面经联动可访问', async ({ page }) => {
   await page.goto('/learn/pytorch/transformer-from-scratch/');
-  await expect(page.getByRole('heading', { name: '小测、项目与面经联动' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '小测、项目与相关面试题' })).toBeVisible();
   await expect(page.locator('.course-practice__quiz details')).toHaveCount(2);
   await expect(page.getByRole('link', { name: /面经/ })).toHaveAttribute('href', /\/interview\/llm\//);
   await page.goto('/learn/pytorch/mini-llm-project/');

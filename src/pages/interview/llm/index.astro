@@ -23,7 +23,7 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
       <div>
         <p class="pixel-kicker">星渊问道 · 风谷藏卷</p>
         <h1>大模型面经 · 问道录</h1>
-        <p>十四章、150 道核心题。先用 30 秒答案建立表达骨架，再沿原理、公式、工程案例、追问与易错点向深处走。</p>
+        <p>十四章、150 道核心题。每题包含简答、原理、公式或工程案例，以及常见追问和误区。</p>
       </div>
       <dl>
         <div><dt>{chapters.length}</dt><dd>知识章节</dd></div>
@@ -32,17 +32,25 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
       </dl>
     </header>
 
+    <section class="interview-route-choice" aria-labelledby="interview-route-title" data-pagefind-ignore>
+      <div><p class="pixel-kicker">配套内容</p><h2 id="interview-route-title">系统笔记与面试题库</h2><p>系统笔记按知识结构展开，本页按面试问题整理。两个入口对应同一组大模型主题。</p></div>
+      <div class="interview-route-choice__cards">
+        <a href="/learn/llm/"><span>系统笔记</span><strong>按知识章节阅读</strong><small>12 章笔记，覆盖 Token、Transformer、训练、RAG、Agent 与多模态</small><em>查看笔记 →</em></a>
+        <a href="#interview-chapters-title"><span>面试题库</span><strong>按问题分类浏览</strong><small>14 章、150 题，包含简答、推导、追问和误区</small><em>查看题库 →</em></a>
+      </div>
+    </section>
+
     <section class="interview-finder" aria-labelledby="interview-finder-title" data-pagefind-ignore>
-      <div><p class="pixel-kicker">题目索引</p><h2 id="interview-finder-title">直接寻找一道题</h2></div>
+      <div><p class="pixel-kicker">题目索引</p><h2 id="interview-finder-title">搜索题目</h2></div>
       <label><span aria-hidden="true">⌕</span><input type="search" placeholder="例如：RoPE、ZeRO、Rerank、GRPO" aria-label="搜索150道大模型面试题" data-interview-search /></label>
-      <p data-interview-search-status aria-live="polite">输入关键词，题目会在这里显影。</p>
+      <p data-interview-search-status aria-live="polite">支持按题目、章节和主题搜索。</p>
       <div class="interview-finder__results" data-interview-results hidden>
         {questions.map((question) => <a href={question.href} data-search-text={`${question.title} ${question.chapter} ${question.topics}`.toLowerCase()}><small>{question.chapter}</small><strong>{question.title}</strong></a>)}
       </div>
     </section>
 
     <section class="interview-chapters" aria-labelledby="interview-chapters-title">
-      <header><p class="pixel-kicker">十四章问道</p><h2 id="interview-chapters-title">从基础走到系统设计</h2><p>章节彼此独立，也按算法岗常见知识链路排列。首次阅读建议顺序推进，面试前可按题目索引快速查漏。</p></header>
+      <header><p class="pixel-kicker">十四章题库</p><h2 id="interview-chapters-title">从基础原理到系统设计</h2><p>章节按大模型算法岗的常见知识结构排列，也可以通过上方索引直接定位题目。</p></header>
       <div>
         {chapterCards.map(({ chapter, questions }) => (
           <a href={`/interview/llm/${chapter.data.slug}/`}>
@@ -57,16 +65,16 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
     </section>
 
     <section class="interview-method">
-      <div><p class="pixel-kicker">使用方法</p><h2>把“知道”练成“能讲清楚”</h2></div>
+      <div><p class="pixel-kicker">单题结构</p><h2>每道题包含什么</h2></div>
       <ol>
-        <li><strong>先限时口述</strong><span>只看题目，用 30 秒说出结论、原因和适用边界。</span></li>
-        <li><strong>再补齐推导</strong><span>对照深入解释，补上公式、数据流、复杂度和工程取舍。</span></li>
-        <li><strong>最后承接追问</strong><span>用追问检查知识是否连成体系，而不是背下一段固定答案。</span></li>
+        <li><strong>30 秒简答</strong><span>概括结论、主要原因和适用边界。</span></li>
+        <li><strong>原理与案例</strong><span>补充公式、数据流、复杂度和工程取舍。</span></li>
+        <li><strong>追问与误区</strong><span>列出相关问题和回答中容易遗漏的部分。</span></li>
       </ol>
     </section>
 
     <section class="interview-sources">
-      <p class="pixel-kicker">资料原则</p><h2>答案以一手资料为锚</h2>
+      <p class="pixel-kicker">资料来源</p><h2>技术结论的核对范围</h2>
       <p>公开面经用于识别高频问题，技术结论回到论文、技术报告和官方文档核对。页面不使用无法验证的公司真题标签，也不大段复制他人文章。</p>
       <p><a href="https://arxiv.org/abs/1706.03762">Transformer</a> · <a href="https://arxiv.org/abs/2106.09685">LoRA</a> · <a href="https://arxiv.org/abs/2005.11401">RAG</a> · <a href="https://arxiv.org/abs/2309.06180">PagedAttention</a> · <a href="https://arxiv.org/abs/2501.12948">DeepSeek-R1</a> · <a href="https://arxiv.org/abs/2505.09388">Qwen3</a></p>
     </section>
@@ -83,7 +91,7 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
       if (!query) {
         results.hidden = true;
         items.forEach((item) => { item.hidden = false; });
-        status.textContent = '输入关键词，题目会在这里显影。';
+        status.textContent = '支持按题目、章节和主题搜索。';
         return;
       }
       let count = 0;
@@ -109,6 +117,16 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
   .interview-home__header dl div { min-width:105px; padding:16px; border:1px solid #91aa97; border-radius:20px; text-align:center; background:rgba(255,253,246,.75); }
   .interview-home__header dt { color:#3f6d62; font-family:var(--serif); font-size:1.8rem; font-weight:900; }
   .interview-home__header dd { margin:3px 0 0; color:#738078; font-size:.65rem; }
+  .interview-route-choice { display:grid; grid-template-columns:.75fr 1.25fr; gap:30px; margin:26px 0 24px; padding:26px clamp(20px,4vw,34px); border:1px solid #84978d; border-radius:28px; background:#eef4e5; }
+  .interview-route-choice h2 { margin:7px 0; color:#425f54; font-family:var(--serif); font-size:clamp(1.55rem,3vw,2.2rem); }
+  .interview-route-choice > div:first-child > p:last-child { color:#6d7b73; font-size:.78rem; line-height:1.75; }
+  .interview-route-choice__cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .interview-route-choice__cards a { display:flex; min-height:185px; flex-direction:column; padding:17px; border:1px solid #849a8e; border-radius:17px; color:#536b61; background:#fffdf5; }
+  .interview-route-choice__cards a:first-child { border:2px solid #537b70; }
+  .interview-route-choice__cards span { align-self:flex-start; padding:4px 8px; border-radius:99px; color:#fff; background:#587d70; font-size:.6rem; }
+  .interview-route-choice__cards strong { margin-top:14px; color:#405f54; font-family:var(--serif); font-size:1.05rem; }
+  .interview-route-choice__cards small { flex:1; margin-top:7px; color:#748078; line-height:1.65; }
+  .interview-route-choice__cards em { color:#347068; font-size:.7rem; font-style:normal; font-weight:900; }
   .interview-finder { margin:26px 0 74px; padding:26px clamp(20px,4vw,34px); border:1px solid #859b8d; border-radius:28px; background:rgba(255,253,246,.92); }
   .interview-finder > div:first-child { display:flex; align-items:baseline; gap:15px; }
   .interview-finder h2 { margin:0; color:#4a655a; font-family:var(--serif); }
@@ -141,14 +159,14 @@ const questions = chapterCards.flatMap(({ chapter, questions }) => questions.map
     .interview-home__header { grid-template-columns:1fr; align-items:start; }
     .interview-home__header dl { flex-wrap:wrap; }
     .interview-home__header dl div { flex:1; min-width:90px; }
-    .interview-chapters > div, .interview-method { grid-template-columns:1fr; }
+    .interview-chapters > div, .interview-method, .interview-route-choice { grid-template-columns:1fr; }
   }
   @media(max-width:600px){
     .interview-home { padding-top:105px; }
     .interview-home__header { border-radius:26px; }
     .interview-home__header dl { width:100%; }
     .interview-home__header dl div:last-child { flex-basis:100%; }
-    .interview-finder__results, .interview-chapters > div { grid-template-columns:1fr; }
+    .interview-finder__results, .interview-chapters > div, .interview-route-choice__cards { grid-template-columns:1fr; }
     .interview-chapters a { min-height:230px; padding:24px; }
     .interview-method, .interview-sources { padding:24px 20px; border-radius:24px; }
   }

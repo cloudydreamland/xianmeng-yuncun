@@ -1,0 +1,16 @@
+---
+import { getCollection, render } from 'astro:content';
+import LlmLearningLayout from '../../../layouts/LlmLearningLayout.astro';
+import { noteHeadings, sortLlmLearningChapters } from '../../../utils/llmLearning';
+
+export async function getStaticPaths() {
+  const chapters = sortLlmLearningChapters(await getCollection('llmLearning', ({ data }) => !data.draft));
+  return chapters.map((chapter, index) => ({ params: { slug: chapter.data.slug }, props: { chapter, chapters, prev: chapters[index - 1], next: chapters[index + 1] } }));
+}
+
+const { chapter, chapters, prev, next } = Astro.props;
+const { Content, headings } = await render(chapter);
+const notes = noteHeadings(headings);
+---
+
+<LlmLearningLayout chapter={chapter} chapters={chapters} notes={notes} prev={prev} next={next}><Content /></LlmLearningLayout>

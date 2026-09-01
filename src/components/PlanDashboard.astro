@@ -49,11 +49,11 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
 <section class="plan-dashboard" id="plan-dashboard" data-plan-dashboard aria-labelledby="plan-dashboard-title">
   <header class="plan-dashboard__heading">
     <div>
-      <p class="pixel-kicker">月潭行舟录</p>
-      <h2 id="plan-dashboard-title">今夜仍在水上之事</h2>
-      <p>诸事皆以卷册为凭；渡标记沿途所得，眼前之行则只留真正可以迈出的下一步。</p>
+      <p class="pixel-kicker">公开计划</p>
+      <h2 id="plan-dashboard-title">计划与下一步</h2>
+      <p>汇总公开计划、里程碑进度、临期行动和关联项目。</p>
     </div>
-    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">如何添一叶新舟 →</a>
+    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">添加计划说明 →</a>
   </header>
 
   <div class="plan-metrics" aria-label="计划概览">
@@ -65,7 +65,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
 
   {openActions.length > 0 && (
     <section class="plan-actions" aria-labelledby="plan-actions-title">
-      <header><div><p class="pixel-kicker">舟行未歇</p><h3 id="plan-actions-title">近岸之事</h3></div><span>尚有 {openActions.length} 项待行</span></header>
+      <header><div><p class="pixel-kicker">待办行动</p><h3 id="plan-actions-title">近期行动</h3></div><span>共 {openActions.length} 项</span></header>
       <ol data-action-list>
         {openActions.map(({ plan, action, dueState }) => (
           <li
@@ -117,19 +117,19 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
           <div class="tag-row">{plan.data.tags.map((tag) => <IslandTag label={tag} tone="teal" />)}</div>
           <footer>
             <time datetime={dateKey(plan.data.updatedAt)}>更新于 {formatDate(plan.data.updatedAt)}</time>
-            <div>{linkedProject && <a href={`/projects/${linkedProject.data.slug}/`}>月映旧卷</a>}<a href={`/world/moon-pool/${plan.data.slug}/`}>展读行舟录 →</a></div>
+            <div>{linkedProject && <a href={`/projects/${linkedProject.data.slug}/`}>关联项目</a>}<a href={`/world/moon-pool/${plan.data.slug}/`}>查看计划 →</a></div>
           </footer>
         </article>
       );
     })}
   </div>
-  <div class="plan-empty" data-plan-empty hidden><strong>此刻水面无相合之舟。</strong><button type="button" data-filter-reset>清除筛选</button></div>
+  <div class="plan-empty" data-plan-empty hidden><strong>没有符合当前筛选的计划。</strong><button type="button" data-filter-reset>清除筛选</button></div>
 
   <aside id="plan-guide" class="plan-guide">
-    <p class="pixel-kicker">卷册入潭</p>
-    <h3>从仓库添一册新计划</h3>
+    <p class="pixel-kicker">计划维护</p>
+    <h3>从仓库添加公开计划</h3>
     <code>pnpm plan:new -- plan-slug "计划标题"</code>
-    <p>此令会在 <code>src/content/plans/</code> 留下一页新卷。写明可示人的来意、渡标与下一步，再随代码一同收存即可。</p>
+    <p>命令会在 <code>src/content/plans/</code> 生成计划模板。公开内容会随站点构建发布。</p>
   </aside>
 </section>
 

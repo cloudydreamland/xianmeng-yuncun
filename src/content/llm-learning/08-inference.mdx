@@ -1,0 +1,38 @@
+---
+title: 推理与服务：模型怎样真正跑起来
+slug: inference
+order: 8
+stage: 工程
+description: 从 Prefill、Decode 和 KV Cache 出发，理解批处理、量化与服务指标。
+topics: [Prefill, Decode, KV Cache, 量化]
+estimatedMinutes: 90
+prerequisites: [因果注意力, GPU 显存基础]
+outcomes: [区分 Prefill 与 Decode, 解释 KV Cache 的收益和代价, 看懂延迟与吞吐指标]
+interviewHref: /interview/llm/inference-and-serving/
+updatedAt: 2026-09-01
+draft: false
+---
+
+## Prefill 和 Decode 为什么表现不同
+
+Prefill 一次处理整段提示，可以对多个 Token 并行计算，通常更偏计算密集；Decode 每步只生成一个新 Token，却要读取大量权重和缓存，常更受内存带宽限制。
+
+因此服务指标要拆开看：TTFT 表示首 Token 延迟，TPOT 表示后续每 Token 时间，总延迟还受输出长度影响。只报“每秒多少 Token”很容易掩盖用户等待体验。
+
+## KV Cache 省掉了什么
+
+自回归生成时，历史 Token 的 Key 和 Value 在后续步骤不会变化。KV Cache 保存每层历史 K/V，使新一步只计算新增 Token 的 Q/K/V，不必重复处理全部历史。
+
+代价是缓存随层数、batch、序列长度和 KV head 数线性增长。长上下文和高并发时，模型权重可能不再是主要显存，KV Cache 才是容量瓶颈。
+
+## 连续批处理与分页缓存
+
+普通静态 batch 要等最慢请求结束，GPU 容易空转。Continuous Batching 可以在每个解码步加入新请求、移除已完成请求。PagedAttention 类方案把 KV Cache 分成块，减少连续大空间和碎片化要求。
+
+调度器需要在吞吐与公平之间取舍，还要处理不同提示长度、输出上限和优先级。线上性能来自模型算子、内存管理与请求调度的共同作用。
+
+## 量化为什么不是免费午餐
+
+量化用更低位宽表示权重或激活，可减少显存和带宽，有时也能加速。但实际效果取决于硬件内核、量化粒度、校准数据和敏感层处理。
+
+评估量化不能只看困惑度，还要看目标任务、长上下文、结构化输出和安全行为。若硬件不支持对应低精度高效计算，模型虽然更小，却未必更快。

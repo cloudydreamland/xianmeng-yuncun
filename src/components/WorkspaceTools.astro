@@ -11,14 +11,14 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 
 <section class="workspace-today pixel-frame" id="workspace-today" aria-labelledby="workspace-today-title" data-workspace-tools>
   <header class="workspace-today__header">
-    <div><p class="pixel-kicker">TODAY · 今日云笺</p><h2 id="workspace-today-title">今日诸务，只取最要紧的一桩。</h2></div>
+    <div><p class="pixel-kicker">TODAY · 今日重点</p><h2 id="workspace-today-title">今天最重要的一件事</h2></div>
     <time data-workspace-today-label></time>
   </header>
 
   <div class="focus-card">
-    <div><span>今日一桩</span><strong data-focus-display>尚未落笔</strong></div>
+    <div><span>今日重点</span><strong data-focus-display>尚未填写</strong></div>
     <form data-focus-form>
-      <label class="sr-only" for="workspace-focus">今日一桩</label>
+      <label class="sr-only" for="workspace-focus">今日重点</label>
       <input id="workspace-focus" name="focus" maxlength="100" autocomplete="off" placeholder="写下今日最要紧的一件事" />
       <button class="pixel-button pixel-button--primary" type="submit">保存</button>
       <button class="pixel-button" type="button" data-focus-toggle hidden>标记完成</button>
@@ -34,7 +34,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 
   <div class="today-columns">
     <section aria-labelledby="private-due-title">
-      <h3 id="private-due-title">眼前的私人任务</h3>
+      <h3 id="private-due-title">近期私人任务</h3>
       <ol class="today-list" data-private-due-list></ol>
       <p class="workspace-muted" data-private-due-empty>七天内没有到期任务。</p>
     </section>
@@ -54,18 +54,18 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 </section>
 
 <section class="workspace-reading" id="workspace-reading" aria-labelledby="workspace-reading-title">
-  <header class="workspace-section-heading"><p class="pixel-kicker">READING QUEUE · 待阅</p><h2 id="workspace-reading-title">待阅笺匣</h2><p>收存站内文章与远方链接，也记下为何值得再次展笺。</p></header>
+  <header class="workspace-section-heading"><p class="pixel-kicker">READING QUEUE · 待阅</p><h2 id="workspace-reading-title">阅读清单</h2><p>保存站内文章和外部链接，并记录收藏理由。</p></header>
   <form class="reading-capture" data-reading-capture>
     <label>标题<input name="title" required maxlength="120" autocomplete="off" /></label>
     <label>链接<input name="url" required type="url" inputmode="url" autocomplete="url" /></label>
     <button class="pixel-button pixel-button--primary" type="submit">加入清单</button>
   </form>
   <div class="workspace-reading__list" data-workspace-reading-list></div>
-  <p class="workspace-muted" data-workspace-reading-empty>笺匣尚空。可从风谷收存文章，也可在上方添入远方链接。</p>
+  <p class="workspace-muted" data-workspace-reading-empty>阅读清单为空，可从风谷收藏文章或在上方添加链接。</p>
 </section>
 
 <section class="workspace-capture" id="capture" aria-labelledby="workspace-capture-title">
-  <header class="workspace-section-heading"><p class="pixel-kicker">MARKDOWN INBOX · 灵念</p><h2 id="workspace-capture-title">灵念速记</h2><p>落笔即存于当前浏览器；整理成章后，可复制或封存为 MDX。</p></header>
+  <header class="workspace-section-heading"><p class="pixel-kicker">MARKDOWN INBOX · 速记</p><h2 id="workspace-capture-title">Markdown 速记</h2><p>内容保存在当前浏览器，可复制为 Markdown 或下载为 MDX。</p></header>
   <div class="capture-layout">
     <form class="capture-form" data-capture-form>
       <label>类型<select name="kind"><option value="note">笔记</option><option value="task">任务计划</option><option value="idea">灵感</option></select></label>
@@ -86,7 +86,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 </section>
 
 <section class="workspace-review" id="workspace-review" aria-labelledby="workspace-review-title">
-  <header class="workspace-section-heading"><p class="pixel-kicker">WEEKLY REVIEW · 照见</p><h2 id="workspace-review-title">月潭回望</h2><p>照见本机私务、待阅笺匣、未成草稿与公开行动，汇作一卷七日回望。</p></header>
+  <header class="workspace-section-heading"><p class="pixel-kicker">WEEKLY REVIEW · 回顾</p><h2 id="workspace-review-title">每周回顾</h2><p>汇总本机任务、阅读清单、未完成草稿和公开行动。</p></header>
   <div class="review-layout">
     <div class="review-summary" data-review-summary></div>
     <pre class="review-preview" data-review-preview></pre>
@@ -95,11 +95,11 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 </section>
 
 <section class="workspace-backup" id="workspace-backup" aria-labelledby="workspace-backup-title">
-  <header class="workspace-section-heading"><p class="pixel-kicker">LOCAL BACKUP · 封卷</p><h2 id="workspace-backup-title">封卷与复原</h2><p>将案上私务、阅笺批注、今日一桩与未成草稿封存为 JSON。复原旧卷时，将覆盖本机现有内容。</p></header>
+  <header class="workspace-section-heading"><p class="pixel-kicker">LOCAL BACKUP · 备份</p><h2 id="workspace-backup-title">导出与恢复</h2><p>将本机任务、阅读记录、今日重点和草稿导出为 JSON。恢复备份时会覆盖当前浏览器中的现有内容。</p></header>
   <div class="backup-actions">
     <button class="pixel-button pixel-button--primary" type="button" data-backup-export>导出备份</button>
     <label class="pixel-button backup-import">选择备份文件<input type="file" accept="application/json,.json" data-backup-import /></label>
-    <span class="workspace-muted" data-backup-status aria-live="polite">尚未在这台设备上导出备份。</span>
+    <span class="workspace-muted" data-backup-status aria-live="polite">这台设备尚未导出备份。</span>
   </div>
 </section>
 

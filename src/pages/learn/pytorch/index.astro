@@ -26,7 +26,7 @@ const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseE
       <div>
         <p class="pixel-kicker">星渊炼火 · 以代码求真</p>
         <h1>PyTorch 从零到大模型工程</h1>
-        <p>不是 API 清单，而是一条能亲手跑通的学习路线。每节都用直白解释、可执行代码、常见错误和大模型连接，把“会调用”逐步练成“懂原理、能调试、能扩展”。</p>
+        <p>十二章、74 节课程，覆盖 Python 基础、Tensor、训练循环、Transformer、性能优化、分布式训练和迷你语言模型项目。每节附有代码、运行条件、常见错误和相关资料。</p>
         <div class="course-home__actions"><a href={`/learn/pytorch/${chapters[0]?.data.slug}/`}>从第一行 Tensor 开始</a><a href="#course-map">查看课程地图</a></div>
       </div>
       <dl>
@@ -37,33 +37,33 @@ const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseE
     </header>
 
     <section class="course-dashboard" aria-labelledby="course-dashboard-title" data-pagefind-ignore>
-      <div><p class="pixel-kicker">我的修炼进度</p><h2 id="course-dashboard-title">从上次停下的地方继续</h2><p data-course-progress-text>尚未完成课程，选择第一节开始即可。</p></div>
+      <div><p class="pixel-kicker">阅读记录</p><h2 id="course-dashboard-title">本机课程进度</h2><p data-course-progress-text>尚无已完成的课程。</p></div>
       <div class="course-dashboard__meter"><span data-course-progress-meter style="--course-percent:0%"></span></div>
       <div class="course-dashboard__actions"><a href={`/learn/pytorch/${chapters[0]?.data.slug}/`} data-course-continue>开始第一章</a><button type="button" data-course-reset>重置本机进度</button></div>
       <small>预计总学习时间约 {Math.ceil(estimatedMinutes / 60)} 小时 · 进度只保存在当前设备</small>
     </section>
 
     <section class="course-compass" aria-labelledby="course-compass-title">
-      <div><p class="pixel-kicker">学习罗盘</p><h2 id="course-compass-title">零基础应该怎么走？</h2></div>
+      <div><p class="pixel-kicker">课程结构</p><h2 id="course-compass-title">四个学习阶段</h2></div>
       <ol>
-        <li><span>01</span><strong>先跑通</strong><p>入门阶段先理解形状、设备和梯度，不急着背 API。</p></li>
-        <li><span>02</span><strong>再看懂</strong><p>亲手写训练循环与 Transformer，建立数据流和显存意识。</p></li>
-        <li><span>03</span><strong>后优化</strong><p>用 AMP、Profiler、编译与分布式方法解决真实瓶颈。</p></li>
-        <li><span>04</span><strong>做成项目</strong><p>最终训练一个迷你 Decoder-only 模型，并形成可讲述的项目经验。</p></li>
+        <li><span>01</span><strong>运行基础</strong><p>Python、NumPy、安装、Tensor、设备与梯度。</p></li>
+        <li><span>02</span><strong>模型实现</strong><p>训练循环、数据管线、注意力与 Transformer。</p></li>
+        <li><span>03</span><strong>性能工程</strong><p>AMP、Profiler、编译、显存与分布式训练。</p></li>
+        <li><span>04</span><strong>完整项目</strong><p>分类器、Decoder Block 与迷你语言模型。</p></li>
       </ol>
     </section>
 
     <section class="course-finder" aria-labelledby="course-finder-title" data-pagefind-ignore>
-      <div><p class="pixel-kicker">课程索引</p><h2 id="course-finder-title">直接寻找一个知识点</h2></div>
+      <div><p class="pixel-kicker">课程索引</p><h2 id="course-finder-title">搜索知识点</h2></div>
       <label><span aria-hidden="true">⌕</span><input type="search" placeholder="例如：广播、反向传播、AMP、FSDP、KV Cache" aria-label={`搜索${lessons.length}节PyTorch课程`} data-course-search /></label>
-      <p data-course-search-status aria-live="polite">输入关键词，相关课程会在这里显影。</p>
+      <p data-course-search-status aria-live="polite">支持按课程标题、阶段和主题搜索。</p>
       <div class="course-finder__results" data-course-results hidden>
         {lessons.map((lesson) => <a href={lesson.href} data-search-text={`${lesson.title} ${lesson.chapter} ${lesson.level} ${lesson.topics}`.toLowerCase()}><small>{lesson.level} · {lesson.chapter}</small><strong>{lesson.title}</strong></a>)}
       </div>
     </section>
 
     <section class="course-map" id="course-map" aria-labelledby="course-map-title">
-      <header><p class="pixel-kicker">{chapters.length} 章修炼</p><h2 id="course-map-title">从 Python 第一行走到大模型训练</h2><p>先补齐 Python、NumPy 与 PyTorch 基础，再进入 Transformer、性能、分布式和真实生态，最终以一个可运行的语言模型项目收束。</p></header>
+      <header><p class="pixel-kicker">{chapters.length} 章课程</p><h2 id="course-map-title">从 Python 基础到大模型训练</h2><p>课程依次覆盖基础语法、张量与训练、Transformer、性能优化、分布式和大模型生态。</p></header>
       <div>
         {chapterCards.map(({ chapter, lessons }) => (
           <a href={`/learn/pytorch/${chapter.data.slug}/`}>
@@ -88,12 +88,12 @@ const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseE
     </section>
 
     <section class="course-verification">
-      <p class="pixel-kicker">真实执行边界</p><h2>不把语法通过冒充硬件验证</h2>
+      <p class="pixel-kicker">验证记录</p><h2>代码运行范围</h2>
       <dl><div><dt>74</dt><dd>Python 代码语法校验</dd></div><div><dt>39</dt><dd>CPU 独立执行通过</dd></div><div><dt>35</dt><dd>组合或硬件路径明示</dd></div><div><dt>3/3</dt><dd>完整项目 CPU 通过</dd></div></dl>
       <p>CUDA、FSDP2、Tensor Parallel 与 TorchTitan 路径明确标记所需硬件；页面同时提供运行命令和验收指标，但不会声称在本站 CPU 环境完成了 GPU 验证。</p>
     </section>
 
-    <section class="course-sources"><p class="pixel-kicker">资料原则</p><h2>以官方文档和可复现实验为锚</h2><p>教程按 PyTorch 当前推荐接口组织，版本敏感内容会注明边界。代码优先保持短小可运行，再解释如何扩展到大模型训练。</p><p><a href="https://docs.pytorch.org/tutorials/beginner/basics/intro.html">基础教程</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html">torch.compile</a> · <a href="https://docs.pytorch.org/tutorials/distributed.html">分布式训练</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html">高性能注意力</a></p></section>
+    <section class="course-sources"><p class="pixel-kicker">资料来源</p><h2>资料来源与版本边界</h2><p>课程以 PyTorch 官方文档和可复现实验为主要参考，版本敏感内容会单独标注。</p><p><a href="https://docs.pytorch.org/tutorials/beginner/basics/intro.html">基础教程</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html">torch.compile</a> · <a href="https://docs.pytorch.org/tutorials/distributed.html">分布式训练</a> · <a href="https://docs.pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html">高性能注意力</a></p></section>
   </section>
 
   <script>
@@ -104,7 +104,7 @@ const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseE
     input?.addEventListener('input', () => {
       const query = input.value.trim().toLowerCase();
       if (!results || !status) return;
-      if (!query) { results.hidden = true; items.forEach((item) => { item.hidden = false; }); status.textContent = '输入关键词，相关课程会在这里显影。'; return; }
+      if (!query) { results.hidden = true; items.forEach((item) => { item.hidden = false; }); status.textContent = '支持按课程标题、阶段和主题搜索。'; return; }
       let count = 0;
       items.forEach((item) => { const match = item.dataset.searchText?.includes(query) ?? false; item.hidden = !match; if (match) count += 1; });
       results.hidden = false;
@@ -124,7 +124,7 @@ const estimatedMinutes = chapters.reduce((sum, chapter) => sum + (pytorchCourseE
       } catch {}
       const count = Math.min(totalLessons, new Set(completed).size);
       const percent = totalLessons ? Math.round(count / totalLessons * 100) : 0;
-      if (progressText) progressText.textContent = count ? `已完成 ${count} / ${totalLessons} 节（${percent}%）` : '尚未完成课程，选择第一节开始即可。';
+      if (progressText) progressText.textContent = count ? `已完成 ${count} / ${totalLessons} 节（${percent}%）` : '尚无已完成的课程。';
       progressMeter?.style.setProperty('--course-percent', `${percent}%`);
       if (continueLink && last?.href) { continueLink.href = last.href; continueLink.textContent = `继续：${last.title || '上次课程'}`; }
     };

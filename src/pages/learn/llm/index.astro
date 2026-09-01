@@ -1,0 +1,88 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { noteHeadings, sortLlmLearningChapters } from '../../../utils/llmLearning';
+
+const chapters = sortLlmLearningChapters(await getCollection('llmLearning', ({ data }) => !data.draft));
+const chapterCards = await Promise.all(chapters.map(async (chapter) => ({ chapter, notes: noteHeadings((await render(chapter)).headings) })));
+const notes = chapterCards.flatMap(({ chapter, notes }) => notes.map((note) => ({
+  title: note.text,
+  href: `/learn/llm/${chapter.data.slug}/#${note.slug}`,
+  chapter: chapter.data.title,
+  stage: chapter.data.stage,
+  topics: chapter.data.topics.join(' '),
+})));
+const totalMinutes = chapters.reduce((sum, chapter) => sum + chapter.data.estimatedMinutes, 0);
+---
+
+<BaseLayout title="大模型从零学习笔记" description="面向零基础读者的逐章大模型完整笔记，从 Token 和神经网络直觉走到 Transformer、训练、对齐、推理、RAG、Agent 与评测。" searchable searchType="教程" searchTitle="大模型从零学习笔记" searchCategory="大模型系统笔记" searchTags={['大模型', '零基础', 'Transformer', '系统学习']}>
+  <main class="llm-notes-home page-shell">
+    <nav class="llm-notes-home__breadcrumb" aria-label="面包屑"><a href="/learn/">学习中心</a><span>/</span><span aria-current="page">大模型系统笔记</span></nav>
+    <header class="llm-notes-home__hero">
+      <div><p class="pixel-kicker">12 章系统笔记</p><h1>大模型从零学习笔记</h1><p>内容从语言模型、Token 和神经网络基础展开，延伸到 Transformer、训练、对齐、推理、RAG、Agent 与多模态。每章都标注前置知识、学习目标和对应面试题。</p><div class="llm-notes-home__actions"><a href={`/learn/llm/${chapters[0]?.data.slug}/`}>阅读第一章</a><a href="#chapter-map">查看全部章节</a></div></div>
+      <dl><div><dt>{chapters.length}</dt><dd>学习章节</dd></div><div><dt>{notes.length}</dt><dd>核心小节</dd></div><div><dt>{Math.ceil(totalMinutes / 60)}h</dt><dd>预计阅读</dd></div></dl>
+    </header>
+
+    <section class="llm-notes-progress" data-pagefind-ignore>
+      <div><p class="pixel-kicker">阅读记录</p><h2>本机学习进度</h2><p data-llm-learning-progress-text>尚无已完成的小节。</p></div>
+      <div class="llm-notes-progress__meter"><span data-llm-learning-progress-meter style="--progress:0%"></span></div>
+      <div><a href={`/learn/llm/${chapters[0]?.data.slug}/`} data-llm-learning-continue>开始第一章</a><button type="button" data-llm-learning-reset>重置本机进度</button></div>
+      <small>学习记录只保存在当前设备，不会上传。</small>
+    </section>
+
+    <section class="llm-notes-guide">
+      <div><p class="pixel-kicker">章节结构</p><h2>笔记包含三类信息</h2></div>
+      <ol><li><span>01</span><strong>概念位置</strong><p>说明本章主题在大模型完整链路中的作用。</p></li><li><span>02</span><strong>机制与数据流</strong><p>沿输入、变换和输出解释关键机制与公式。</p></li><li><span>03</span><strong>相关问题</strong><p>章节末尾连接同主题的面试题，方便对照查看。</p></li></ol>
+    </section>
+
+    <section class="llm-notes-finder" data-pagefind-ignore>
+      <div><p class="pixel-kicker">笔记索引</p><h2>搜索知识点</h2></div>
+      <label><span aria-hidden="true">⌕</span><input type="search" placeholder="例如：Token、注意力、LoRA、KV Cache、RAG" aria-label={`搜索${notes.length}节大模型学习笔记`} data-llm-learning-search /></label>
+      <p data-llm-learning-search-status aria-live="polite">支持按知识点、章节和阶段搜索。</p>
+      <div data-llm-learning-results hidden>{notes.map((note) => <a href={note.href} data-search-text={`${note.title} ${note.chapter} ${note.stage} ${note.topics}`.toLowerCase()}><small>{note.stage} · {note.chapter}</small><strong>{note.title}</strong></a>)}</div>
+    </section>
+
+    <section class="llm-notes-map" id="chapter-map">
+      <header><p class="pixel-kicker">章节目录</p><h2>从模型基础到应用系统</h2><p>前四章介绍语言建模和 Transformer；中间四章覆盖训练、后训练与推理；最后四章整理 RAG、Agent、评测安全和多模态。</p></header>
+      <div>{chapterCards.map(({ chapter, notes }) => <a href={`/learn/llm/${chapter.data.slug}/`}><span>{String(chapter.data.order).padStart(2, '0')}</span><small>{chapter.data.stage} · {notes.length} 节 · {chapter.data.estimatedMinutes} 分钟</small><h3>{chapter.data.title}</h3><p>{chapter.data.description}</p><em>{chapter.data.topics.slice(0, 3).join(' / ')}</em><strong>进入本章 →</strong></a>)}</div>
+    </section>
+
+    <section class="llm-notes-switch"><div><p class="pixel-kicker">配套题库</p><h2>大模型面经 · 问道录</h2><p>150 道面试题与系统笔记按主题对应，包含简答、原理、追问和常见误区。</p></div><a href="/interview/llm/">查看面试题库 →</a></section>
+  </main>
+
+  <script is:inline define:vars={{ totalNotes: notes.length }}>
+    const progressKey = 'xianmeng:llm-learning-progress:v1';
+    const lastKey = 'xianmeng:llm-learning-last-read:v1';
+    const text = document.querySelector('[data-llm-learning-progress-text]');
+    const meter = document.querySelector('[data-llm-learning-progress-meter]');
+    const continueLink = document.querySelector('[data-llm-learning-continue]');
+    const reset = document.querySelector('[data-llm-learning-reset]');
+    const renderProgress = () => {
+      let completed = [];
+      let last = null;
+      try { completed = JSON.parse(localStorage.getItem(progressKey) || '[]'); last = JSON.parse(localStorage.getItem(lastKey) || 'null'); } catch {}
+      const count = completed.length;
+      if (text) text.textContent = count ? `已完成 ${count} / ${totalNotes} 节。` : '尚无已完成的小节。';
+      if (meter) meter.style.setProperty('--progress', `${Math.min(100, Math.round(count / totalNotes * 100))}%`);
+      if (continueLink && last?.href) { continueLink.href = last.href; continueLink.textContent = `继续：${last.title}`; }
+    };
+    reset?.addEventListener('click', () => { localStorage.removeItem(progressKey); localStorage.removeItem(lastKey); location.reload(); });
+    renderProgress();
+    const input = document.querySelector('[data-llm-learning-search]');
+    const results = document.querySelector('[data-llm-learning-results]');
+    const status = document.querySelector('[data-llm-learning-search-status]');
+    const items = [...(results?.querySelectorAll('a') || [])];
+    input?.addEventListener('input', () => {
+      const query = input.value.trim().toLowerCase();
+      if (!results || !status) return;
+      if (!query) { results.hidden = true; items.forEach((item) => { item.hidden = false; }); status.textContent = '支持按知识点、章节和阶段搜索。'; return; }
+      let count = 0;
+      items.forEach((item) => { const match = item.dataset.searchText?.includes(query); item.hidden = !match; if (match) count += 1; });
+      results.hidden = false; status.textContent = count ? `找到 ${count} 节相关笔记` : '没有匹配内容，试试更短的关键词。';
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .llm-notes-home{padding:128px 0 110px}.llm-notes-home__breadcrumb{display:flex;gap:8px;margin-bottom:22px;color:var(--ink-soft);font-size:.72rem}.llm-notes-home__breadcrumb a{color:#426c9b}.llm-notes-home__hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:35px;align-items:end;padding:clamp(32px,6vw,64px);border:1px solid rgba(67,90,132,.24);border-radius:38px;background:linear-gradient(140deg,rgba(237,244,255,.98),rgba(232,247,237,.95));box-shadow:var(--shadow-soft)}.llm-notes-home__hero h1{margin:10px 0 16px;color:#344f74;font-family:var(--serif);font-size:clamp(2.5rem,7vw,5rem);line-height:1.18}.llm-notes-home__hero>div>p:last-of-type{max-width:730px;color:#62737c;line-height:1.9}.llm-notes-home__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.llm-notes-home__actions a{min-height:46px;padding:12px 17px;border:1px solid #58789e;border-radius:13px;color:#456789;background:#fffdf6;font-weight:900}.llm-notes-home__actions a:first-child{color:#fff;background:#4e7099}.llm-notes-home__hero dl{display:flex;gap:8px;margin:0}.llm-notes-home__hero dl div{min-width:100px;padding:15px;border:1px solid #92a5b7;border-radius:18px;text-align:center;background:rgba(255,253,246,.78)}.llm-notes-home__hero dt{color:#456b94;font-family:var(--serif);font-size:1.7rem;font-weight:900}.llm-notes-home__hero dd{margin:3px 0 0;color:#718089;font-size:.64rem}.llm-notes-progress{margin:24px 0 64px;padding:26px 30px;border:1px solid #879bad;border-radius:27px;background:rgba(255,253,246,.92)}.llm-notes-progress h2{margin:5px 0;color:#405d7c;font-family:var(--serif)}.llm-notes-progress p{color:#72808a}.llm-notes-progress__meter{height:9px;overflow:hidden;margin:16px 0;border-radius:99px;background:#dce4e7}.llm-notes-progress__meter span{display:block;width:var(--progress);height:100%;background:linear-gradient(90deg,#597cab,#5e9b87)}.llm-notes-progress>div:nth-of-type(3){display:flex;flex-wrap:wrap;gap:9px}.llm-notes-progress a,.llm-notes-progress button{min-height:42px;padding:9px 13px;border:1px solid #718ba3;border-radius:11px;color:#496987;background:#f7fafb;cursor:pointer}.llm-notes-progress a{color:#fff;background:#4f7198;font-weight:900}.llm-notes-progress small{display:block;margin-top:12px;color:#808a8a}.llm-notes-guide{display:grid;grid-template-columns:.7fr 1.3fr;gap:35px;margin-bottom:55px}.llm-notes-guide h2,.llm-notes-finder h2,.llm-notes-map h2,.llm-notes-switch h2{margin:7px 0;color:#405d79;font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.65rem)}.llm-notes-guide ol{display:grid;gap:9px;margin:0;padding:0;list-style:none}.llm-notes-guide li{display:grid;grid-template-columns:38px 130px 1fr;gap:10px;align-items:center;padding:14px;border-left:4px solid #63819d;background:rgba(255,253,246,.9)}.llm-notes-guide li span{color:#7b8c9c;font-weight:900}.llm-notes-guide li strong{color:#45647e}.llm-notes-guide li p{margin:0;color:#758087;font-size:.76rem}.llm-notes-finder{margin-bottom:64px;padding:26px 30px;border:1px solid #8296a8;border-radius:27px;background:rgba(255,253,246,.92)}.llm-notes-finder label{display:flex;align-items:center;gap:9px;margin-top:15px;padding:0 15px;border:2px solid #647f9d;border-radius:14px;background:#fff}.llm-notes-finder input{width:100%;min-height:48px;border:0;outline:0;background:transparent}.llm-notes-finder>p{color:#75818a;font-size:.72rem}.llm-notes-finder>[data-llm-learning-results]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:400px;overflow:auto}.llm-notes-finder>[data-llm-learning-results][hidden]{display:none}.llm-notes-finder [data-llm-learning-results] a{display:grid;gap:3px;padding:12px;border-left:3px solid #5c7fa1;color:#4e687d;background:#edf3f6}.llm-notes-finder [data-llm-learning-results] a[hidden]{display:none}.llm-notes-finder small{color:#74818b;font-size:.62rem}.llm-notes-map>header{max-width:780px;margin-bottom:28px}.llm-notes-map>header>p:last-child{color:#6e7b82;line-height:1.8}.llm-notes-map>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.llm-notes-map>div>a{position:relative;display:flex;min-height:275px;flex-direction:column;overflow:hidden;padding:27px;border:1px solid rgba(72,93,118,.2);border-radius:27px;color:#536b79;background:rgba(255,253,246,.9);box-shadow:var(--shadow-soft)}.llm-notes-map>a:hover{transform:translateY(-2px)}.llm-notes-map a>span{position:absolute;right:17px;top:4px;color:rgba(68,99,131,.12);font-family:var(--serif);font-size:5rem;font-weight:900}.llm-notes-map a small{color:#66809a;font-size:.65rem}.llm-notes-map h3{position:relative;margin:18px 0 8px;color:#3d5874;font-family:var(--serif);font-size:1.5rem}.llm-notes-map h3+p{position:relative;flex:1;color:#718087;font-size:.8rem;line-height:1.75}.llm-notes-map em{color:#758d9c;font-size:.68rem;font-style:normal}.llm-notes-map a strong{margin-top:12px;color:#3e6e8d;font-size:.74rem}.llm-notes-switch{display:flex;align-items:end;justify-content:space-between;gap:30px;margin-top:30px;padding:32px;border:1px solid #8a9b8d;border-radius:27px;background:#eef4e5}.llm-notes-switch p:last-child{max-width:700px;color:#6f7c75;line-height:1.75}.llm-notes-switch>a{flex:none;min-height:46px;padding:12px 17px;border-radius:13px;color:#fff;background:#4c735f;font-weight:900}@media(max-width:900px){.llm-notes-home__hero{grid-template-columns:1fr}.llm-notes-home__hero dl{flex-wrap:wrap}.llm-notes-guide{grid-template-columns:1fr}.llm-notes-switch{align-items:start;flex-direction:column}}@media(max-width:640px){.llm-notes-home{padding-top:105px}.llm-notes-home__hero{border-radius:26px}.llm-notes-home__hero dl div{flex:1;min-width:85px}.llm-notes-guide li{grid-template-columns:32px 1fr}.llm-notes-guide li p{grid-column:2}.llm-notes-finder>[data-llm-learning-results],.llm-notes-map>div{grid-template-columns:1fr}.llm-notes-progress,.llm-notes-finder{padding:23px 19px}.llm-notes-switch{padding:24px 20px}}
+</style>

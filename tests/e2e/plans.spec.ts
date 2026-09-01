@@ -4,20 +4,20 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('yuncun-test-skip-entrance', 'true'));
 });
 
-test('首页展示重点计划摘要并直达推进详情', async ({ page }) => {
+test('首页公告栏和计划摘要分别提供项目入口', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
   const summary = page.locator('.home-plan-summary');
-  await expect(summary).toBeVisible();
-  await expect(summary.getByRole('heading', { name: '此刻正在做什么' })).toBeVisible();
+  await expect(summary.getByRole('heading', { name: '正在推进的计划' })).toBeVisible();
   await expect(summary.getByRole('link', { name: /雲梦世界持续建设/ })).toHaveAttribute('href', '/world/moon-pool/yuncun-next-stage/');
-  await expect(summary.getByText('里程碑完成 89%')).toBeVisible();
+  await expect(page.getByRole('link', { name: '查看项目' })).toHaveAttribute('href', '/world/moon-pool/');
 });
 
 test('月潭推进台计算近期行动并同步筛选 URL 与历史记录', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-08-22T04:00:00.000Z'));
   await page.goto('/world/moon-pool/');
+  await page.getByRole('tab', { name: /公开推进/ }).click();
 
   const dashboard = page.locator('[data-plan-dashboard]');
   await expect(dashboard).toBeVisible();
@@ -60,6 +60,7 @@ test('计划详情进入推进搜索类型', async ({ page }) => {
 test('移动端推进台不产生横向溢出', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/world/moon-pool/');
+  await page.getByRole('tab', { name: /公开推进/ }).click();
   await expect(page.locator('[data-plan-card]')).toBeVisible();
   const sizes = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(sizes.width).toBeLessThanOrEqual(sizes.viewport);
@@ -69,6 +70,7 @@ test('可以新建、编辑并持久保存仅本地可见的日程笔记', async
   await page.goto('/world/moon-pool/');
   await page.evaluate(() => localStorage.removeItem('yuncun-local-plans-v1'));
   await page.reload();
+  await page.getByRole('tab', { name: /本地计划/ }).click();
 
   const planner = page.locator('[data-local-planner]');
   await planner.locator('[data-local-plan-new]').click();
@@ -112,11 +114,13 @@ test('本地日程不会出现在另一个浏览器存储空间', async ({ brows
     updatedAt: '2026-07-22T00:00:00.000Z',
   }])));
   await firstPage.reload();
+  await firstPage.getByRole('tab', { name: /本地计划/ }).click();
   await expect(firstPage.getByText('仅本机可见')).toBeVisible();
 
   const secondContext = await browser.newContext();
   const secondPage = await secondContext.newPage();
   await secondPage.goto('http://127.0.0.1:4321/world/moon-pool/');
+  await secondPage.getByRole('tab', { name: /本地计划/ }).click();
   await expect(secondPage.getByText('仅本机可见')).toHaveCount(0);
   await expect(secondPage.locator('[data-local-plan-empty]')).toBeVisible();
 

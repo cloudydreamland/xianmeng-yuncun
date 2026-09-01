@@ -1,0 +1,38 @@
+---
+title: Transformer 主干：注意力怎样工作
+slug: transformer
+order: 4
+stage: 核心
+description: 顺着一个 Token 的数据流，拆开自注意力、残差、归一化和前馈网络。
+topics: [Transformer, Self-Attention, MHA, RoPE]
+estimatedMinutes: 100
+prerequisites: [矩阵乘法直觉, Embedding, Softmax]
+outcomes: [画出 Decoder Block, 推导注意力形状, 解释残差和归一化的作用]
+interviewHref: /interview/llm/transformer-and-attention/
+updatedAt: 2026-09-01
+draft: false
+---
+
+## Query、Key、Value 可以怎样理解
+
+每个位置向量分别乘三个可学习矩阵，得到 Q、K、V。Q 表示“我在寻找什么”，K 表示“我能被怎样匹配”，Q 与所有 K 的点积给出相关分数；Softmax 后的权重再对 V 加权求和，形成该位置汇总到的信息。
+
+公式是 `Attention(Q,K,V)=softmax(QKᵀ/√d)V`。除以 `√d` 是为了控制点积随维度增大而变得过大，避免 Softmax 过早饱和。
+
+## 因果注意力为什么不能偷看未来
+
+生成模型在预测第 `t` 个位置时，只能看它之前的 Token。训练虽然会并行计算所有位置，但通过上三角因果 mask，把未来位置的注意力分数设为负无穷，使其 Softmax 概率为零。
+
+如果 mask 方向写反或标签错位，训练 loss 可能看起来很好，生成却完全失败。检查时可改动未来 Token，确认当前输出不受影响。
+
+## 多头、残差与前馈网络各做什么
+
+多头注意力把隐藏维度拆成多个 head，不同 head 可以学习不同关系，再拼接回原维度。注意力负责跨位置通信；FFN 则对每个位置独立做非线性变换，通常先升维再降维，是模型参数和计算的重要来源。
+
+残差连接让每个子层学习“在原表示上增加什么”，为深层网络保留梯度通道；LayerNorm 或 RMSNorm 控制表示尺度。现代 Decoder-only 模型多采用 Pre-Norm，即先归一化再进入子层，以提高深层训练稳定性。
+
+## 从一个 Block 到完整 Decoder-only 模型
+
+输入经过 Token Embedding 和位置信息，依次通过许多 Decoder Block，最后归一化并投影到词表 logits。训练时所有位置一起算；生成时重复拿最后一个位置的 logits 采样。
+
+参数量并不只由层数决定，还与隐藏维度、FFN 宽度、词表和是否采用 MoE 有关。理解架构时始终同时追踪三个问题：张量形状是什么、位置之间在哪里通信、参数和计算主要花在哪里。
