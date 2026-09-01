@@ -9,5 +9,23 @@ playwright-report/
 test-results/
 tools/
 tmp/
+.tmp/
+.pnpm-store/
+__pycache__/
+*.pyc
 .corepack-cache/
 .codex-tmp/
+
+# Local-only Yunling desktop companion work
+docs/YUNLING_*.md
+media-originals/yunling-v2/
+public/images/pet/
+public/yunling/
+src/components/YunlingCompanion.tsx
+src/components/yunling/
+tests/unit/yunling.test.ts
+outfit-reference-compatible.png
+outfit-torso-skirt-reference.jpg
+outfit-torso-skirt-reference.png
+scripts/*yunling*
+scripts/serve-static.mjs

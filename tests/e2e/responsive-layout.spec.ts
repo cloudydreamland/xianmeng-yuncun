@@ -59,18 +59,16 @@ test('手机端首页背景和工作台背景使用一致画面的响应式资�
   expect(workspaceBackground).toContain('workspace-starriver-v6-1536.avif');
 });
 
-test('公告步骤在手机改为单列，平板保持紧凑双列', async ({ page }) => {
+test('七星路线在手机使用纵向星轨，平板恢复横向星图', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
-  const phonePositions = await page.locator('.home-guide > li').evaluateAll((items) => items.slice(0, 2).map((item) => item.getBoundingClientRect().x));
-  expect(Math.abs(phonePositions[0] - phonePositions[1])).toBeLessThan(2);
+  await expect(page.locator('.home-constellation__lines--mobile')).toBeVisible();
+  await expect(page.locator('.home-constellation__map')).toHaveCSS('min-height', '680px');
 
   await page.setViewportSize({ width: 768, height: 1024 });
-  await expect(page.locator('.home-guide')).toBeVisible();
-  const tabletPositions = await page.locator('.home-guide > li').evaluateAll((items) => items.slice(0, 3).map((item) => item.getBoundingClientRect().x));
-  expect(tabletPositions[1]).toBeGreaterThan(tabletPositions[0] + 10);
-  expect(Math.abs(tabletPositions[0] - tabletPositions[2])).toBeLessThan(2);
+  await expect(page.locator('.home-constellation__lines--desktop')).toBeVisible();
+  await expect(page.locator('.home-constellation__lines--mobile')).toBeHidden();
 });
 
 test('高 DPR 手机为首页和工作台选用 2560 清晰背景', async ({ browser }) => {

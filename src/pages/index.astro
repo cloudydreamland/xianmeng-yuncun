@@ -46,6 +46,42 @@ const mapRegions = regions.map((region) => {
     items: point.id === 'cloud-village' ? cloudVillageDestinations : undefined,
   };
 });
+
+const newcomerRouteIds = [
+  'cloud-village',
+  'rain-bridge',
+  'wind-valley',
+  'moon-pool',
+  'lantern-lane',
+  'star-abyss',
+  'snow-cliff',
+] as const;
+const newcomerRoute = newcomerRouteIds.map((id, index) => {
+  const region = mapRegions.find((item) => item.id === id);
+  if (!region) throw new Error(`缺少新手路线节点：${id}`);
+  return { ...region, step: index + 1 };
+});
+const newcomerGuideCopy: Record<typeof newcomerRouteIds[number], string> = {
+  'cloud-village': '网站的总入口。先看七境全貌、常用入口和推荐路线，再决定去学习、阅读、看项目，适合第一次来时建立整体认识。',
+  'rain-bridge': '用云镜搜索笔记、教程、面经、项目、计划和作品；也能把临时想到的任务、灵感与链接先收入收件箱，之后再整理。',
+  'wind-valley': '集中浏览公开笔记、学习记录和随笔。可以按标签筛选、加入稍后阅读，并从相关文章继续深入。',
+  'moon-pool': '查看项目档案、公开计划、里程碑与下一步；生活日历、重复清单、期限、账目和物品位置等私人安排也放在这里。',
+  'lantern-lane': '浏览摄影、绘画等作品及创作说明，用灯箱查看细节；也可以把日常片段记入只保存在当前浏览器的回忆手记。',
+  'star-abyss': '把技能、学习路线和项目经验串成成长星图，直达大模型、PyTorch 与面试学习内容；需要沉浸时还能开启专注计时。',
+  'snow-cliff': '用于习惯打卡、查看联系说明和友人链接。习惯数据默认保存在当前浏览器，访客也能在这里了解联系边界。',
+};
+const newcomerPositions = [
+  { x: 14, y: 28, mx: 18, my: 13 },
+  { x: 31, y: 34, mx: 42, my: 27 },
+  { x: 46, y: 48, mx: 24, my: 43 },
+  { x: 59, y: 61, mx: 50, my: 58 },
+  { x: 75, y: 50, mx: 76, my: 50 },
+  { x: 87, y: 64, mx: 56, my: 72 },
+  { x: 70, y: 76, mx: 75, my: 88 },
+];
+const newcomerMapStyle = Object.entries(worldBackgrounds)
+  .map(([time, image]) => `--home-guide-map-${time}:url("${image.cssImageMobile ?? image.cssImage ?? image.fallback}")`)
+  .join(';');
 ---
 
 <BaseLayout>
@@ -66,25 +102,66 @@ const mapRegions = regions.map((region) => {
     <HomeGeometryField />
     <section class="home-bulletin page-shell pixel-frame" aria-labelledby="home-bulletin-title">
       <header class="home-bulletin__header">
-        <div><p class="pixel-kicker">网站公告 · 使用说明</p><h1 id="home-bulletin-title">欢迎来到闲梦world</h1><p>这是王选默的个人网站，用来公开整理学习笔记、项目经历与持续推进的计划。上方全境地图负责按主题浏览；这里负责告诉你最快的使用方式。</p></div>
+        <div><p class="pixel-kicker">网站公告 · 新手星图</p><h1 id="home-bulletin-title">欢迎来到闲梦world</h1><p>这里用于整理学习笔记、项目经历与生活计划。第一次来，可以沿着下面的七颗星认识每个功能；熟悉之后，也可以直接从全境地图自由出发。</p></div>
         {latestActivityAt && <p class="home-bulletin__date"><span>最近更新</span><time datetime={latestActivityAt.toISOString()}>{formatFullDate(latestActivityAt)}</time></p>}
       </header>
 
       <div class="home-bulletin__body">
-        <section aria-labelledby="home-guide-title">
-          <h2 id="home-guide-title">网站怎么用</h2>
-          <ol class="home-guide">
-            <li><span>01</span><div><strong>大模型学习</strong><p>学习中心收录系统笔记、PyTorch 实践课和面试题库。</p><a href="/learn/">进入学习中心 →</a></div></li>
-            <li><span>02</span><div><strong>笔记与项目</strong><p>风谷收录公开笔记，月潭展示项目经历和公开计划。</p><p><a href="/world/wind-valley/">浏览笔记</a><a href="/world/moon-pool/">查看项目</a></p></div></li>
-            <li><span>03</span><div><strong>七境地图</strong><p>全境地图按内容主题划分七个区域，云游路线则把相关页面串成专题。</p><a href="/journeys/">查看云游路线 →</a></div></li>
-            <li><span>04</span><div><strong>个人工作台</strong><p>待办、随手记和阅读清单默认保存在当前浏览器，不会出现在公开页面。</p><a href="/workspace/">打开工作台 →</a></div></li>
+        <section id="newcomer-route" class="home-constellation" aria-labelledby="home-guide-title">
+          <div class="home-constellation__heading">
+            <div><p class="pixel-kicker">从第一颗星开始</p><h2 id="home-guide-title">七星入门路线</h2></div>
+            <p>按顺序点亮七个功能，或从你最关心的一站直接进入。</p>
+          </div>
+          <div class="home-constellation__map" style={newcomerMapStyle}>
+            <div class="home-constellation__shade" aria-hidden="true"></div>
+            <svg class="home-constellation__lines home-constellation__lines--desktop" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="14,28 31,34 46,48 59,61 75,50 87,64 70,76 59,61" />
+            </svg>
+            <svg class="home-constellation__lines home-constellation__lines--mobile" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="18,13 42,27 24,43 50,58 76,50 56,72 75,88 50,58" />
+            </svg>
+            <ol class="home-constellation__route">
+              {newcomerRoute.map((region, index) => {
+                const position = newcomerPositions[index];
+                return (
+                  <li style={`--star-x:${position.x}%;--star-y:${position.y}%;--star-mobile-x:${position.mx}%;--star-mobile-y:${position.my}%`}>
+                    <a class="home-constellation__node" href={region.href} aria-label={`第 ${region.step} 站，${region.functionLabel}，进入${region.title}`}>
+                      <i aria-hidden="true">{String(region.step).padStart(2, '0')}</i>
+                      <span><small>第 {String(region.step).padStart(2, '0')} 站</small><strong>{region.functionLabel}</strong></span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+            <p class="home-constellation__hint"><span aria-hidden="true">✦</span> 地图随现实时间变换天光</p>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="home-bulletin__details">
+        <section id="home-place-directory" class="home-place-directory" aria-labelledby="home-place-directory-title">
+          <header>
+            <div><p class="pixel-kicker">七处功能详解</p><h2 id="home-place-directory-title">每颗星都能做什么</h2></div>
+            <p>公开内容可以直接浏览；带有“私人”说明的工具默认只把数据留在当前浏览器。</p>
+          </header>
+          <ol>
+            {newcomerRoute.map((region) => (
+              <li>
+                <a href={region.href} aria-label={`第 ${region.step} 站，${region.functionLabel}，进入${region.title}`}>
+                  <span>{String(region.step).padStart(2, '0')}</span>
+                  <div><strong>{region.functionLabel}</strong><p>{newcomerGuideCopy[region.id]}</p></div>
+                  <em>进入 <span aria-hidden="true">→</span></em>
+                </a>
+              </li>
+            ))}
           </ol>
         </section>
 
         <aside class="home-bulletin__notice" aria-labelledby="home-notice-title">
-          <p class="pixel-kicker">本次更新</p><h2 id="home-notice-title">大模型学习入口已重整</h2>
-          <p>新增 12 章零基础系统笔记；原有 14 章、150 题面经继续保留，并已拆分为独立入口。</p>
-          <a href="/learn/llm/">从第一章开始 →</a>
+          <p class="pixel-kicker">本次更新</p><h2 id="home-notice-title">七星导航与功能说明</h2>
+          <p>云中书页现在同时提供缩略地图、七星访问顺序和逐处说明。新访客可以先读清楚每一处的用途，再选择进入；常用访客仍可直接使用地图与快捷入口。</p>
+          <a href="#home-place-directory">查看七处说明 →</a>
           <dl aria-label="站点内容概况"><div><dt>公开笔记</dt><dd>{notes.length}</dd></div><div><dt>项目档案</dt><dd>{projects.length}</dd></div><div><dt>开放境域</dt><dd>{regions.filter(({ data }) => data.status === 'active').length}</dd></div></dl>
           <div class="home-bulletin__tips"><strong>两个常用入口</strong><p><button type="button" data-search-open>云镜：搜索全站内容</button><a href={latestNoteHref}>最新笔记：直接开始阅读</a></p></div>
         </aside>
@@ -111,15 +188,47 @@ const mapRegions = regions.map((region) => {
   .home-bulletin__date span,.home-bulletin__date time { display:block; }
   .home-bulletin__date span { color:#748179; font-size:.62rem; letter-spacing:.12em; }
   .home-bulletin__date time { margin-top:5px; color:#48675c; font-size:.75rem; font-weight:900; }
-  .home-bulletin__body { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.65fr); gap:22px; margin-top:28px; }
+  .home-bulletin__body { margin-top:28px; }
   .home-bulletin__body h2 { margin:0 0 17px; color:#435b52; font-family:var(--serif); font-size:1.55rem; }
-  .home-guide { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
-  .home-guide li { display:grid; grid-template-columns:34px 1fr; gap:9px; min-height:185px; padding:17px; border:2px solid #8a9b91; background:#fffdf1; }
-  .home-guide li>span { color:#779188; font-family:var(--serif); font-size:1.15rem; font-weight:900; }
-  .home-guide strong { color:#405d53; }
-  .home-guide p { margin:8px 0; color:#65756f; font-size:.76rem; line-height:1.7; }
-  .home-guide a { color:#367063; font-size:.72rem; font-weight:900; }
-  .home-guide div>p:last-child a+a { margin-left:14px; }
+  .home-constellation__heading { display:flex; align-items:end; justify-content:space-between; gap:22px; margin-bottom:12px; }
+  .home-constellation__heading h2 { margin:3px 0 0; }
+  .home-constellation__heading>p { max-width:260px; margin:0 0 2px; color:#687a73; font-size:.72rem; line-height:1.65; text-align:right; }
+  .home-constellation__map { position:relative; min-height:500px; overflow:hidden; border:3px solid #5c706a; background-color:#223f47; background-image:var(--home-guide-map-current,var(--home-guide-map-day)); background-position:center; background-size:cover; box-shadow:7px 7px 0 rgba(55,76,69,.2); isolation:isolate; }
+  html[data-time="dawn"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-dawn); }
+  html[data-time="day"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-day); }
+  html[data-time="dusk"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-dusk); }
+  html[data-time="night"] .home-constellation__map { --home-guide-map-current:var(--home-guide-map-night); }
+  .home-constellation__shade { position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(10,30,37,.26),rgba(7,22,30,.58)),radial-gradient(circle at 51% 48%,transparent 18%,rgba(7,23,31,.34) 84%); backdrop-filter:saturate(.72); }
+  .home-constellation__lines { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+  .home-constellation__lines polyline { fill:none; stroke:#f4d477; stroke-width:.34; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 0 5px rgba(255,230,147,.92)); opacity:.88; }
+  .home-constellation__lines--mobile { display:none; }
+  .home-constellation__route { position:absolute; inset:0; margin:0; padding:0; list-style:none; }
+  .home-constellation__route li { position:absolute; left:var(--star-x); top:var(--star-y); transform:translate(-50%,-50%); }
+  .home-constellation__node { position:relative; display:flex; align-items:center; gap:8px; color:#fff9e6; text-decoration:none; filter:drop-shadow(0 2px 3px rgba(5,19,24,.85)); }
+  .home-constellation__node>i { display:grid; place-items:center; width:31px; height:31px; flex:0 0 31px; border:2px solid #fff0a8; border-radius:50%; color:#253b3b; background:#f3d572; box-shadow:0 0 0 5px rgba(246,220,128,.13),0 0 17px rgba(255,225,117,.92); font-style:normal; font-size:.52rem; font-weight:900; transition:transform .18s ease,box-shadow .18s ease; }
+  .home-constellation__node>span { display:grid; gap:2px; min-width:max-content; padding:7px 9px 8px; border:1px solid rgba(255,244,202,.58); background:rgba(20,45,49,.82); box-shadow:3px 3px 0 rgba(8,25,30,.32); backdrop-filter:blur(5px); }
+  .home-constellation__node small { color:#dce5ce; font-size:.48rem; letter-spacing:.08em; }
+  .home-constellation__node strong { color:#fff9df; font-family:var(--serif); font-size:.78rem; letter-spacing:.03em; }
+  .home-constellation__node:hover>i,.home-constellation__node:focus-visible>i { transform:scale(1.16); box-shadow:0 0 0 7px rgba(246,220,128,.18),0 0 24px rgba(255,225,117,1); }
+  .home-constellation__node:focus-visible { outline:3px solid #fff2a7; outline-offset:6px; }
+  .home-constellation__route li:nth-child(n+5) .home-constellation__node { flex-direction:row-reverse; }
+  .home-constellation__route li:nth-child(n+5) .home-constellation__node>span { text-align:right; }
+  .home-constellation__hint { position:absolute; right:12px; bottom:10px; margin:0; padding:5px 8px; color:#f8efd4; background:rgba(17,40,44,.68); font-size:.54rem; letter-spacing:.05em; }
+  .home-constellation__hint span { color:#f0d373; }
+  .home-bulletin__details { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.55fr); gap:22px; margin-top:34px; }
+  .home-place-directory { min-width:0; }
+  .home-place-directory>header { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:14px; }
+  .home-place-directory>header h2 { margin:3px 0 0; }
+  .home-place-directory>header>p { max-width:340px; margin:0 0 2px; color:#687a73; font-size:.7rem; line-height:1.65; text-align:right; }
+  .home-place-directory ol { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:0; padding:0; list-style:none; }
+  .home-place-directory li:last-child { grid-column:1/-1; }
+  .home-place-directory a { display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:10px; align-items:start; min-height:132px; padding:16px; border:2px solid #879991; color:#486158; background:#fffdf1; text-decoration:none; transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+  .home-place-directory a>span { color:#799087; font-family:var(--serif); font-size:1rem; font-weight:900; }
+  .home-place-directory a strong { display:block; color:#385b50; font-family:var(--serif); font-size:1rem; }
+  .home-place-directory a p { margin:7px 0 0; color:#63756e; font-size:.68rem; line-height:1.72; }
+  .home-place-directory a>em { align-self:end; color:#397063; font-style:normal; font-size:.6rem; font-weight:900; white-space:nowrap; }
+  .home-place-directory a:hover,.home-place-directory a:focus-visible { border-color:#5f7c70; box-shadow:4px 4px 0 rgba(58,81,72,.15); transform:translateY(-2px); }
+  .home-place-directory a:focus-visible { outline:3px solid #d0a845; outline-offset:3px; }
   .home-bulletin__notice { padding:23px; border:3px solid #5f776d; background:#e6efdd; box-shadow:5px 5px 0 rgba(59,79,69,.16); }
   .home-bulletin__notice>p:not(.pixel-kicker) { color:#5c6d66; font-size:.8rem; line-height:1.75; }
   .home-bulletin__notice>a { display:inline-block; margin:6px 0 20px; color:#fff; padding:10px 13px; background:#527568; font-size:.72rem; font-weight:900; }
@@ -136,7 +245,30 @@ const mapRegions = regions.map((region) => {
   .home-follow h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:clamp(1.7rem,3vw,2.4rem); }
   .home-follow p:not(.pixel-kicker) { margin:10px 0 0; color:#617067; }
   .home-follow > div:last-child { display:flex; flex:0 0 auto; gap:12px; }
-  @media (max-width:900px) { .home-bulletin__body { grid-template-columns:1fr; } .home-follow { align-items:flex-start; flex-direction:column; } }
-  @media (max-width:600px) { .home-bulletin { margin-top:158px; padding:22px 18px 24px; } .home-bulletin__header { align-items:flex-start; flex-direction:column; } .home-guide { grid-template-columns:1fr; } .home-guide li { min-height:0; } .home-bulletin__notice { padding:20px 16px; } .home-follow > div:last-child { width:100%; flex-wrap:wrap; } }
+  @media (max-width:1100px) { .home-constellation__map { min-height:470px; } .home-constellation__node>span { padding-inline:7px; } .home-constellation__node strong { font-size:.7rem; } .home-bulletin__details { grid-template-columns:1fr; } }
+  @media (max-width:900px) { .home-constellation__map { min-height:440px; } .home-follow { align-items:flex-start; flex-direction:column; } }
+  @media (max-width:600px) {
+    .home-bulletin { margin-top:158px; padding:22px 18px 24px; }
+    .home-bulletin__header,.home-constellation__heading,.home-place-directory>header { align-items:flex-start; flex-direction:column; }
+    .home-constellation__heading { gap:2px; }
+    .home-constellation__heading>p,.home-place-directory>header>p { max-width:none; text-align:left; }
+    .home-constellation__map { min-height:680px; background-position:center; }
+    .home-constellation__lines--desktop { display:none; }
+    .home-constellation__lines--mobile { display:block; }
+    .home-constellation__route li { left:var(--star-mobile-x); top:var(--star-mobile-y); }
+    .home-constellation__node>span { min-width:116px; }
+    .home-constellation__route li:nth-child(n) .home-constellation__node { flex-direction:row; }
+    .home-constellation__route li:nth-child(n) .home-constellation__node>span { text-align:left; }
+    .home-constellation__route li:nth-child(2n) .home-constellation__node { flex-direction:row-reverse; }
+    .home-constellation__route li:nth-child(2n) .home-constellation__node>span { text-align:right; }
+    .home-constellation__hint { right:9px; bottom:8px; }
+    .home-place-directory ol { grid-template-columns:1fr; }
+    .home-place-directory li:last-child { grid-column:auto; }
+    .home-place-directory a { min-height:0; grid-template-columns:30px minmax(0,1fr); }
+    .home-place-directory a>em { grid-column:2; }
+    .home-bulletin__notice { padding:20px 16px; }
+    .home-follow > div:last-child { width:100%; flex-wrap:wrap; }
+  }
   @media (max-width:420px) { .home-bulletin__notice dl { grid-template-columns:1fr; } .home-bulletin__notice dl div { min-height:62px; } }
+  @media (prefers-reduced-motion:reduce) { .home-constellation__node>i { transition:none; } }
 </style>
