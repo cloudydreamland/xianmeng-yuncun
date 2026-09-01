@@ -22,14 +22,14 @@ export const cloudJourneys: CloudJourney[] = [
     id: 'meet-the-maker',
     title: '三分钟识我',
     subtitle: '给第一次来访的人',
-    description: '从真实经历走到代表项目，再看看此刻正在推进的事情。',
+    description: '从真实经历走到代表项目，再看看持续学习的方向。',
     duration: '约 3 分钟',
     tone: 'jade',
     stops: [
       { path: '/about', label: '个人主页', realm: '云村', reason: '先认识建村的人，以及正在学习和关心的方向。' },
       { path: '/projects/yuncun-blog/', label: '闲梦 · 云村', realm: '月潭', reason: '看这座网站如何从想法变成可维护的工程。' },
       { path: '/projects/smart-cloud-brain/', label: '智慧云脑诊疗平台', realm: '月潭', reason: '查看较完整的前后端与微服务项目实践。' },
-      { path: '/now', label: '此刻与近况', realm: '云村', reason: '以最近更新和公开计划结束这次短访。' },
+      { path: '/world/snow-cliff/', label: '白狐酒舍', realm: '雪崖', reason: '以公开来路与访客席位结束这次短访。' },
     ],
   },
   {

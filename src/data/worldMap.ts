@@ -13,6 +13,17 @@ export type RegionStatus = 'active' | 'planned';
 export type TimeMode = 'auto' | 'dawn' | 'day' | 'dusk' | 'night';
 export type ResolvedTimeMode = Exclude<TimeMode, 'auto'>;
 
+/** Plain-language labels shown beside the poetic realm names on the map. */
+export const worldMapFunctionLabels: Record<RegionId, string> = {
+  'cloud-village': '总览与导航',
+  'rain-bridge': '搜索与随手记',
+  'star-abyss': '成长与专注',
+  'wind-valley': '笔记与阅读',
+  'moon-pool': '项目与计划',
+  'snow-cliff': '关系与来信',
+  'lantern-lane': '作品与收藏',
+};
+
 export interface WorldMapPoint {
   id: RegionId;
   x: number;

@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import NoteLayout from '../../layouts/NoteLayout.astro';
-import { readContentSource } from '../../utils/contentSource';
 import { getReadingStats } from '../../utils/readingStats';
 
 export async function getStaticPaths() {
@@ -9,12 +8,13 @@ export async function getStaticPaths() {
     .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
   const noteBySlug = new Map(notes.map((note) => [note.data.slug, note]));
   return notes.map((note, index) => {
-    const explicit = note.data.related.map((slug) => {
+    const related = note.data.related ?? [];
+    const explicit = related.map((slug) => {
       const target = noteBySlug.get(slug);
       if (!target) throw new Error(`笔记 ${note.data.slug} 关联了不存在的笔记：${slug}`);
       return target;
     });
-    const backlinks = notes.filter((candidate) => candidate.data.related.includes(note.data.slug));
+    const backlinks = notes.filter((candidate) => (candidate.data.related ?? []).includes(note.data.slug));
     const used = new Set([note.data.slug, ...explicit.map(({ data }) => data.slug), ...backlinks.map(({ data }) => data.slug)]);
     const automatic = notes
       .filter((candidate) => !used.has(candidate.data.slug))
@@ -46,7 +46,7 @@ export async function getStaticPaths() {
 
 const { note, prev, next, connections } = Astro.props;
 const { Content, headings } = await render(note);
-const readingStats = getReadingStats(readContentSource('notes', note.id));
+const readingStats = getReadingStats(note.body ?? '');
 ---
 
 <NoteLayout {...note.data} {...readingStats} headings={headings} prev={prev} next={next} connections={connections}>

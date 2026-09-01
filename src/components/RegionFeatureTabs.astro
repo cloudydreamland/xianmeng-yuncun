@@ -1,0 +1,122 @@
+---
+import type { RegionDirectoryItem } from '../data/regionDirectory';
+
+interface Props {
+  title: string;
+  tabs: RegionDirectoryItem[];
+  defaultHref: `#${string}`;
+}
+
+const { title, tabs, defaultHref } = Astro.props;
+const keyFromHref = (href: `#${string}`) => href.slice(1);
+---
+
+<section
+  class="region-feature-tabs"
+  aria-label={`${title}境内功能`}
+  data-region-feature-tabs
+  data-default-tab={keyFromHref(defaultHref)}
+>
+  <div class="region-feature-tabs__main">
+    <slot />
+  </div>
+
+  <aside class="region-feature-tabs__aside" data-pagefind-ignore>
+    <header>
+      <p class="pixel-kicker">境内功能</p>
+      <h2>选择此刻要去的一处</h2>
+      <p>一次只展开一项，免去在长页面里反复寻找。</p>
+    </header>
+    <nav class="region-feature-tabs__list" role="tablist" aria-label={`${title}功能选项卡`}>
+      {tabs.map((item, index) => {
+        const key = keyFromHref(item.href);
+        return (
+          <a
+            id={`region-tab-${key}`}
+            href={item.href}
+            role="tab"
+            aria-controls={`region-pane-${key}`}
+            aria-selected="false"
+            tabindex="-1"
+            data-region-tab={key}
+          >
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{item.label}</strong>
+            <small>{item.description}</small>
+          </a>
+        );
+      })}
+    </nav>
+    <p class="region-feature-tabs__hint"><span aria-hidden="true">↕</span> 选项会停在右侧，随时可以换一处。</p>
+  </aside>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-region-feature-tabs]').forEach((root) => {
+    if (root.dataset.tabsReady === 'true') return;
+    root.dataset.tabsReady = 'true';
+
+    const tabs = [...root.querySelectorAll<HTMLAnchorElement>('[data-region-tab]')];
+    const panes = [...root.querySelectorAll<HTMLElement>('[data-region-tab-pane]')];
+    const tabKeys = new Set(tabs.map((tab) => tab.dataset.regionTab || ''));
+
+    const keyForHash = () => {
+      const hash = decodeURIComponent(window.location.hash.slice(1));
+      if (!hash) return '';
+      if (tabKeys.has(hash)) return hash;
+      const target = document.getElementById(hash);
+      return target?.closest<HTMLElement>('[data-region-tab-pane]')?.dataset.regionTabPane || '';
+    };
+
+    const activate = (key: string, options: { updateUrl?: boolean; focus?: boolean } = {}) => {
+      if (!tabKeys.has(key)) return;
+      let activeTab: HTMLAnchorElement | undefined;
+      tabs.forEach((tab) => {
+        const active = tab.dataset.regionTab === key;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        tab.classList.toggle('is-active', active);
+        if (active) {
+          activeTab = tab;
+          if (options.focus) tab.focus();
+        }
+      });
+      panes.forEach((pane) => {
+        const active = pane.dataset.regionTabPane === key;
+        pane.hidden = !active;
+        pane.tabIndex = active ? 0 : -1;
+      });
+      root.dataset.activeTab = key;
+      if (options.updateUrl) history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${key}`);
+      requestAnimationFrame(() => {
+        const list = activeTab?.closest<HTMLElement>('[role="tablist"]');
+        if (!list || !activeTab || list.scrollWidth <= list.clientWidth) return;
+        list.scrollLeft = Math.max(0, activeTab.offsetLeft - (list.clientWidth - activeTab.offsetWidth) / 2);
+      });
+    };
+
+    const initial = keyForHash() || root.dataset.defaultTab || tabs[0]?.dataset.regionTab || '';
+    activate(initial);
+    root.classList.add('is-tab-ready');
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', (event) => {
+        event.preventDefault();
+        activate(tab.dataset.regionTab || '', { updateUrl: true });
+      });
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const backwards = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (backwards ? -1 : 1) + tabs.length) % tabs.length;
+        const next = tabs[nextIndex];
+        activate(next?.dataset.regionTab || '', { updateUrl: true, focus: true });
+      });
+    });
+
+    window.addEventListener('hashchange', () => {
+      const key = keyForHash();
+      if (key) activate(key);
+    });
+  });
+</script>

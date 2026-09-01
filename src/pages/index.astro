@@ -3,7 +3,6 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CloudEntrance from '../components/CloudEntrance.astro';
 import HomeSceneBridge from '../components/HomeSceneBridge.astro';
-import IslandTag from '../components/IslandTag';
 import PlanSummary from '../components/PlanSummary.astro';
 import WorldMap from '../components/WorldMap';
 import RealmOracleSigil from '../components/RealmOracleSigil.astro';
@@ -13,6 +12,7 @@ import {
   cloudVillageDestinations,
   timeCopy,
   worldBackgrounds,
+  worldMapFunctionLabels,
   worldMapPoints,
 } from '../data/worldMap';
 
@@ -23,9 +23,6 @@ const projects = (await getCollection('projects'))
 const plans = await getCollection('plans');
 const regions = (await getCollection('regions'))
   .sort((a, b) => a.data.order - b.data.order);
-const featuredProjects = projects.filter(({ data }) => data.featured).slice(0, 2);
-const recentNotes = notes.slice(0, 3);
-const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(date);
 const latestActivityAt = notes[0]?.data.updatedAt ?? notes[0]?.data.publishedAt;
 const formatFullDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 const randomDestinations = [
@@ -33,7 +30,7 @@ const randomDestinations = [
   ...projects.map((project) => `/projects/${project.data.slug}/`),
 ];
 const randomFallback = randomDestinations[0] ?? '/world/cloud-village/';
-const latestNoteHref = recentNotes[0] ? `/notes/${recentNotes[0].data.slug}/` : '/world/wind-valley/';
+const latestNoteHref = notes[0] ? `/notes/${notes[0].data.slug}/` : '/world/wind-valley/';
 
 const pointsById = new Map(worldMapPoints.map((point) => [point.id, point]));
 const mapRegions = regions.map((region) => {
@@ -48,6 +45,7 @@ const mapRegions = regions.map((region) => {
     quote: region.data.quote,
     functionTitle: region.data.functionTitle,
     functionDescription: region.data.functionDescription,
+    functionLabel: worldMapFunctionLabels[region.data.slug as keyof typeof worldMapFunctionLabels],
     status: region.data.status,
     x: point.x,
     y: point.y,
@@ -106,44 +104,6 @@ const mapRegions = regions.map((region) => {
       </div>
     </section>
 
-    <section id="village-content" class="village-bulletin">
-      <div class="page-shell bulletin-layout">
-        <header class="bulletin-heading cloud-sign">
-          <p class="pixel-kicker">云村近况</p>
-          <h2>云村近况</h2>
-          <p>全境辽阔，真正的学习与造物仍从村中的一页纸、一道代码开始。</p>
-        </header>
-
-        <div class="bulletin-notes">
-          <div class="bulletin-column-heading"><span class="bulletin-label">风谷新信</span><a href="/world/wind-valley/">全部笔记 →</a></div>
-          {recentNotes.map((note, index) => (
-            <a class:list={['bulletin-note', `bulletin-note--${index + 1}`]} href={`/notes/${note.data.slug}/`}>
-              <span class="bulletin-note__pin" aria-hidden="true"></span>
-              <time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time>
-              <small>{note.data.category}</small>
-              <h3>{note.data.title}</h3>
-              <p>{note.data.description}</p>
-              <span class="bulletin-note__action">展笺阅读 →</span>
-            </a>
-          ))}
-        </div>
-
-        <div class="bulletin-projects">
-          <div class="workshop-ruler" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div>
-          <div class="bulletin-column-heading"><span class="bulletin-label">月潭近档</span><a href="/world/moon-pool/">全部项目 →</a></div>
-          {featuredProjects.map((project, index) => (
-            <article class:list={['workshop-ticket', `workshop-ticket--${index + 1}`]}>
-              <div><small>{project.data.period}</small><strong>{project.data.status}</strong></div>
-              <h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3>
-              <p>{project.data.description}</p>
-              <div class="tag-row">{project.data.stack.map((item) => <IslandTag label={item} tone="green" />)}</div>
-              <a class="text-link" href={`/projects/${project.data.slug}/`}>查看月映档案 →</a>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-
     <div class="home-plan-summary-wrap page-shell">
       <PlanSummary plans={plans} />
     </div>
@@ -198,8 +158,6 @@ const mapRegions = regions.map((region) => {
   .realm-overview-card h2 { margin:10px 0 7px; color:#514838; font-family:var(--serif); font-size:1.55rem; }
   .realm-overview-card strong { color:#3e6a53; }
   .realm-overview-card p { margin:9px 0 16px; font-size:.79rem; line-height:1.65; }
-  .bulletin-column-heading { display:flex; min-height:44px; align-items:start; justify-content:space-between; gap:12px; }
-  .bulletin-column-heading > a { color:#416956; font-size:.72rem; font-weight:900; }
   .home-workspace-cta { display:flex; align-items:center; justify-content:space-between; gap:22px; margin-block:24px 44px; padding:30px; border:2px solid #58a9bb; background:rgba(241,253,255,.94); box-shadow:0 8px 0 rgba(53,151,166,.16),0 18px 42px rgba(50,168,192,.17); }
   .home-workspace-cta h2 { margin:0; color:#4e493c; font-family:var(--serif); font-size:2rem; }
   .home-workspace-cta p:not(.pixel-kicker) { margin-bottom:0; color:#617067; }

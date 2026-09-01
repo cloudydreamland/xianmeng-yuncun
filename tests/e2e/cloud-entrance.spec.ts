@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('每次进入首页都先加载关键资源，完成后由用户点击入境', async ({ page }) => {
+test('首次进入首页加载关键资源，同一标签页返回时不再重复拦截', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
@@ -19,8 +19,7 @@ test('每次进入首页都先加载关键资源，完成后由用户点击入�
   await expect(entrance).toBeHidden();
 
   await page.reload();
-  await expect(entrance).toBeVisible();
-  await expect(entrance.getByRole('button', { name: '入境' })).toBeVisible({ timeout: 8_000 });
+  await expect(entrance).toBeHidden();
 });
 
 test('高 DPR 手机必须等实际 1440 地图解码绘制后才允许入境', async ({ browser }) => {
@@ -54,7 +53,7 @@ test('高 DPR 手机必须等实际 1440 地图解码绘制后才允许入境', 
     releaseMap();
     await expect(enter).toBeVisible({ timeout: 8_000 });
     await expect(entrance.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
-    await expect(page.locator('.world-map__picture')).toHaveAttribute('data-map-ready', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-map-ready', 'true');
 
     await enter.click();
     await expect(entrance).toBeHidden();

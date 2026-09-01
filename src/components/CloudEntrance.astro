@@ -10,7 +10,7 @@
   <div class="cloud-entrance__mist cloud-entrance__mist--left" aria-hidden="true"></div>
   <div class="cloud-entrance__mist cloud-entrance__mist--right" aria-hidden="true"></div>
   <div class="cloud-entrance__copy">
-    <span>雲梦世界 · YUNMENG</span>
+    <span>闲梦world · XIANMENG</span>
     <strong id="cloud-entrance-title" data-entrance-title>山河正在显影</strong>
     <p id="cloud-entrance-status" data-entrance-status>正在叩启云门，载入此刻山河……</p>
     <div
@@ -33,12 +33,13 @@
 <script>
   const entrance = document.querySelector<HTMLElement>('[data-cloud-entrance]');
   const root = document.documentElement;
-  let skipForAutomation = false;
+  let skipEntrance = false;
   try {
-    skipForAutomation = sessionStorage.getItem('yuncun-test-skip-entrance') === 'true';
+    skipEntrance = sessionStorage.getItem('yuncun-test-skip-entrance') === 'true'
+      || sessionStorage.getItem('yuncun-entrance-seen') === 'true';
   } catch {}
 
-  if (entrance && skipForAutomation) {
+  if (entrance && skipEntrance) {
     entrance.hidden = true;
   } else if (entrance) {
     const progress = entrance.querySelector<HTMLElement>('[data-entrance-progress]');
@@ -91,7 +92,7 @@
       if (!image.naturalWidth) throw new Error('首屏地图载入失败');
       await image.decode();
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-      if (picture) picture.dataset.mapReady = 'true';
+      root.dataset.mapReady = 'true';
     };
 
     const minimumDisplay = new Promise<void>((resolve) => window.setTimeout(resolve, 720));
@@ -152,6 +153,7 @@
         window.location.reload();
         return;
       }
+      try { sessionStorage.setItem('yuncun-entrance-seen', 'true'); } catch {}
       entrance.classList.add('is-leaving');
       root.classList.remove('entrance-active');
       window.setTimeout(() => {

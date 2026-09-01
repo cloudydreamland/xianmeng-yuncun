@@ -24,7 +24,7 @@ interface Props {
 }
 
 const {
-  title = '雲梦世界',
+  title = '闲梦world',
   description = '以云村为中心、六境环绕的个人数字世界，收纳学习笔记、项目档案与持续生长的想法。',
   image = worldBackgrounds.day.fallback,
   searchable = false,
@@ -34,7 +34,7 @@ const {
   searchTags = [],
   searchDate,
 } = Astro.props;
-const pageTitle = title === '雲梦世界' ? title : `${title}｜雲梦世界`;
+const pageTitle = title === '闲梦world' ? title : `${title}｜闲梦world`;
 const isRegionRoute = Astro.url.pathname.startsWith('/world/');
 const isWorkspaceRoute = Astro.url.pathname.startsWith('/workspace/');
 const isHomeRoute = Astro.url.pathname === '/';
@@ -68,7 +68,7 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <link rel="icon" href="/icons/yuncun-app-192.png" />
     <link rel="apple-touch-icon" href="/icons/yuncun-app-180.png" />
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" type="application/rss+xml" title="雲梦世界订阅" href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title="闲梦world订阅" href="/rss.xml" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
@@ -126,16 +126,26 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <SearchPanel />
     <ReadingList />
     <TrailTracker />
-    <QuickCapture />
     <SyncAgent />
-    <ReminderCenter />
+    <details class="utility-dock" data-utility-dock>
+      <summary aria-label="打开快捷工具"><span aria-hidden="true">＋</span><strong>快捷</strong></summary>
+      <div class="utility-dock__panel" aria-label="快捷工具">
+        <QuickCapture />
+        <ReminderCenter />
+      </div>
+    </details>
     <main id="main-content" tabindex="-1" data-pagefind-body={searchable ? true : undefined}><slot /></main>
     <Footer />
-    <div id="yunling-pet-root" aria-hidden="true"></div>
     <script>
       if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
       }
+      document.querySelectorAll<HTMLDetailsElement>('[data-utility-dock]').forEach((dock) => {
+        dock.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('close', () => { dock.open = false; }));
+        document.addEventListener('pointerdown', (event) => {
+          if (dock.open && event.target instanceof Node && !dock.contains(event.target) && !dock.querySelector('dialog[open]')) dock.open = false;
+        });
+      });
     </script>
   </body>
 </html>

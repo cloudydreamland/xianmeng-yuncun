@@ -1,0 +1,43 @@
+---
+import type { RegionDirectory as RegionDirectoryData } from '../data/regionDirectory';
+
+interface Props {
+  title: string;
+  directory: RegionDirectoryData;
+}
+
+const { title, directory } = Astro.props;
+const entries = [directory.primary, ...directory.items.filter((item) => item.href !== directory.primary.href)];
+---
+
+<nav class="region-directory page-shell" aria-label={`${title}境内目录`} data-region-directory data-pagefind-ignore>
+  <details class="region-directory__details">
+    <summary>
+      <span><small>{title} · 境内目录</small><strong>{entries.length} 处可访</strong></span>
+      <span class="region-directory__recommendation"><small>建议先看</small><strong>{directory.primary.label}</strong></span>
+      <em data-directory-state>展开</em>
+    </summary>
+    <ol>
+      {entries.map((item, index) => (
+        <li class:list={[{ 'is-recommended': item.href === directory.primary.href }]}>
+          <a href={item.href}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{item.label}{item.href === directory.primary.href && <em>建议先看</em>}</strong>
+            <small>{item.description}</small>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </details>
+</nav>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-region-directory]').forEach((directory) => {
+    const details = directory.querySelector<HTMLDetailsElement>('details');
+    const state = directory.querySelector<HTMLElement>('[data-directory-state]');
+    if (!details || !state) return;
+    const render = () => { state.textContent = details.open ? '收起' : '展开'; };
+    details.addEventListener('toggle', render);
+    render();
+  });
+</script>

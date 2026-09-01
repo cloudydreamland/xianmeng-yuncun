@@ -13,7 +13,7 @@ const tags = [...new Set(works.flatMap(({ data }) => data.tags))];
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 ---
 
-<section class="gallery-archive" data-gallery-browser aria-labelledby="gallery-archive-title">
+<section class="gallery-archive" id="gallery" data-gallery-browser aria-labelledby="gallery-archive-title">
   <header class="section-heading">
     <p class="pixel-kicker">浮光廊</p>
     <h2 id="gallery-archive-title">浮光廊</h2>
@@ -27,11 +27,10 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
       {categories.map((category) => <button class="filter-chip" type="button" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}
     </div>
     {tags.length > 0 && (
-      <div class="filter-group">
-        <strong>灯下签记</strong>
-        <button class="filter-chip active" type="button" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>
-        {tags.map((tag) => <button class="filter-chip" type="button" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}
-      </div>
+      <details class="filter-disclosure" data-filter-disclosure>
+        <summary><span>灯下签记</span><small data-filter-disclosure-state>{tags.length} 个标签 · 按需展开</small></summary>
+        <div class="filter-group"><button class="filter-chip active" type="button" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" type="button" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
+      </details>
     )}
     <div class="filter-summary">
       <p class="filter-count" aria-live="polite">共 {works.length} 件</p>
@@ -67,6 +66,8 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
     const count = browser.querySelector<HTMLElement>('.filter-count');
     const empty = browser.querySelector<HTMLElement>('[data-empty-state]');
     const reset = browser.querySelector<HTMLButtonElement>('[data-reset-filters]');
+    const tagDisclosure = browser.querySelector<HTMLDetailsElement>('[data-filter-disclosure]');
+    const tagDisclosureState = browser.querySelector<HTMLElement>('[data-filter-disclosure-state]');
     const values = (type: 'category' | 'tag') => new Set([...browser.querySelectorAll<HTMLButtonElement>(`[data-filter-type="${type}"]`)].map((button) => button.dataset.filterValue || 'all'));
     const categoryValues = values('category');
     const tagValues = values('tag');
@@ -89,6 +90,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
       if (count) count.textContent = `共 ${visible} 件`;
       if (empty) empty.hidden = visible !== 0;
       if (reset) reset.hidden = state.category === 'all' && state.tag === 'all';
+      if (tagDisclosureState) tagDisclosureState.textContent = state.tag === 'all' ? `${tagValues.size - 1} 个标签 · 按需展开` : `已选 #${state.tag}`;
       if (updateUrl) {
         const url = new URL(window.location.href);
         for (const type of ['category', 'tag'] as const) {
@@ -105,6 +107,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
       const tag = params.get('tag') || 'all';
       state.category = categoryValues.has(category) ? category : 'all';
       state.tag = tagValues.has(tag) ? tag : 'all';
+      if (tagDisclosure && state.tag !== 'all') tagDisclosure.open = true;
       applyFilters(false);
     };
 

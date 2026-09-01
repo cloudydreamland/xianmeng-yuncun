@@ -32,6 +32,7 @@
   interface InboxItem { id: string; kind: string; title: string; detail: string; category: string; date: string; createdAt: string; handled: boolean; }
 
   const dialog = document.querySelector<HTMLDialogElement>('[data-quick-capture-dialog]');
+  if (dialog?.closest('[data-utility-dock]')) document.body.append(dialog);
   const form = dialog?.querySelector<HTMLFormElement>('[data-quick-capture-form]');
   const status = dialog?.querySelector<HTMLElement>('[data-quick-capture-status]');
   const value = (name: string) => String(new FormData(form!).get(name) || '').trim();
@@ -59,6 +60,10 @@
   document.querySelectorAll('[data-quick-capture-open]').forEach((button) => button.addEventListener('click', () => openCapture((button as HTMLElement).dataset.captureKind)));
   document.querySelectorAll('[data-quick-capture-close]').forEach((button) => button.addEventListener('click', () => dialog?.close()));
   dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  dialog?.addEventListener('close', () => {
+    const dock = document.querySelector<HTMLDetailsElement>('[data-utility-dock]');
+    if (dock) dock.open = false;
+  });
   form?.addEventListener('change', syncFields);
   window.addEventListener('yuncun-open-capture', (event) => openCapture((event as CustomEvent<string>).detail));
 
@@ -117,7 +122,7 @@
 </script>
 
 <style>
-  .quick-capture-fab { position:fixed; z-index:38; right:22px; bottom:22px; display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 14px 8px 9px; border:3px solid #344840; color:#26473f; background:#f2d274; box-shadow:5px 5px 0 rgba(28,48,43,.48); cursor:pointer; font:inherit; }
+  .quick-capture-fab { position:static; display:flex; width:100%; align-items:center; gap:8px; min-height:46px; padding:7px 12px 7px 8px; border:2px solid #344840; color:#26473f; background:#f2d274; box-shadow:3px 3px 0 rgba(28,48,43,.38); cursor:pointer; font:inherit; }
   .quick-capture-fab span { display:grid; place-items:center; width:28px; height:28px; color:#fff; background:#477565; font-size:1.3rem; }
   .quick-capture-fab strong { font-size:.72rem; letter-spacing:.08em; }
   .quick-capture-dialog { width:min(640px,calc(100vw - 24px)); max-height:calc(100svh - 24px); padding:0; overflow:auto; border-color:#45645c; color:#46554d; background:#fff9e8; }
@@ -129,13 +134,15 @@
   .quick-capture-kinds { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
   .quick-capture-kinds label { cursor:pointer; }
   .quick-capture-kinds input { position:absolute; opacity:0; }
-  .quick-capture-kinds span { display:grid; place-items:center; min-height:42px; border:2px solid #819087; background:#f6efd9; font-size:.72rem; font-weight:900; }
+  .quick-capture-kinds span { display:grid; place-items:center; min-height:44px; border:2px solid #819087; background:#f6efd9; font-size:.72rem; font-weight:900; }
   .quick-capture-kinds input:checked + span { border-color:#406d5d; color:#fff; background:#527c6b; }
   .quick-capture-dialog form > label,.quick-capture-row label { display:grid; gap:6px; font-size:.72rem; font-weight:900; }
-  .quick-capture-dialog input,.quick-capture-dialog select,.quick-capture-dialog textarea { width:100%; min-height:44px; padding:9px 11px; border:2px solid #7c8981; color:#3f4d45; background:#fffdf4; font:inherit; }
+  .quick-capture-dialog input:not([type="radio"]),.quick-capture-dialog select,.quick-capture-dialog textarea { width:100%; min-height:44px; padding:9px 11px; border:2px solid #7c8981; color:#3f4d45; background:#fffdf4; font:inherit; }
+  .quick-capture-dialog [hidden] { display:none; }
+  .quick-capture-kinds input { width:1px; height:1px; min-height:0; padding:0; border:0; }
   .quick-capture-dialog textarea { resize:vertical; line-height:1.65; }
   .quick-capture-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .quick-capture-dialog footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
   .quick-capture-dialog footer span { margin-right:auto; color:#527365; font-size:.72rem; }
-  @media(max-width:700px){ .quick-capture-fab { right:14px; bottom:max(14px,env(safe-area-inset-bottom)); } .quick-capture-fab strong { display:none; } .quick-capture-fab { padding:7px; } .quick-capture-kinds { grid-template-columns:repeat(5,minmax(52px,1fr)); overflow-x:auto; } .quick-capture-row { grid-template-columns:1fr; } .quick-capture-dialog form { padding:21px 15px; } }
+  @media(max-width:700px){ .quick-capture-fab { min-height:44px; } .quick-capture-kinds { grid-template-columns:repeat(3,minmax(0,1fr)); } .quick-capture-row { grid-template-columns:1fr; } .quick-capture-dialog form { padding:21px 15px; } }
 </style>

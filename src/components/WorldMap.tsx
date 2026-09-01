@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Title, type TitleColor } from 'animal-island-ui';
 import type {
   RegionId,
   RegionStatus,
@@ -24,6 +23,7 @@ export interface WorldMapRegion {
   quote: string;
   functionTitle: string;
   functionDescription: string;
+  functionLabel: string;
   status: RegionStatus;
   x: number;
   y: number;
@@ -46,16 +46,6 @@ const TIME_OPTIONS: Array<{ value: TimeMode; label: string; glyph: string }> = [
   { value: 'dusk', label: '黄昏', glyph: '◕' },
   { value: 'night', label: '夜晚', glyph: '✦' },
 ];
-
-const REGION_TITLE_COLORS: Record<RegionId, TitleColor> = {
-  'cloud-village': 'app-green',
-  'rain-bridge': 'app-teal',
-  'star-abyss': 'purple',
-  'wind-valley': 'lime-green',
-  'moon-pool': 'app-blue',
-  'snow-cliff': 'app-yellow',
-  'lantern-lane': 'app-orange',
-};
 
 export function resolveTimeMode(mode: TimeMode, hour = new Date().getHours()): ResolvedTimeMode {
   if (mode !== 'auto') return mode;
@@ -210,13 +200,18 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                   href={`#${region.id}`}
                   className={`world-marker world-marker--${region.id} world-marker--label-${region.labelSide}${visitedPaths.has(region.href) ? ' world-marker--visited' : ''}`}
                   style={{ left: `${region.x}%`, top: `${region.y}%` }}
-                  aria-label={`查看${region.title}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}${visitedPaths.has(region.href) ? '，已经到访' : ''}`}
+                  aria-label={`查看${region.title}，${region.functionLabel}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}${visitedPaths.has(region.href) ? '，已经到访' : ''}`}
                   aria-expanded={selectedId === region.id}
                   onClick={(event) => openRegion(event, region.id)}
                 >
-                  <Title size="small" color={REGION_TITLE_COLORS[region.id]} className="world-marker__title">
-                    {region.title}
-                  </Title>
+                  <span className="world-marker__title">
+                    <i aria-hidden="true" />
+                    <span className="world-marker__copy">
+                      <strong>{region.title}</strong>
+                      <small>{region.functionLabel}</small>
+                    </span>
+                    <em aria-hidden="true">›</em>
+                  </span>
                 </a>
               ))}
             </nav>
@@ -262,28 +257,32 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
         {selectedRegion && (
           <article className={`world-drawer__inner world-drawer__inner--${selectedRegion.id}`}>
             <button className="world-drawer__close" type="button" onClick={closeRegion} aria-label="关闭地点卷轴">×</button>
-            <div className="world-drawer__status">
-              <span>{selectedRegion.realm}</span>
-              <strong>{selectedRegion.status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}</strong>
+            <div className="world-drawer__scroll">
+              <div className="world-drawer__status">
+                <span>{selectedRegion.realm}</span>
+                <strong>{selectedRegion.status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}</strong>
+              </div>
+              <h2>{selectedRegion.title}</h2>
+              <p className="world-drawer__summary">{selectedRegion.summary}</p>
+              <blockquote>{selectedRegion.quote}</blockquote>
+              <div className="world-drawer__function">
+                <small>此境所司</small>
+                <h3>{selectedRegion.functionTitle}</h3>
+                <p>{selectedRegion.functionDescription}</p>
+              </div>
+              {selectedRegion.items && (
+                <ul>
+                  {selectedRegion.items.map((item) => (
+                    <li key={item.href}><a href={item.href}><span>{item.label}</span>{item.meta && <em>{item.meta}</em>}</a></li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <h2>{selectedRegion.title}</h2>
-            <p className="world-drawer__summary">{selectedRegion.summary}</p>
-            <blockquote>{selectedRegion.quote}</blockquote>
-            <div className="world-drawer__function">
-              <small>此境所司</small>
-              <h3>{selectedRegion.functionTitle}</h3>
-              <p>{selectedRegion.functionDescription}</p>
+            <div className="world-drawer__action">
+              <a className="pixel-button pixel-button--primary" href={selectedRegion.href}>
+                {selectedRegion.status === 'active' ? `进入${selectedRegion.title}` : '查看此境设定'}<span aria-hidden="true">→</span>
+              </a>
             </div>
-            {selectedRegion.items && (
-              <ul>
-                {selectedRegion.items.map((item) => (
-                  <li key={item.href}><a href={item.href}><span>{item.label}</span>{item.meta && <em>{item.meta}</em>}</a></li>
-                ))}
-              </ul>
-            )}
-            <a className="pixel-button pixel-button--primary" href={selectedRegion.href}>
-              {selectedRegion.status === 'active' ? `进入${selectedRegion.title}` : '查看此境设定'}<span aria-hidden="true">→</span>
-            </a>
           </article>
         )}
       </dialog>

@@ -105,6 +105,23 @@ test('移动端地图锁定整屏、可横向浏览并保留七境入口', async
   expect(dimensions.pageHeight).toBeLessThanOrEqual(dimensions.viewportHeight + 1);
 });
 
+test('地图地点名呈现为按钮，云村抽屉始终露出进入入口', async ({ page }) => {
+  await page.goto('/');
+
+  const markers = page.locator('.world-marker__title');
+  await expect(markers).toHaveCount(7);
+  await expect(markers.first()).toHaveCSS('border-top-width', '2px');
+  await expect(markers.first()).toHaveCSS('background-image', /linear-gradient/);
+
+  await page.getByRole('link', { name: /查看云村/ }).click();
+  const enterVillage = page.getByRole('link', { name: '进入云村' });
+  await expect(enterVillage).toBeVisible();
+  await expect(enterVillage).toHaveAttribute('href', '/world/cloud-village/');
+  const bounds = await enterVillage.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(await page.evaluate(() => window.innerHeight));
+});
+
 test('四个时辰同步切换背景与语义文字色，并保持面板文字稳定', async ({ page }) => {
   await page.goto('/');
 

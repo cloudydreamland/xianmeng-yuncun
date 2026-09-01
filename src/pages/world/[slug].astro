@@ -15,12 +15,13 @@ import LifeInsights from '../../components/LifeInsights.astro';
 import IslandTag from '../../components/IslandTag';
 import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
+import RegionFeatureTabs from '../../components/RegionFeatureTabs.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
+import { regionDirectories } from '../../data/regionDirectory';
 import { cloudVillageDestinations, type RegionId } from '../../data/worldMap';
 import { contactEmail, friendLinks, visitorNotes } from '../../data/snowCliff';
 import { collectNoteFacets, sortNotes, sortProjects, sortWorks } from '../../utils/contentCatalog';
-import { readContentSource } from '../../utils/contentSource';
 
 export async function getStaticPaths() {
   const regions = (await getCollection('regions')).sort((a, b) => a.data.order - b.data.order);
@@ -28,7 +29,6 @@ export async function getStaticPaths() {
   const projects = sortProjects(await getCollection('projects'));
   const plans = await getCollection('plans');
   const works = sortWorks(await getCollection('works', ({ data }) => !data.draft));
-  const moments = (await getCollection('moments', ({ data }) => !data.draft)).sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
   return regions.map((region, index) => ({
     params: { slug: region.data.slug },
     props: {
@@ -40,16 +40,22 @@ export async function getStaticPaths() {
       projects,
       plans,
       works,
-      moments,
     },
   }));
 }
 
-const { region, regions, prev, next, notes, projects, plans, works, moments = [] } = Astro.props;
+const { region, regions, prev, next, notes, projects, plans, works } = Astro.props;
 const { Content } = await render(region);
 const illustration = regionIllustrations[region.data.slug as RegionId];
 if (!illustration) throw new Error(`Missing region illustration: ${region.data.slug}`);
+const directory = regionDirectories[region.data.slug as RegionId];
+if (!directory) throw new Error(`Missing region directory: ${region.data.slug}`);
+const featureTabs = directory.items.filter((item) => item.href !== '#region-story' && item.href !== '#region-function');
 const { categories, tags } = collectNoteFacets(notes);
+const tagFacets = tags
+  .map((tag) => ({ tag, count: notes.filter((note) => note.data.tags.includes(tag)).length }))
+  .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag, 'zh-CN'));
+const popularTags = tagFacets.slice(0, 6);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const cleanMarkdownText = (value: string) => value
   .replace(/<[^>]+>/g, '')
@@ -86,7 +92,7 @@ const extractSourceBlocks = (source = '') => {
 };
 const noteSourceCards = await Promise.all(notes.map(async (note) => {
   const { headings } = await render(note);
-  const source = readContentSource('notes', note.id);
+  const source = note.body;
   const outline = headings
     .filter((heading) => heading.depth >= 2 && heading.depth <= 3)
     .map((heading) => ({ depth: heading.depth, slug: heading.slug, text: heading.text }));
@@ -94,26 +100,20 @@ const noteSourceCards = await Promise.all(notes.map(async (note) => {
   return {
     id: note.id,
     slug: note.data.slug,
-    sourcePath: `src/content/notes/${note.id}.mdx`,
     outline,
-    blocks,
     wordCount: blocks.join('').length,
   };
 }));
 const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 ---
 
-<RegionLayout {...region.data} illustration={illustration} prev={prev} next={next}>
+<RegionLayout {...region.data} illustration={illustration} directory={directory} prev={prev} next={next}>
   <Fragment slot="story"><Content /></Fragment>
 
   {region.data.slug === 'cloud-village' && (
     <>
     <TodayDashboard />
     <LifeInsights />
-    {moments.length > 0 && <section class="village-moments" aria-labelledby="village-moments-title">
-      <header class="section-heading"><p class="pixel-kicker">人间小记</p><h2 id="village-moments-title">村中近闻</h2><p>只记愿与来客相逢的日常片羽；未曾启封的私语，仍留在云后。</p></header>
-      <div class="village-moments__list">{moments.map((moment) => <article><time datetime={moment.data.publishedAt.toISOString()}>{moment.data.publishedAt.toLocaleDateString('zh-CN')}</time><div><h3>{moment.data.title}</h3><p>{moment.data.summary}</p><div class="tag-row">{moment.data.tags.map((tag) => <span class="tag-link">#{tag}</span>)}</div></div></article>)}</div>
-    </section>}
     <section class="village-gates" aria-labelledby="village-gates-title" hidden>
       <header class="section-heading"><p class="pixel-kicker">七境门扉</p><h2 id="village-gates-title">由此再赴云外</h2><p>云村居中，六境分守四方；循旧径而去，自会抵达文字各自的归处。</p></header>
       <div>{cloudVillageDestinations.map((item, index) => <a href={item.href}><span>0{index + 1}</span><h3>{item.label}</h3><p>{item.meta}</p><strong>进入 →</strong></a>)}</div>
@@ -123,30 +123,47 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 
   {region.data.slug === 'rain-bridge' && (
     <>
-      <section class="rain-search" aria-labelledby="rain-search-title" data-pagefind-ignore>
+      <section class="rain-search" id="cloud-search" aria-labelledby="rain-search-title" data-pagefind-ignore>
         <CloudSearch client:visible variant="embedded" heading="在雨桥上展开云镜" description="投一词入镜，寻访散落诸境的札记、造物、旧闻与行迹。" />
       </section>
       <LifeInbox />
-      <section class="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
+      <section class="world-directory" id="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
         <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
       </section>
     </>
   )}
 
-  {region.data.slug === 'star-abyss' && <><FocusTimer /><GrowthConstellation /><AttentionLab /></>}
+  {region.data.slug === 'star-abyss' && (
+    <RegionFeatureTabs title={region.data.title} tabs={featureTabs} defaultHref={directory.primary.href}>
+      <div id="region-pane-constellation" role="tabpanel" aria-labelledby="region-tab-constellation" data-region-tab-pane="constellation">
+        <GrowthConstellation />
+      </div>
+      <div id="region-pane-focus" role="tabpanel" aria-labelledby="region-tab-focus" data-region-tab-pane="focus">
+        <FocusTimer />
+      </div>
+      <div id="region-pane-attention-lab" role="tabpanel" aria-labelledby="region-tab-attention-lab" data-region-tab-pane="attention-lab">
+        <AttentionLab />
+      </div>
+    </RegionFeatureTabs>
+  )}
 
   {region.data.slug === 'wind-valley' && (
-    <section class="wind-notes notes-browser" data-notes-browser aria-labelledby="wind-notes-title" data-pagefind-ignore>
+    <section class="wind-notes notes-browser" id="wind-notes" data-notes-browser aria-labelledby="wind-notes-title" data-pagefind-ignore>
       <header class="section-heading"><p class="pixel-kicker">风中来信</p><h2 id="wind-notes-title">风信台</h2><p>札记、术业碎章、尘世随笔与小小试作皆落于此，只候一阵风来翻页。</p></header>
-      <div class="filter-panel" aria-label="筛选笔记">
-        <div class="filter-group"><strong>内容分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
-        <div class="filter-group"><strong>风信标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}</button>)}</div>
+      <div class="filter-panel" id="wind-filters" aria-label="筛选笔记">
+        <div class="filter-group filter-group--categories"><strong>内容分卷</strong><button class="filter-chip active" data-filter-type="category" data-filter-value="all" aria-pressed="true">全部</button>{categories.map((category) => <button class="filter-chip" data-filter-type="category" data-filter-value={category} aria-pressed="false">{category}</button>)}</div>
+        <div class="filter-group filter-group--popular"><strong>常用标签</strong><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">不限标签</button>{popularTags.map(({ tag, count }) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}<small>{count}</small></button>)}</div>
+        <details class="filter-disclosure" data-filter-disclosure>
+          <summary><span>全部标签</span><small data-filter-disclosure-state>{tags.length} 个标签 · 搜索或展开</small></summary>
+          <label class="filter-tag-search"><span>搜索标签</span><input type="search" placeholder="例如：NLP、建站" autocomplete="off" data-tag-search /></label>
+          <div class="filter-group" data-tag-list><button class="filter-chip active" data-filter-type="tag" data-filter-value="all" aria-pressed="true">不限标签</button>{tagFacets.map(({ tag, count }) => <button class="filter-chip" data-filter-type="tag" data-filter-value={tag} aria-pressed="false">#{tag}<small>{count}</small></button>)}</div>
+        </details>
         <div class="filter-summary"><p class="filter-count" aria-live="polite">共 {notes.length} 篇</p><button type="button" class="filter-reset" data-reset-filters hidden>清除筛选</button></div>
       </div>
-      <div class="cloud-note-grid">
-        {notes.map((note) => (
-          <article class="cloud-note" data-note-card data-category={note.data.category} data-tags={JSON.stringify(note.data.tags)}>
+      <div class="cloud-note-grid" id="wind-archive">
+        {notes.map((note, noteIndex) => (
+          <article class="cloud-note" id={noteIndex === 0 ? 'latest-note' : undefined} data-note-card data-category={note.data.category} data-tags={JSON.stringify(note.data.tags)}>
             {(() => {
               const source = noteSourceMap.get(note.data.slug);
               return source && (
@@ -165,7 +182,6 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                       <small>{source.outline.length || 1} 节 · 约 {source.wordCount} 字</small>
                     </summary>
                     <div class="note-source__inner">
-                      <p class="note-source__path">{source.sourcePath}</p>
                       {source.outline.length > 0 ? (
                         <ol class="note-source__toc" aria-label={`《${note.data.title}》目录`}>
                           {source.outline.map((heading) => (
@@ -175,18 +191,11 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
                           ))}
                         </ol>
                       ) : (
-                        <p class="note-source__empty">此笺未分小节，便从正文中摘取数段，留作引路。</p>
-                      )}
-                      {source.blocks.length > 0 && (
-                        <div class="note-source__blocks" aria-label={`《${note.data.title}》正文结构摘录`}>
-                          {source.blocks.map((block, index) => (
-                            <p><span>{String(index + 1).padStart(2, '0')}</span>{block}</p>
-                          ))}
-                        </div>
+                        <p class="note-source__empty">此笺未分小节，可直接进入正文顺读。</p>
                       )}
                     </div>
                   </details>
-                  <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+                  <div class="tag-row">{note.data.tags.slice(0, 2).map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}{note.data.tags.length > 2 && <span class="tag-overflow" title={note.data.tags.slice(2).join('、')}>＋{note.data.tags.length - 2}</span>}</div>
                   <button class="reading-list-toggle reading-list-toggle--card" type="button" data-reading-list-toggle data-reading-list-id={`note:${note.data.slug}`} data-reading-list-title={note.data.title} data-reading-list-url={`/notes/${note.data.slug}/`} aria-pressed="false">加入稍后阅读</button>
                   <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
                 </Fragment>
@@ -202,7 +211,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             <div class="cloud-note__meta"><span>{note.data.category}</span><time datetime={note.data.publishedAt.toISOString()}>{formatDate(note.data.publishedAt)}</time></div>
             <h2><a href={`/notes/${note.data.slug}/`}>{note.data.title}</a></h2>
             <p>{note.data.description}</p>
-            <div class="tag-row">{note.data.tags.map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}</div>
+            <div class="tag-row">{note.data.tags.slice(0, 2).map((tag) => <a class="tag-link" href={`/world/wind-valley/?tag=${encodeURIComponent(tag)}`} aria-label={`查看标签：${tag}`}><IslandTag label={tag} /></a>)}{note.data.tags.length > 2 && <span class="tag-overflow" title={note.data.tags.slice(2).join('、')}>＋{note.data.tags.length - 2}</span>}</div>
             <button class="reading-list-toggle reading-list-toggle--card" type="button" data-reading-list-toggle data-reading-list-id={`note:${note.data.slug}`} data-reading-list-title={note.data.title} data-reading-list-url={`/notes/${note.data.slug}/`} aria-pressed="false">加入稍后阅读</button>
             <a class="cloud-note__more" href={`/notes/${note.data.slug}/`} aria-label={`阅读《${note.data.title}》`}>展笺阅读 →</a>
               </Fragment>
@@ -219,6 +228,9 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
           const count = browser.querySelector<HTMLElement>('.filter-count');
           const empty = browser.querySelector<HTMLElement>('[data-empty-state]');
           const reset = browser.querySelector<HTMLButtonElement>('[data-reset-filters]');
+          const tagDisclosure = browser.querySelector<HTMLDetailsElement>('[data-filter-disclosure]');
+          const tagDisclosureState = browser.querySelector<HTMLElement>('[data-filter-disclosure-state]');
+          const tagSearch = browser.querySelector<HTMLInputElement>('[data-tag-search]');
           const categoryValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="category"]')].map((button) => button.dataset.filterValue || 'all'));
           const tagValues = new Set([...browser.querySelectorAll<HTMLButtonElement>('[data-filter-type="tag"]')].map((button) => button.dataset.filterValue || 'all'));
 
@@ -244,6 +256,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             if (count) count.textContent = `共 ${visible} 篇`;
             if (empty) empty.hidden = visible !== 0;
             if (reset) reset.hidden = state.category === 'all' && state.tag === 'all';
+            if (tagDisclosureState) tagDisclosureState.textContent = state.tag === 'all' ? `${tagValues.size - 1} 个标签 · 搜索或展开` : `已选 #${state.tag}`;
 
             if (updateUrl) {
               const url = new URL(window.location.href);
@@ -261,6 +274,7 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             const tag = params.get('tag') || 'all';
             state.category = categoryValues.has(category) ? category : 'all';
             state.tag = tagValues.has(tag) ? tag : 'all';
+            if (tagDisclosure && state.tag !== 'all') tagDisclosure.open = true;
             applyFilters(false);
           };
 
@@ -276,6 +290,13 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             state.tag = 'all';
             applyFilters(true);
           });
+          tagSearch?.addEventListener('input', () => {
+            const query = tagSearch.value.trim().toLocaleLowerCase('zh-CN');
+            browser.querySelectorAll<HTMLButtonElement>('[data-tag-list] [data-filter-type="tag"]').forEach((button) => {
+              const value = button.dataset.filterValue || 'all';
+              button.hidden = value !== 'all' && Boolean(query) && !value.toLocaleLowerCase('zh-CN').includes(query);
+            });
+          });
           window.addEventListener('popstate', readUrl);
           readUrl();
         }
@@ -284,12 +305,9 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   )}
 
   {region.data.slug === 'moon-pool' && (
-    <>
-      <div data-pagefind-ignore><PlanDashboard plans={plans} projects={projects} /></div>
-      <LifeCalendar />
-      <div data-pagefind-ignore><LocalPlanner /></div>
-      <LifeOrganizer />
-      <section class="moon-projects project-archive" aria-labelledby="moon-projects-title" data-pagefind-ignore>
+    <RegionFeatureTabs title={region.data.title} tabs={featureTabs} defaultHref={directory.primary.href}>
+      <div id="region-pane-moon-projects" role="tabpanel" aria-labelledby="region-tab-moon-projects" data-region-tab-pane="moon-projects">
+        <section class="moon-projects project-archive" id="moon-projects" aria-labelledby="moon-projects-title" data-pagefind-ignore>
         <header class="section-heading"><p class="pixel-kicker">月下藏卷</p><h2 id="moon-projects-title">月映册</h2><p>行舟录记今夜将往何方；月映册则收已成之物、术法取舍与经年回望。</p></header>
         <div class="archive-intro"><p>月下藏卷</p><strong>{projects.length.toString().padStart(2, '0')}</strong><span>卷造物旧录</span></div>
         <div class="project-grid">
@@ -309,8 +327,21 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
             </article>
           ))}
         </div>
-      </section>
-    </>
+        </section>
+      </div>
+      <div id="region-pane-plan-dashboard" role="tabpanel" aria-labelledby="region-tab-plan-dashboard" data-region-tab-pane="plan-dashboard" data-pagefind-ignore>
+        <PlanDashboard plans={plans} projects={projects} />
+      </div>
+      <div id="region-pane-calendar" role="tabpanel" aria-labelledby="region-tab-calendar" data-region-tab-pane="calendar">
+        <LifeCalendar />
+      </div>
+      <div id="region-pane-local-planner" role="tabpanel" aria-labelledby="region-tab-local-planner" data-region-tab-pane="local-planner" data-pagefind-ignore>
+        <LocalPlanner />
+      </div>
+      <div id="region-pane-life-planning" role="tabpanel" aria-labelledby="region-tab-life-planning" data-region-tab-pane="life-planning">
+        <LifeOrganizer />
+      </div>
+    </RegionFeatureTabs>
   )}
 
   {region.data.slug === 'snow-cliff' && <HabitTracker />}
@@ -359,13 +390,6 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
     </section>
   )}
 
-  {region.data.slug === 'lantern-lane' && <MemoryJournal />}
   {region.data.slug === 'lantern-lane' && works.length > 0 && <div data-pagefind-ignore><GalleryArchive works={works} /></div>}
+  {region.data.slug === 'lantern-lane' && <MemoryJournal />}
 </RegionLayout>
-<style>
-  .village-moments { margin-top: 42px; padding: 30px; border: 2px solid #7d8b7c; background: rgba(241,243,220,.75); }
-  .village-moments__list { display:grid; border-top:2px solid #9ba294; }
-  .village-moments__list article { display:grid; grid-template-columns:130px 1fr; gap:22px; padding:18px 0; border-bottom:1px dashed #aab09f; }
-  .village-moments time { color:#7b867b; font-size:.75rem; } .village-moments h3 { margin:0 0 6px; color:#4f5c50; font-family:var(--serif); } .village-moments p { margin:0; color:#68766b; line-height:1.75; }
-  @media (max-width:600px) { .village-moments { padding:20px 16px; } .village-moments__list article { grid-template-columns:1fr; gap:6px; } }
-</style>

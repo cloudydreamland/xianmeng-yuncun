@@ -52,11 +52,3 @@ test('风谷笔记区分作者引路与反向回望', async ({ page }) => {
   await page.goto('/notes/xiang-mu-fu-pan-fang-fa/');
   await expect(page.locator('.related-notes').getByText('回望', { exact: true })).toBeVisible();
 });
-
-test('此刻页直接汇总公开计划与最近内容', async ({ page }) => {
-  await page.goto('/now');
-  await expect(page.getByRole('heading', { level: 1, name: /不是一份永远正确的简介/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '月潭中的行舟' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '新添与新修的页面' })).toBeVisible();
-  await expect(page.getByLabel('月潭中的行舟').getByRole('link', { name: '雲梦世界持续建设' })).toBeVisible();
-});

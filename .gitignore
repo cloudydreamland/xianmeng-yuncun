@@ -10,3 +10,4 @@ test-results/
 tools/
 tmp/
 .corepack-cache/
+.codex-tmp/

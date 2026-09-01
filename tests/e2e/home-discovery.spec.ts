@@ -9,14 +9,16 @@ const enterHomeContent = async (page: Page) => {
   await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
 };
 
-test('首页提供清晰的起步路径与近期内容', async ({ page }) => {
+test('首页提供清晰的起步路径且不再展示近况板块', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('.utility-dock')).toBeHidden();
   await enterHomeContent(page);
 
+  await expect(page.locator('.utility-dock')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1, name: '在七境之间，记录学习、造物与日常。' })).toBeVisible();
   await expect(page.locator('.home-intro__actions a')).toHaveCount(4);
-  await expect(page.locator('.bulletin-note')).toHaveCount(3);
-  await expect(page.locator('.workshop-ticket')).toHaveCount(2);
+  await expect(page.locator('.village-bulletin')).toHaveCount(0);
+  await expect(page.locator('.home-plan-summary')).toBeVisible();
   await expect(page.getByRole('link', { name: '订阅 RSS' })).toBeVisible();
   await expect(page.getByRole('button', { name: '打开云镜 ⌕' })).toBeVisible();
 });
@@ -25,7 +27,7 @@ test('桌面导航收拢七境并保留七个境域入口', async ({ page }) => 
   await page.goto('/');
   const menu = page.locator('.desktop-realm-menu');
 
-  await page.getByText('七境', { exact: true }).click();
+  await menu.locator('summary').click();
 
   await expect(menu).toHaveAttribute('open', '');
   await expect(menu.locator('.desktop-realm-menu__panel a')).toHaveCount(7);

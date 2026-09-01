@@ -1,6 +1,5 @@
 ---
 import RealmOracleSigil from './RealmOracleSigil.astro';
-import { lifeModules } from '../data/lifeModules';
 
 const pathname = Astro.url.pathname;
 const realms = [
@@ -16,42 +15,49 @@ const active = (href: string) => pathname.startsWith(href);
 const realmActive = realms.some(([href]) => active(href));
 ---
 <header class="site-header">
-  <a class="site-brand" href="/"><span class="site-brand__mark" aria-hidden="true">云</span><span><strong>七境世界</strong><small>云村与六境</small></span></a>
+  <a class="site-brand" href="/" aria-label="闲梦world首页"><span class="site-brand__mark" aria-hidden="true">闲</span><span><strong>闲梦world</strong><small>七境个人数字世界</small></span></a>
   <nav class="desktop-nav pixel-hud" aria-label="主导航">
     <a href="/" class:list={[{ active: pathname === '/' }]}>首页</a>
+    <a href="/world/wind-valley/" class:list={[{ active: active('/world/wind-valley/') }]}>笔记</a>
+    <a href="/world/moon-pool/" class:list={[{ active: active('/world/moon-pool/') }]}>项目</a>
+    <a href="/about" class:list={[{ active: active('/about') }]}>关于</a>
     <details class:list={['desktop-realm-menu', { active: realmActive }]}>
       <summary><RealmOracleSigil realm="cloud-village" size={19} /><span>七境</span><span aria-hidden="true">⌄</span></summary>
       <div class="desktop-realm-menu__panel">
         {realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href} aria-label={`前往${label}`} class:list={[{ active: active(href) }]}><RealmOracleSigil realm={realm} size={21} /><span>{label}</span></a>)}
       </div>
     </details>
-    <a href="/world/wind-valley/" class:list={[{ active: active('/world/wind-valley/') }]}>笔记</a>
-    <a href="/world/moon-pool/" class:list={[{ active: active('/world/moon-pool/') }]}>项目</a>
-    <a href="/world/cloud-village/#today" class:list={['nav-today', { active: pathname === '/world/cloud-village/' && Astro.url.hash === '#today' }]}>今日</a>
-    <details class="desktop-realm-menu desktop-life-menu">
-      <summary><span class="life-menu-mark" aria-hidden="true">生</span><span>生活</span><span aria-hidden="true">⌄</span></summary>
-      <div class="desktop-realm-menu__panel desktop-life-menu__panel">
-        {lifeModules.map((item) => <a class="life-nav-link" href={item.href}><span aria-hidden="true">{item.mark}</span><span><strong>{item.label}</strong><small>{item.realmLabel}</small></span></a>)}
-        <a class="life-nav-link life-nav-link--workspace" href="/workspace/"><span aria-hidden="true">案</span><span><strong>完整工作台</strong><small>所有本地私务</small></span></a>
-        <button type="button" class="life-nav-link" data-reminder-open><span aria-hidden="true">铃</span><span><strong>提醒中心</strong><small>到期与错过提醒</small></span></button>
-        <button type="button" class="life-nav-link" data-reading-list-open><span aria-hidden="true">阅</span><span><strong>稍后阅读</strong><small><b data-reading-list-count>0</b> 篇待阅</small></span></button>
-      </div>
-    </details>
-    <a href="/about" class:list={[{ active: pathname.startsWith('/about') }]}>关于</a>
+    <a href="/workspace/" class:list={['nav-workspace', { active: active('/workspace/') }]}>工作台</a>
     <button type="button" class="nav-search" data-search-open aria-label="搜索云村内容"><span aria-hidden="true">⌕</span><span>云镜</span><kbd>⌘K</kbd></button>
   </nav>
   <details class="mobile-nav">
     <summary aria-label="打开导航"><span></span><span></span><span></span></summary>
     <nav aria-label="移动端导航">
-      <a href="/">首页</a>
-      {realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href}><RealmOracleSigil realm={realm} size={22} /><span>{label}</span><small>古刻灵纹</small></a>)}
-      <strong class="mobile-nav__group">生活工具</strong>
-      {lifeModules.map((item) => <a class="life-nav-link" href={item.href}><span aria-hidden="true">{item.mark}</span><span>{item.label}</span><small>{item.realmLabel}</small></a>)}
-      <a href="/about">个人主页</a>
-      <a href="/workspace/">工作台</a>
-      <button type="button" class="mobile-reading-list" data-reminder-open>铃 打开提醒中心</button>
-      <button type="button" class="mobile-reading-list" data-reading-list-open>▤ 稍后阅读 <strong data-reading-list-count>0</strong></button>
-      <button type="button" class="mobile-search" data-search-open>⌕ 打开云镜</button>
+      <div class="mobile-nav__primary">
+        <a href="/">首页</a>
+        <a href="/world/wind-valley/">笔记</a>
+        <a href="/world/moon-pool/">项目</a>
+        <a href="/about">关于</a>
+      </div>
+      <details class="mobile-nav__realm-group">
+        <summary><span><strong>七境</strong><small>按世界境域浏览</small></span><em aria-hidden="true">＋</em></summary>
+        <div>{realms.map(([href, label, realm]) => <a class="realm-nav-link" href={href}><RealmOracleSigil realm={realm} size={22} /><span>{label}</span><small>境域入口</small></a>)}</div>
+      </details>
+      <a class="mobile-nav__workspace" href="/workspace/"><span aria-hidden="true">案</span><span><strong>工作台</strong><small>今日、收集、专注与生活工具</small></span><em aria-hidden="true">→</em></a>
+      <div class="mobile-nav__utilities" aria-label="快捷工具">
+        <button type="button" class="mobile-search" data-search-open>⌕ 云镜搜索</button>
+        <button type="button" class="mobile-reading-list" data-reading-list-open>▤ 稍后阅读 <strong data-reading-list-count>0</strong></button>
+        <button type="button" class="mobile-reading-list" data-reminder-open>铃 提醒中心</button>
+      </div>
     </nav>
   </details>
 </header>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.mobile-nav [data-search-open], .mobile-nav [data-reading-list-open], .mobile-nav [data-reminder-open]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const menu = button.closest<HTMLDetailsElement>('.mobile-nav');
+      if (menu) menu.open = false;
+    });
+  });
+</script>

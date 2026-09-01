@@ -9,7 +9,7 @@ interface PublicAction {
 const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
 ---
 
-<section class="workspace-today pixel-frame" aria-labelledby="workspace-today-title" data-workspace-tools>
+<section class="workspace-today pixel-frame" id="workspace-today" aria-labelledby="workspace-today-title" data-workspace-tools>
   <header class="workspace-today__header">
     <div><p class="pixel-kicker">TODAY · 今日云笺</p><h2 id="workspace-today-title">今日诸务，只取最要紧的一桩。</h2></div>
     <time data-workspace-today-label></time>
@@ -53,7 +53,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
   </div>
 </section>
 
-<section class="workspace-reading" aria-labelledby="workspace-reading-title">
+<section class="workspace-reading" id="workspace-reading" aria-labelledby="workspace-reading-title">
   <header class="workspace-section-heading"><p class="pixel-kicker">READING QUEUE · 待阅</p><h2 id="workspace-reading-title">待阅笺匣</h2><p>收存站内文章与远方链接，也记下为何值得再次展笺。</p></header>
   <form class="reading-capture" data-reading-capture>
     <label>标题<input name="title" required maxlength="120" autocomplete="off" /></label>
@@ -85,7 +85,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
   </div>
 </section>
 
-<section class="workspace-review" aria-labelledby="workspace-review-title">
+<section class="workspace-review" id="workspace-review" aria-labelledby="workspace-review-title">
   <header class="workspace-section-heading"><p class="pixel-kicker">WEEKLY REVIEW · 照见</p><h2 id="workspace-review-title">月潭回望</h2><p>照见本机私务、待阅笺匣、未成草稿与公开行动，汇作一卷七日回望。</p></header>
   <div class="review-layout">
     <div class="review-summary" data-review-summary></div>
@@ -94,7 +94,7 @@ const { publicActions = [] } = Astro.props as { publicActions: PublicAction[] };
   <div class="review-actions"><button class="pixel-button" type="button" data-review-copy>复制回顾</button><button class="pixel-button pixel-button--primary" type="button" data-review-download>下载周回顾</button><span class="workspace-muted" data-review-status aria-live="polite"></span></div>
 </section>
 
-<section class="workspace-backup" aria-labelledby="workspace-backup-title">
+<section class="workspace-backup" id="workspace-backup" aria-labelledby="workspace-backup-title">
   <header class="workspace-section-heading"><p class="pixel-kicker">LOCAL BACKUP · 封卷</p><h2 id="workspace-backup-title">封卷与复原</h2><p>将案上私务、阅笺批注、今日一桩与未成草稿封存为 JSON。复原旧卷时，将覆盖本机现有内容。</p></header>
   <div class="backup-actions">
     <button class="pixel-button pixel-button--primary" type="button" data-backup-export>导出备份</button>

@@ -23,8 +23,8 @@ export async function GET(context) {
   ].sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf());
 
   return rss({
-    title: '雲梦世界',
-    description: '雲梦世界中的学习笔记、项目档案与浮光廊作品。',
+    title: '闲梦world',
+    description: '闲梦world中的学习笔记、项目档案与浮光廊作品。',
     site: context.site,
     items,
   });

@@ -11,3 +11,9 @@ test('公开笔记从内容源计算出非零字数与阅读时间', () => {
   assert.ok(stats.wordCount > 100);
   assert.ok(stats.readingMinutes >= 1);
 });
+
+test('Astro 内容条目带扩展名时仍能读取原文', () => {
+  const source = readContentSource('notes', 'nlp-interview-study-index.mdx');
+
+  assert.ok(source.includes('NLP'));
+});

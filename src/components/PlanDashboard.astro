@@ -46,7 +46,7 @@ const upcomingCount = openActions.filter(({ dueState }) => dueState === 'upcomin
 const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue').length;
 ---
 
-<section class="plan-dashboard" data-plan-dashboard aria-labelledby="plan-dashboard-title">
+<section class="plan-dashboard" id="plan-dashboard" data-plan-dashboard aria-labelledby="plan-dashboard-title">
   <header class="plan-dashboard__heading">
     <div>
       <p class="pixel-kicker">月潭行舟录</p>
@@ -89,7 +89,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
   <div class="plan-filters" aria-label="筛选计划">
     <div><strong>状态</strong><button type="button" class="active" data-filter="status" data-value="all" aria-pressed="true">全部</button>{statuses.map((status) => <button type="button" data-filter="status" data-value={status} aria-pressed="false">{status}</button>)}</div>
     <div><strong>领域</strong><button type="button" class="active" data-filter="area" data-value="all" aria-pressed="true">全部</button>{areas.map((area) => <button type="button" data-filter="area" data-value={area} aria-pressed="false">{area}</button>)}</div>
-    {tags.length > 0 && <div><strong>标签</strong><button type="button" class="active" data-filter="tag" data-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button type="button" data-filter="tag" data-value={tag} aria-pressed="false">#{tag}</button>)}</div>}
+    {tags.length > 0 && <details class="plan-filter-disclosure" data-plan-filter-disclosure><summary><strong>标签</strong><small data-plan-filter-state>{tags.length} 个标签 · 按需展开</small></summary><div><button type="button" class="active" data-filter="tag" data-value="all" aria-pressed="true">全部</button>{tags.map((tag) => <button type="button" data-filter="tag" data-value={tag} aria-pressed="false">#{tag}</button>)}</div></details>}
     <p><span data-plan-count>{sortedPlans.length}</span> 项计划符合条件 <button type="button" data-filter-reset hidden>清除筛选</button></p>
   </div>
 
@@ -138,6 +138,8 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
   if (dashboard) {
     const state = { status: 'all', area: 'all', tag: 'all' };
     const cards = [...dashboard.querySelectorAll<HTMLElement>('[data-plan-card]')];
+    const tagDisclosure = dashboard.querySelector<HTMLDetailsElement>('[data-plan-filter-disclosure]');
+    const tagState = dashboard.querySelector<HTMLElement>('[data-plan-filter-state]');
     const allowed = (type: keyof typeof state) => new Set([...dashboard.querySelectorAll<HTMLButtonElement>(`[data-filter="${type}"]`)].map((button) => button.dataset.value || 'all'));
     const allowedValues = { status: allowed('status'), area: allowed('area'), tag: allowed('tag') };
 
@@ -163,6 +165,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
       dashboard.querySelectorAll<HTMLButtonElement>('[data-filter-reset]').forEach((button) => { button.hidden = isDefault; });
       const empty = dashboard.querySelector<HTMLElement>('[data-plan-empty]');
       if (empty) empty.hidden = visible !== 0;
+      if (tagState) tagState.textContent = state.tag === 'all' ? `${allowedValues.tag.size - 1} 个标签 · 按需展开` : `已选 #${state.tag}`;
       if (writeHistory) {
         const url = new URL(window.location.href);
         (Object.keys(state) as Array<keyof typeof state>).forEach((type) => {
@@ -179,6 +182,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
         const value = params.get(type) || 'all';
         state[type] = allowedValues[type].has(value) ? value : 'all';
       });
+      if (tagDisclosure && state.tag !== 'all') tagDisclosure.open = true;
       applyFilters(false);
     };
 
@@ -263,6 +267,14 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
   .plan-actions li.is-overdue { background: rgba(194,104,70,.09); }
   .plan-filters { display: grid; gap: 11px; margin: 38px 0 26px; padding: 21px 23px; border: 2px solid #768079; background: rgba(244,242,220,.76); }
   .plan-filters > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .plan-filter-disclosure { border-top: 1px dashed rgba(81,94,85,.35); }
+  .plan-filter-disclosure summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 42px; padding-top: 8px; color: #515e55; cursor: pointer; list-style: none; }
+  .plan-filter-disclosure summary::-webkit-details-marker { display: none; }
+  .plan-filter-disclosure summary::after { content: '+'; display: grid; width: 22px; height: 22px; place-items: center; border: 1px solid #899188; background: #fbf8e8; }
+  .plan-filter-disclosure[open] summary::after { content: '−'; }
+  .plan-filter-disclosure summary strong { min-width: 48px; }
+  .plan-filter-disclosure summary small { margin-left: auto; color: #68746d; font-size: .68rem; }
+  .plan-filter-disclosure > div { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 10px 56px; }
   .plan-filters strong { min-width: 48px; color: #515e55; font-size: .76rem; }
   .plan-filters button { padding: 6px 11px; border: 1px solid #899188; color: #566159; background: #fbf8e8; cursor: pointer; font-size: .72rem; }
   .plan-filters button.active { color: #fffdf1; background: #58715e; box-shadow: 2px 2px 0 #354a3c; }
@@ -313,6 +325,7 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
     .plan-card footer { align-items: start; flex-direction: column; }
     .plan-card footer div { justify-content: start; }
     .plan-filters > p { margin-left: 0; }
+    .plan-filter-disclosure > div { padding-left: 0; }
   }
   @media (prefers-reduced-motion: reduce) { .plan-progress span { background: #78a083; } }
 </style>

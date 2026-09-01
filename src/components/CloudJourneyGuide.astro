@@ -130,9 +130,10 @@ const { full = false } = Astro.props;
 
 <style>
   .journey-guide { width:min(1180px,calc(100% - 32px)); margin:0 auto; padding:76px 0 68px; }
-  .journey-guide__heading { max-width:760px; }
-  .journey-guide__heading h2 { margin:0; color:#514838; font-family:var(--serif); font-size:clamp(2.1rem,4vw,3.8rem); line-height:1.15; }
-  .journey-guide__heading > p:last-child { max-width:680px; color:#617067; line-height:1.8; }
+  .journey-guide__heading { max-width:780px; padding:clamp(23px,3vw,36px); border:2px solid var(--home-heading-border,#77928a); border-left:6px solid var(--home-accent,#5a8f83); background:var(--home-heading-panel,rgba(244,246,225,.95)); box-shadow:var(--home-panel-shadow,8px 8px 0 rgba(20,31,43,.25)); backdrop-filter:blur(16px) saturate(1.08); }
+  .journey-guide__heading .pixel-kicker { color:var(--home-accent,#3f786c); }
+  .journey-guide__heading h2 { margin:0; color:var(--home-heading,#3b514a); font-family:var(--serif); font-size:clamp(2.1rem,4vw,3.8rem); line-height:1.15; text-shadow:var(--home-heading-shadow,none); }
+  .journey-guide__heading > p:last-child { max-width:680px; color:var(--home-copy,#536860); line-height:1.8; text-shadow:var(--home-copy-shadow,none); }
   .journey-guide__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:30px; }
   .journey-card { display:flex; min-width:0; flex-direction:column; padding:24px; border:3px solid #65766c; color:#55665d; background:#f6f4df; box-shadow:7px 7px 0 rgba(53,70,61,.18); }
   .journey-card--star { border-color:#636687; background:#eef0fb; }
@@ -155,7 +156,7 @@ const { full = false } = Astro.props;
   .journey-guide__more { margin:22px 0 0; text-align:right; }
   .journey-guide__more a { color:#416956; font-weight:900; }
   .journey-guide--full { padding-top:164px; }
-  .journey-guide--full .journey-guide__heading { padding:clamp(24px,4vw,40px); border:3px solid #66766c; background:rgba(244,246,225,.95); box-shadow:8px 8px 0 rgba(20,31,43,.25); }
+  .journey-guide--full .journey-guide__heading { padding:clamp(24px,4vw,40px); border-width:3px; }
   .trail-ledger { margin-top:34px; padding:28px; background:rgba(240,247,230,.94); }
   .trail-ledger header { display:flex; align-items:start; justify-content:space-between; gap:20px; }
   .trail-ledger h2 { margin:0; color:#514838; font-family:var(--serif); font-size:1.8rem; }

@@ -12,9 +12,18 @@ const publicActions = plans.flatMap((plan) => plan.data.nextActions.filter((acti
 <BaseLayout title="工作台" description="七境世界的个人本地工作台，用于安排今日重点、私人任务、阅读收集、草稿和周期回顾。">
   <article class="workspace-page page-shell" data-workspace>
     <header class="workspace-hero"><div><p class="pixel-kicker">私阁云案 · PRIVATE SPACE</p><h1>拢今日诸事，置于一案之间。</h1><p>先展一笺，收散念、定先后、观旧迹；待其成章，再送回七境各自的归处。</p></div><aside class="workspace-privacy pixel-frame"><strong>此案有界</strong><span>默认留在本机；启用加密云卷后，只有持有同步密码的设备能够解读。</span></aside></header>
+    <nav class="workspace-jump" aria-label="工作台快速目录">
+      <a href="#workspace-today"><small>01</small><strong>今日</strong></a>
+      <a href="#workspace-reading"><small>02</small><strong>待阅</strong></a>
+      <a href="#capture"><small>03</small><strong>速记</strong></a>
+      <a href="#workspace-review"><small>04</small><strong>回望</strong></a>
+      <a href="#workspace-backup"><small>05</small><strong>备份</strong></a>
+      <a href="#workspace-sync"><small>06</small><strong>同步</strong></a>
+      <a href="#workspace-tasks"><small>07</small><strong>私务</strong></a>
+    </nav>
     <WorkspaceTools publicActions={publicActions} />
     <SyncCenter />
-    <section class="workspace-tasks" aria-labelledby="workspace-tasks-title"><div class="workspace-section-heading"><p class="pixel-kicker">PRIVATE TASKS · 私务簿</p><h2 id="workspace-tasks-title">案上私务</h2><p>细务仍封存于本机；今日云笺会自动拣出七日之内将至的事项。</p></div><LocalPlanner /></section>
+    <section class="workspace-tasks" id="workspace-tasks" aria-labelledby="workspace-tasks-title"><div class="workspace-section-heading"><p class="pixel-kicker">PRIVATE TASKS · 私务簿</p><h2 id="workspace-tasks-title">案上私务</h2><p>细务仍封存于本机；今日云笺会自动拣出七日之内将至的事项。</p></div><LocalPlanner /></section>
   </article>
 </BaseLayout>
 <style>
@@ -25,6 +34,12 @@ const publicActions = plans.flatMap((plan) => plan.data.nextActions.filter((acti
   .workspace-hero p:not(.pixel-kicker) { max-width:680px; color:#58655e; line-height:1.8; }
   .workspace-privacy { display:grid; gap:8px; width:min(280px,100%); padding:18px; color:#376b70; background:#edfafa; }
   .workspace-privacy span { color:#56645c; font-size:.78rem; line-height:1.7; }
+  .workspace-jump { position:sticky; z-index:72; top:12px; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; margin:0 0 28px; padding:7px; border:3px solid #4f6c72; background:rgba(242,251,248,.96); box-shadow:5px 5px 0 rgba(19,45,52,.3); backdrop-filter:blur(12px); }
+  .workspace-jump a { display:flex; min-height:44px; align-items:center; justify-content:center; gap:7px; padding:6px 8px; border:1px solid transparent; color:#405b59; font-size:.74rem; }
+  .workspace-jump a:hover,.workspace-jump a:focus-visible { border-color:#668483; color:#294f50; background:#dceee6; outline:0; }
+  .workspace-jump small { color:#4e7a79; font-size:.58rem; font-weight:900; }
+  .workspace-jump strong { font-weight:900; }
+  :global(#workspace-today),:global(#workspace-reading),:global(#capture),:global(#workspace-review),:global(#workspace-backup),:global(#workspace-sync),#workspace-tasks { scroll-margin-top:86px; }
   .workspace-tasks { margin-top:62px; }
   .workspace-tasks > .workspace-section-heading .pixel-kicker { color:#b9f0ef; text-shadow:0 2px 12px rgba(5,24,48,.9); }
   .workspace-tasks > .workspace-section-heading h2 { color:#f2ffff; text-shadow:0 2px 14px rgba(5,24,48,.92); }
@@ -33,5 +48,5 @@ const publicActions = plans.flatMap((plan) => plan.data.nextActions.filter((acti
   .workspace-section-heading h2 { font-size:2rem; }
   .workspace-section-heading > p:last-child { color:#56645d; line-height:1.7; }
   .workspace-page .pixel-kicker { color:#24686a; }
-  @media (max-width:800px) { .workspace-page { padding:92px 0 80px; } .workspace-hero { display:grid; align-items:start; padding:24px 20px; } .workspace-privacy { width:auto; } }
+  @media (max-width:800px) { .workspace-page { padding:92px 0 80px; } .workspace-hero { display:grid; align-items:start; padding:24px 20px; } .workspace-privacy { width:auto; } .workspace-jump { position:static; grid-template-columns:repeat(4,minmax(0,1fr)); } .workspace-jump a { min-width:0; flex-direction:column; gap:0; } }
 </style>

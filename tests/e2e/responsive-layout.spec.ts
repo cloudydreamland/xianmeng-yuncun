@@ -5,10 +5,13 @@ const routes = [
   '/workspace/',
   '/about',
   '/journeys/',
-  '/now',
   '/world/cloud-village/',
   '/world/star-abyss/',
   '/world/moon-pool/',
+  '/interview/llm/',
+  '/interview/llm/transformer-and-attention/',
+  '/learn/pytorch/',
+  '/learn/pytorch/transformer-from-scratch/',
   '/notes/nlp-interview-study-index/',
   '/projects/yuncun-blog/',
 ] as const;
@@ -110,6 +113,56 @@ test('手机主要导航与地图控件保持至少 44px 触控高度', async ({
     const height = await controls.nth(index).evaluate((element) => element.getBoundingClientRect().height);
     expect(height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test('手机搜索筛选和随手记类型保持可点击且表单不横向溢出', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/notes/yuncun-august-maintenance-retrospective/');
+
+  await page.locator('.mobile-nav > summary').click();
+  await page.getByRole('button', { name: '⌕ 云镜搜索' }).click();
+  const searchFilters = page.locator('.search-filters button');
+  for (let index = 0; index < await searchFilters.count(); index += 1) {
+    await expect.poll(() => searchFilters.nth(index).evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+  }
+  await page.getByRole('button', { name: '关闭搜索' }).click();
+
+  await page.locator('.utility-dock > summary').click();
+  await page.getByRole('button', { name: '打开随手记' }).click();
+  const capture = page.locator('.quick-capture-dialog');
+  await expect(page.locator('[data-capture-url]')).toBeHidden();
+  await expect(page.locator('[data-capture-amount]')).toBeHidden();
+  await expect.poll(() => capture.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  await page.getByRole('radio', { name: '链接' }).click();
+  await expect(page.locator('[data-capture-url]')).toBeVisible();
+  await expect(page.locator('[data-capture-amount]')).toBeHidden();
+});
+
+test('手机导航打开提醒中心后关闭菜单且弹窗完整可见', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/notes/yuncun-august-maintenance-retrospective/');
+
+  const mobileNav = page.locator('.mobile-nav');
+  await mobileNav.locator(':scope > summary').click();
+  await mobileNav.locator('[data-reminder-open]').click();
+
+  const reminder = page.locator('[data-reminder-center]');
+  await expect(reminder).toBeVisible();
+  await expect(mobileNav).not.toHaveAttribute('open', '');
+  await expect.poll(() => reminder.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
+  await expect.poll(() => page.getByRole('button', { name: '关闭提醒中心' }).evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+});
+
+test('工作台提供七个快速入口并能直接跳到速记区', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/workspace/');
+
+  const jumpLinks = page.locator('.workspace-jump a');
+  await expect(jumpLinks).toHaveCount(7);
+  await page.locator('.workspace-jump a[href="#capture"]').click();
+  await expect(page).toHaveURL(/#capture$/);
+  await expect(page.locator('#capture')).toBeInViewport();
+  await expect(page.locator('.utility-dock')).toBeHidden();
 });
 
 test('手机端加密云卷区分访问密钥与同步密码且不横向溢出', async ({ page }) => {
