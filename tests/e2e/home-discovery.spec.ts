@@ -29,7 +29,9 @@ test('云中书页以七星路线说明网站用途和核心功能', async ({ pa
   await expect(page.locator('.journey-guide')).toHaveCount(0);
   await expect(page.locator('.realm-overview')).toHaveCount(0);
   await expect(page.locator('.home-plan-summary')).toBeVisible();
-  await expect(page.getByRole('link', { name: '订阅 RSS' })).toBeVisible();
+  const follow = page.locator('.home-follow');
+  await expect(page.getByText('RSS 是给订阅阅读器使用的更新源')).toBeVisible();
+  await expect(follow.getByRole('link', { name: 'RSS 订阅源，适合复制到订阅阅读器' })).toBeVisible();
   await expect(page.getByRole('button', { name: '打开云镜 ⌕' })).toBeVisible();
 });
 
