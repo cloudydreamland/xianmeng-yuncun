@@ -8,10 +8,13 @@ import remarkMath from 'remark-math';
 import { fileURLToPath } from 'node:url';
 
 const picomatchCompatPath = fileURLToPath(new URL('./scripts/picomatch-compat.mjs', import.meta.url));
+const sitemapExcludedPaths = new Set(['/learn/', '/notes/', '/projects/', '/workspace/', '/private-migration/']);
 
 export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://xianmeng-yuncun.pages.dev',
-  integrations: [react(), mdx(), sitemap()],
+  integrations: [react(), mdx(), sitemap({
+    filter: (page) => !sitemapExcludedPaths.has(new URL(page).pathname),
+  })],
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'hover',

@@ -42,7 +42,7 @@ test('全站云镜可以筛选面经正文', async ({ page }) => {
   await page.goto('/interview/llm/inference-and-serving/');
   await expect(page.locator('astro-island[component-url*="CloudSearch"]').first()).not.toHaveAttribute('ssr', '');
   await page.getByRole('button', { name: '搜索云村内容' }).click();
-  await page.getByRole('button', { name: '面经', exact: true }).click();
+  await page.getByRole('button', { name: '学习', exact: true }).click();
   await page.getByRole('searchbox', { name: '搜索雲梦世界内容' }).fill('PagedAttention');
   const dialog = page.getByRole('dialog', { name: '云镜检索' });
   await expect(dialog.locator('.search-result').filter({ hasText: '推理与服务优化' }).first()).toBeVisible();

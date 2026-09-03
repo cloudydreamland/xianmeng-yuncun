@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "build": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check && tsc -p functions/tsconfig.json && cross-env ASTRO_TELEMETRY_DISABLED=1 astro build && pagefind --site dist",
+    "build:admin": "corepack pnpm --dir admin build",
     "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
     "check:functions": "tsc -p functions/tsconfig.json",
+    "check:admin": "corepack pnpm --dir admin check",
     "test:e2e": "playwright test",
+    "test:e2e:admin": "playwright test --config admin/playwright.config.ts",
     "test:unit": "node --experimental-strip-types --test --test-isolation=none tests/unit/*.test.ts",
     "gallery:prepare": "node scripts/prepare-gallery-image.mjs",
     "media:prepare": "node scripts/prepare-background-images.mjs",

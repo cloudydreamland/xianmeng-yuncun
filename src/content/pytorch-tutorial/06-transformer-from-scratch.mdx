@@ -19,13 +19,13 @@ draft: false
 
 ### 本节目标
 
-用自己的话解释“Embedding：把 token id 变成向量”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“Embedding：把 token id 变成向量”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 `nn.Embedding` 是一个可学习查找表，输入是整数 id，输出最后增加 hidden 维。它等价于用 one-hot 乘权重矩阵，但不会真的构造巨大 one-hot。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“Embedding：把 token id 变成向量”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -46,7 +46,7 @@ print(x.shape)  # [2,3,128]
 ### 常见错误
 
 - 输入 id 用浮点型；id 超出词表范围；忘记 padding 行也会被更新。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“Embedding：把 token id 变成向量”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -58,7 +58,7 @@ LLM 的 token embedding 参数量约为 `vocab_size × hidden_size`，词表选�
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“Embedding：把 token id 变成向量”改变了哪一个数据流或训练状态。</p>
+  <p>验收：shape、梯度和因果性测试通过，并能从输入到输出解释“Embedding：把 token id 变成向量”的张量流。</p>
 </details>
 
 
@@ -79,13 +79,13 @@ LLM 的 token embedding 参数量约为 `vocab_size × hidden_size`，词表选�
 
 ### 本节目标
 
-用自己的话解释“单头缩放点积注意力”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“单头缩放点积注意力”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 注意力先用 query 与 key 的相似度得到分数，除以 `sqrt(head_dim)` 控制方差，再 softmax 成权重，最后对 value 加权求和。核心形状是 `[T,D] @ [D,T] -> [T,T]`。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“单头缩放点积注意力”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -106,7 +106,7 @@ print(scores.shape, out.shape, weights.sum(-1))
 ### 常见错误
 
 - softmax 用错维度；忘记缩放；把 value 与 key 的角色混淆。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“单头缩放点积注意力”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -139,13 +139,13 @@ print(scores.shape, out.shape, weights.sum(-1))
 
 ### 本节目标
 
-用自己的话解释“多头注意力的拆分与合并”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“多头注意力的拆分与合并”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 多头不是复制完整 hidden 多次，而是把投影后的通道拆成 H 个较小 head。一般 `hidden = heads × head_dim`，并在注意力后把 head 合并回 hidden。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“多头注意力的拆分与合并”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -169,7 +169,7 @@ print(out.shape)
 ### 常见错误
 
 - hidden 不能整除 head 数；合并时漏掉 transpose 或 contiguous。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“多头注意力的拆分与合并”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -202,13 +202,13 @@ GQA/MQA 改变的是 key/value head 数；先把标准 MHA 的轴完全搞清楚
 
 ### 本节目标
 
-用自己的话解释“因果掩码为什么放在 softmax 前”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“因果掩码为什么放在 softmax 前”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 自回归模型位置 t 不能看到未来 token，因此将未来位置分数设为负无穷，使 softmax 后概率为 0。若在 softmax 后直接乘 0，剩余概率和不再为 1。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“因果掩码为什么放在 softmax 前”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -229,7 +229,7 @@ print(probs[0,0], probs.sum(-1))
 ### 常见错误
 
 - mask 方向反了；全屏蔽一行产生 NaN；浮点 mask 与布尔 mask 语义混用。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“因果掩码为什么放在 softmax 前”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -262,13 +262,13 @@ print(probs[0,0], probs.sum(-1))
 
 ### 本节目标
 
-用自己的话解释“残差、LayerNorm 与 Pre-Norm”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“残差、LayerNorm 与 Pre-Norm”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 残差让层学习增量并提供直接梯度通道。现代 Decoder 常使用 Pre-Norm：先归一化，再进入注意力或 MLP，最后加回残差。归一化通常沿最后一个 hidden 维进行。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“残差、LayerNorm 与 Pre-Norm”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -291,7 +291,7 @@ class PreNormBlock(nn.Module):
 ### 常见错误
 
 - 归一化维度写成序列长度；残差两端形状不一致；原地修改残差。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“残差、LayerNorm 与 Pre-Norm”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -303,7 +303,7 @@ RMSNorm 与 LayerNorm 的差别、Pre/Post-Norm 的稳定性都建立在“归�
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“残差、LayerNorm 与 Pre-Norm”改变了哪一个数据流或训练状态。</p>
+  <p>验收：shape、梯度和因果性测试通过，并能从输入到输出解释“残差、LayerNorm 与 Pre-Norm”的张量流。</p>
 </details>
 
 
@@ -324,13 +324,13 @@ RMSNorm 与 LayerNorm 的差别、Pre/Post-Norm 的稳定性都建立在“归�
 
 ### 本节目标
 
-用自己的话解释“位置编码与 RoPE 的接口直觉”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“位置编码与 RoPE 的接口直觉”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 注意力本身不感知顺序。绝对位置嵌入把位置信息加到 token 表示；RoPE 则按位置旋转 query/key 的成对通道，使点积自然携带相对位置信息。实现时重点检查偶数 head_dim、频率和序列轴。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“位置编码与 RoPE 的接口直觉”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -355,7 +355,7 @@ print(q_rot.shape)
 ### 常见错误
 
 - cos/sin 序列长度与 cache position 不一致；不同实现的通道配对方式混用。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“位置编码与 RoPE 的接口直觉”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -367,7 +367,7 @@ print(q_rot.shape)
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“位置编码与 RoPE 的接口直觉”改变了哪一个数据流或训练状态。</p>
+  <p>验收：shape、梯度和因果性测试通过，并能从输入到输出解释“位置编码与 RoPE 的接口直觉”的张量流。</p>
 </details>
 
 
@@ -388,13 +388,13 @@ print(q_rot.shape)
 
 ### 本节目标
 
-用自己的话解释“用 scaled_dot_product_attention 获得融合内核”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“用 scaled_dot_product_attention 获得融合内核”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 `torch.nn.functional.scaled_dot_product_attention` 统一表达 QK、mask、softmax、dropout 与乘 V，并可按设备分派到优化内核。先保证 Q/K/V 形状和 mask 语义正确，再测性能。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“用 scaled_dot_product_attention 获得融合内核”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -414,7 +414,7 @@ CUDA 上输出应为 `[2, 8, 128, 64]` 且无 NaN；与 float32 手写因果注�
 ### 常见错误
 
 - 在 CPU 环境照抄 CUDA 示例；同时传冲突的 mask 配置；基准测试前没同步 GPU。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“用 scaled_dot_product_attention 获得融合内核”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 
@@ -426,7 +426,7 @@ CUDA 上输出应为 `[2, 8, 128, 64]` 且无 NaN；与 float32 手写因果注�
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“用 scaled_dot_product_attention 获得融合内核”改变了哪一个数据流或训练状态。</p>
+  <p>验收：shape、梯度和因果性测试通过，并能从输入到输出解释“用 scaled_dot_product_attention 获得融合内核”的张量流。</p>
 </details>
 
 
@@ -447,13 +447,13 @@ CUDA 上输出应为 `[2, 8, 128, 64]` 且无 NaN；与 float32 手写因果注�
 
 ### 本节目标
 
-用自己的话解释“组装一个 Decoder Block 并数清参数”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“组装一个 Decoder Block 并数清参数”展开。运行示例后标注 B、T、H、D 等轴，检查注意力、残差、掩码和参数量。
 
 ### 清晰讲解
 
 一个最小 Decoder Block 包含归一化、自注意力、残差、第二次归一化和 MLP。搭完后先用假数据验证形状、因果性和梯度，再堆叠层数。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“组装一个 Decoder Block 并数清参数”每一步的张量轴、Mask 方向、概率归一化、残差 shape 与可训练参数。
 
 ### 代码示例
 
@@ -476,7 +476,7 @@ class DecoderBlock(nn.Module):
 ### 常见错误
 
 - 直接堆几十层后才调试；只检查输出 shape 不检查未来信息泄漏。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“组装一个 Decoder Block 并数清参数”时只确认张量能相乘，没有检查轴语义、因果 Mask、Softmax 维度或残差对齐。
 
 ### 与大模型方向的连接
 

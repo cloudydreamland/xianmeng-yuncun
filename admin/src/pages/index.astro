@@ -1,0 +1,8 @@
+---
+import AdminWorkspace from '../components/AdminWorkspace';
+import AdminLayout from '../layouts/AdminLayout.astro';
+const publicOrigin = import.meta.env.PUBLIC_SITE_ORIGIN || 'https://xianmeng-yuncun.pages.dev';
+---
+<AdminLayout publicOrigin={publicOrigin}>
+  <AdminWorkspace client:load publicOrigin={publicOrigin} />
+</AdminLayout>

@@ -3,24 +3,15 @@ import { getCollection, render } from 'astro:content';
 import GalleryArchive from '../../components/GalleryArchive.astro';
 import GrowthConstellation from '../../components/GrowthConstellation.astro';
 import AttentionLab from '../../components/AttentionLab.astro';
-import FocusTimer from '../../components/FocusTimer.astro';
-import HabitTracker from '../../components/HabitTracker.astro';
-import LifeInbox from '../../components/LifeInbox.astro';
-import LifeOrganizer from '../../components/LifeOrganizer.astro';
-import LifeCalendar from '../../components/LifeCalendar.astro';
-import MemoryJournal from '../../components/MemoryJournal.astro';
-import TodayDashboard from '../../components/TodayDashboard.astro';
 import WindResourceLibrary from '../../components/WindResourceLibrary.astro';
-import LifeInsights from '../../components/LifeInsights.astro';
 import IslandTag from '../../components/IslandTag';
-import LocalPlanner from '../../components/LocalPlanner.astro';
 import PlanDashboard from '../../components/PlanDashboard.astro';
 import RainLearningGateway from '../../components/RainLearningGateway.astro';
 import RegionFeatureTabs from '../../components/RegionFeatureTabs.astro';
 import RegionLayout from '../../layouts/RegionLayout.astro';
 import { regionIllustrations } from '../../data/regionIllustrations';
 import { regionDirectories } from '../../data/regionDirectory';
-import { cloudVillageDestinations, type RegionId } from '../../data/worldMap';
+import { worldMapFunctionLabels, type RegionId } from '../../data/worldMap';
 import { contactEmail, friendLinks, visitorNotes } from '../../data/snowCliff';
 import { collectNoteFacets, sortNotes, sortProjects, sortWorks } from '../../utils/contentCatalog';
 
@@ -45,7 +36,7 @@ export async function getStaticPaths() {
   }));
 }
 
-const { region, regions, prev, next, notes, projects, plans, works } = Astro.props;
+const { region, prev, next, notes, projects, plans, works } = Astro.props;
 const { Content } = await render(region);
 const illustration = regionIllustrations[region.data.slug as RegionId];
 if (!illustration) throw new Error(`Missing region illustration: ${region.data.slug}`);
@@ -108,37 +99,15 @@ const noteSourceCards = await Promise.all(notes.map(async (note) => {
 const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
 ---
 
-<RegionLayout {...region.data} illustration={illustration} directory={directory} prev={prev} next={next}>
+<RegionLayout {...region.data} functionLabel={worldMapFunctionLabels[region.data.slug as RegionId]} illustration={illustration} directory={directory} prev={prev} next={next}>
   <Fragment slot="story"><Content /></Fragment>
 
-  {region.data.slug === 'cloud-village' && (
-    <>
-    <TodayDashboard />
-    <LifeInsights />
-    <section class="village-gates" aria-labelledby="village-gates-title" hidden>
-      <header class="section-heading"><p class="pixel-kicker">七境门扉</p><h2 id="village-gates-title">由此再赴云外</h2><p>云村居中，六境分守四方；循旧径而去，自会抵达文字各自的归处。</p></header>
-      <div>{cloudVillageDestinations.map((item, index) => <a href={item.href}><span>0{index + 1}</span><h3>{item.label}</h3><p>{item.meta}</p><strong>进入 →</strong></a>)}</div>
-    </section>
-    </>
-  )}
-
-  {region.data.slug === 'rain-bridge' && (
-    <>
-      <RainLearningGateway />
-      <section class="world-directory" id="world-directory" aria-labelledby="world-directory-title" data-pagefind-ignore>
-        <header class="section-heading"><p class="pixel-kicker">全境名册</p><h2 id="world-directory-title">七境地名册</h2><p>门扉明暗，只示来路是否可通；诸境旧闻，无论远近，皆可先行展读。</p></header>
-        <div>{regions.map((item) => <a href={`/world/${item.data.slug}/`}><span>{item.data.realm}</span><h3>{item.data.title}</h3><p>{item.data.functionTitle}</p><strong>{item.data.status === 'active' ? '门扉已启' : '云雾未散'}</strong></a>)}</div>
-      </section>
-    </>
-  )}
+  {region.data.slug === 'rain-bridge' && <RainLearningGateway />}
 
   {region.data.slug === 'star-abyss' && (
     <RegionFeatureTabs title={region.data.title} tabs={featureTabs} defaultHref={directory.primary.href}>
       <div id="region-pane-constellation" role="tabpanel" aria-labelledby="region-tab-constellation" data-region-tab-pane="constellation">
         <GrowthConstellation />
-      </div>
-      <div id="region-pane-focus" role="tabpanel" aria-labelledby="region-tab-focus" data-region-tab-pane="focus">
-        <FocusTimer />
       </div>
       <div id="region-pane-attention-lab" role="tabpanel" aria-labelledby="region-tab-attention-lab" data-region-tab-pane="attention-lab">
         <AttentionLab />
@@ -333,22 +302,8 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
       <div id="region-pane-plan-dashboard" role="tabpanel" aria-labelledby="region-tab-plan-dashboard" data-region-tab-pane="plan-dashboard" data-pagefind-ignore>
         <PlanDashboard plans={plans} projects={projects} />
       </div>
-      <div id="region-pane-inbox" role="tabpanel" aria-labelledby="region-tab-inbox" data-region-tab-pane="inbox">
-        <LifeInbox />
-      </div>
-      <div id="region-pane-calendar" role="tabpanel" aria-labelledby="region-tab-calendar" data-region-tab-pane="calendar">
-        <LifeCalendar />
-      </div>
-      <div id="region-pane-local-planner" role="tabpanel" aria-labelledby="region-tab-local-planner" data-region-tab-pane="local-planner" data-pagefind-ignore>
-        <LocalPlanner />
-      </div>
-      <div id="region-pane-life-planning" role="tabpanel" aria-labelledby="region-tab-life-planning" data-region-tab-pane="life-planning">
-        <LifeOrganizer />
-      </div>
     </RegionFeatureTabs>
   )}
-
-  {region.data.slug === 'snow-cliff' && <HabitTracker />}
 
   {region.data.slug === 'snow-cliff' && (contactEmail || friendLinks.length > 0) && (
     <section class="snow-lodge" aria-labelledby="snow-lodge-title">
@@ -395,5 +350,4 @@ const noteSourceMap = new Map(noteSourceCards.map((note) => [note.slug, note]));
   )}
 
   {region.data.slug === 'lantern-lane' && works.length > 0 && <div data-pagefind-ignore><GalleryArchive works={works} /></div>}
-  {region.data.slug === 'lantern-lane' && <MemoryJournal />}
 </RegionLayout>

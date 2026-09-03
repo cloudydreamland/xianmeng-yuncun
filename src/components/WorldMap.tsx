@@ -8,12 +8,6 @@ import type {
 } from '../data/worldMap';
 import { TRAIL_STORAGE_KEY } from '../data/cloudJourneys';
 
-export interface WorldMapItem {
-  href: string;
-  label: string;
-  meta?: string;
-}
-
 export interface WorldMapRegion {
   id: RegionId;
   href: string;
@@ -28,7 +22,6 @@ export interface WorldMapRegion {
   x: number;
   y: number;
   labelSide: 'left' | 'right' | 'center';
-  items?: WorldMapItem[];
 }
 
 interface Props {
@@ -200,7 +193,7 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                   href={`#${region.id}`}
                   className={`world-marker world-marker--${region.id} world-marker--label-${region.labelSide}${visitedPaths.has(region.href) ? ' world-marker--visited' : ''}`}
                   style={{ left: `${region.x}%`, top: `${region.y}%` }}
-                  aria-label={`查看${region.title}，${region.functionLabel}，${region.status === 'active' ? '门扉已启' : '境中有景、门扉待启'}${visitedPaths.has(region.href) ? '，已经到访' : ''}`}
+                  aria-label={`查看${region.title}，${region.functionLabel}${region.status === 'active' ? '' : '，门扉待启'}${visitedPaths.has(region.href) ? '，已经到访' : ''}`}
                   aria-expanded={selectedId === region.id}
                   onClick={(event) => openRegion(event, region.id)}
                 >
@@ -225,6 +218,18 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
           </div>
         </div>
 
+        <p className="world-map__swipe-hint"><span aria-hidden="true">↔</span> 左右滑动浏览地图 · 七境目录可查看全部</p>
+        <details className="world-mobile-directory">
+          <summary><span><strong>七境目录</strong><small>全部 7 处入口</small></span><em aria-hidden="true">＋</em></summary>
+          <nav aria-label="七境完整目录">
+            {regions.map((region) => (
+              <a key={region.id} className={visitedPaths.has(region.href) ? 'visited' : ''} href={region.href}>
+                <span>{region.title}</span><strong>{region.functionLabel}</strong><em aria-hidden="true">→</em>
+              </a>
+            ))}
+          </nav>
+        </details>
+
         <div className="world-time-dial">
           <button type="button" className="world-time-dial__toggle" aria-expanded={timeMenuOpen} onClick={() => setTimeMenuOpen((open) => !open)}>
             <span aria-hidden="true">{TIME_OPTIONS.find(({ value }) => value === timeMode)?.glyph}</span>
@@ -245,23 +250,12 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
         </a>
       </div>
 
-      <nav className="world-ledger page-shell" aria-label="雲梦地名册">
-        {regions.map((region) => (
-          <a key={region.id} className={visitedPaths.has(region.href) ? 'visited' : ''} href={`#${region.id}`} onClick={(event) => openRegion(event, region.id)}>
-            <span>{region.realm}</span><strong>{region.title}</strong><em>{visitedPaths.has(region.href) ? '留有足迹' : region.status === 'active' ? '门扉已启' : '云雾未散'}</em>
-          </a>
-        ))}
-      </nav>
-
       <dialog ref={dialogRef} className="world-drawer pixel-frame" onCancel={(event) => { event.preventDefault(); closeRegion(); }}>
         {selectedRegion && (
           <article className={`world-drawer__inner world-drawer__inner--${selectedRegion.id}`}>
             <button className="world-drawer__close" type="button" onClick={closeRegion} aria-label="关闭地点卷轴">×</button>
             <div className="world-drawer__scroll">
-              <div className="world-drawer__status">
-                <span>{selectedRegion.realm}</span>
-                <strong>{selectedRegion.status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}</strong>
-              </div>
+              {selectedRegion.status !== 'active' && <div className="world-drawer__status"><span>{selectedRegion.realm}</span><strong>境中有景 · 门扉待启</strong></div>}
               <h2>{selectedRegion.title}</h2>
               <p className="world-drawer__summary">{selectedRegion.summary}</p>
               <blockquote>{selectedRegion.quote}</blockquote>
@@ -270,13 +264,6 @@ export default function WorldMap({ backgrounds, regions, timeCopy, imageAlt }: P
                 <h3>{selectedRegion.functionTitle}</h3>
                 <p>{selectedRegion.functionDescription}</p>
               </div>
-              {selectedRegion.items && (
-                <ul>
-                  {selectedRegion.items.map((item) => (
-                    <li key={item.href}><a href={item.href}><span>{item.label}</span>{item.meta && <em>{item.meta}</em>}</a></li>
-                  ))}
-                </ul>
-              )}
             </div>
             <div className="world-drawer__action">
               <a className="pixel-button pixel-button--primary" href={selectedRegion.href}>

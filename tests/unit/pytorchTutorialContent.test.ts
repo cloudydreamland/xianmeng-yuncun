@@ -29,6 +29,7 @@ test('PyTorch 教程包含十二章和恰好 74 节公开课程', () => {
 test('每节课都有教学结构、运行边界、练习答案和对应资料', () => {
   for (const file of readdirSync(directory).filter((item) => item.endsWith('.mdx'))) {
     const source = readFileSync(resolve(directory, file), 'utf8');
+    assert.doesNotMatch(source, /用自己的话解释|参考答案的关键不是抄固定输出|阅读代码时坚持三问/, `${file} 仍含批量生成式提示语`);
     const lessons = source.split(/\n(?=## )/).slice(1);
     for (const lesson of lessons) {
       requiredSections.forEach((section) => assert.ok(lesson.includes(`### ${section}`), `${file} 缺少 ${section}`));

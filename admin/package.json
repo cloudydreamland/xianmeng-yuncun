@@ -1,0 +1,29 @@
+{
+  "name": "xianmeng-yuncun-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check && tsc -p functions/tsconfig.json",
+    "build": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check && tsc -p functions/tsconfig.json && cross-env ASTRO_TELEMETRY_DISABLED=1 astro build"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.1",
+    "@fontsource/noto-serif-sc": "^5.2.9",
+    "astro": "^7.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "cross-env": "^10.1.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.16 <25",
+    "pnpm": ">=10.14 <11"
+  },
+  "packageManager": "pnpm@10.14.0"
+}

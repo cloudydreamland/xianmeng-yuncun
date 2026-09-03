@@ -6,10 +6,10 @@ test.beforeEach(async ({ page }) => {
 
 test('内容较短的五境保留明确主入口和可展开的境内目录', async ({ page }) => {
   const cases = [
-    ['cloud-village', '#today'],
+    ['cloud-village', '#region-story'],
     ['rain-bridge', '#learning-paths'],
     ['wind-valley', '#resource-library'],
-    ['snow-cliff', '#habits'],
+    ['snow-cliff', '#region-story'],
     ['lantern-lane', '#gallery'],
   ] as const;
 
@@ -27,8 +27,8 @@ test('内容较短的五境保留明确主入口和可展开的境内目录', as
 
 test('星渊和月潭用右侧选项卡一次只展示一项长功能', async ({ page }) => {
   const cases = [
-    ['star-abyss', 3, 'constellation'],
-    ['moon-pool', 6, 'moon-projects'],
+    ['star-abyss', 2, 'constellation'],
+    ['moon-pool', 2, 'moon-projects'],
   ] as const;
 
   for (const [slug, count, defaultTab] of cases) {
@@ -57,17 +57,17 @@ test('境内滚动只保留一个目录或功能书签，不再让内容卡一�
   await expect(page.locator('.region-feature-tabs__aside')).toHaveCSS('position', 'static');
 });
 
-test('月潭选项卡支持深链、键盘切换和手机顶部标签', async ({ page }) => {
+test('月潭公开选项卡支持深链、键盘切换和手机顶部标签', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/world/moon-pool/#calendar');
+  await page.goto('/world/moon-pool/#plan-dashboard');
   const tabs = page.locator('[data-region-feature-tabs]');
-  await expect(tabs).toHaveAttribute('data-active-tab', 'calendar');
-  await expect(page.locator('#region-pane-calendar')).toBeVisible();
+  await expect(tabs).toHaveAttribute('data-active-tab', 'plan-dashboard');
+  await expect(page.locator('#region-pane-plan-dashboard')).toBeVisible();
   await expect(page.locator('#region-pane-moon-projects')).toBeHidden();
 
-  await page.locator('[data-region-tab="calendar"]').press('ArrowDown');
-  await expect(tabs).toHaveAttribute('data-active-tab', 'local-planner');
-  await expect(page).toHaveURL(/#local-planner$/);
+  await page.locator('[data-region-tab="plan-dashboard"]').press('ArrowDown');
+  await expect(tabs).toHaveAttribute('data-active-tab', 'moon-projects');
+  await expect(page).toHaveURL(/#moon-projects$/);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const tabList = tabs.locator('[role="tablist"]');
@@ -105,7 +105,7 @@ test('手机端分卷与标签自动换行，不再出现横向筛选条', async
   await expect(filters.getByPlaceholder('例如：NLP、建站')).toBeVisible();
 });
 
-test('月潭和灯巷先展示公共作品，再展示本地生活工具', async ({ page }) => {
+test('月潭和灯巷只展示明确公开的项目、计划与作品', async ({ page }) => {
   await page.goto('/world/moon-pool/');
   const moonOrder = await page.evaluate(() => {
     const projects = document.querySelector('#moon-projects');
@@ -115,10 +115,13 @@ test('月潭和灯巷先展示公共作品，再展示本地生活工具', async
   expect(moonOrder).toBe(true);
 
   await page.goto('/world/lantern-lane/');
-  const lanternOrder = await page.evaluate(() => {
-    const gallery = document.querySelector('#gallery');
-    const journal = document.querySelector('#journal');
-    return Boolean(gallery && journal && (gallery.compareDocumentPosition(journal) & Node.DOCUMENT_POSITION_FOLLOWING));
-  });
-  expect(lanternOrder).toBe(true);
+  await expect(page.locator('#gallery')).toBeVisible();
+  await expect(page.locator('#journal')).toHaveCount(0);
+});
+
+test('境域页不再输出任何私人编辑入口或生活数据组件', async ({ page }) => {
+  for (const slug of ['cloud-village', 'star-abyss', 'moon-pool', 'snow-cliff', 'lantern-lane']) {
+    await page.goto(`/world/${slug}/`);
+    await expect(page.locator('.private-tool-portal,[data-life-inbox],[data-focus-timer],[data-habit-tracker],[data-memory-journal]')).toHaveCount(0);
+  }
 });

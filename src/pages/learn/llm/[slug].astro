@@ -1,7 +1,10 @@
 ---
 import { getCollection, render } from 'astro:content';
 import LlmLearningLayout from '../../../layouts/LlmLearningLayout.astro';
+import { getLlmCurriculumModule } from '../../../data/llmCurriculum';
 import { noteHeadings, sortLlmLearningChapters } from '../../../utils/llmLearning';
+import { questionHeadings } from '../../../utils/interview';
+import { lessonHeadings } from '../../../utils/pytorchTutorial';
 
 export async function getStaticPaths() {
   const chapters = sortLlmLearningChapters(await getCollection('llmLearning', ({ data }) => !data.draft));
@@ -11,6 +14,23 @@ export async function getStaticPaths() {
 const { chapter, chapters, prev, next } = Astro.props;
 const { Content, headings } = await render(chapter);
 const notes = noteHeadings(headings);
+const curriculumModule = getLlmCurriculumModule(chapter.data.slug);
+const [interviewEntries, practiceEntries] = await Promise.all([
+  getCollection('llmInterview', ({ data }) => !data.draft),
+  getCollection('pytorchTutorial', ({ data }) => !data.draft),
+]);
+const interviewBySlug = new Map(interviewEntries.map((entry) => [entry.data.slug, entry]));
+const practiceBySlug = new Map(practiceEntries.map((entry) => [entry.data.slug, entry]));
+const deepDives = await Promise.all((curriculumModule?.deepDiveSlugs ?? []).map(async (slug) => {
+  const entry = interviewBySlug.get(slug);
+  if (!entry) throw new Error(`课程映射缺少原理专题：${slug}`);
+  return { entry, count: questionHeadings((await render(entry)).headings).length };
+}));
+const practices = await Promise.all((curriculumModule?.practiceSlugs ?? []).map(async (slug) => {
+  const entry = practiceBySlug.get(slug);
+  if (!entry) throw new Error(`课程映射缺少实践章节：${slug}`);
+  return { entry, count: lessonHeadings((await render(entry)).headings).length };
+}));
 ---
 
-<LlmLearningLayout chapter={chapter} chapters={chapters} notes={notes} prev={prev} next={next}><Content /></LlmLearningLayout>
+<LlmLearningLayout chapter={chapter} chapters={chapters} notes={notes} prev={prev} next={next} curriculumModule={curriculumModule} deepDives={deepDives} practices={practices}><Content /></LlmLearningLayout>

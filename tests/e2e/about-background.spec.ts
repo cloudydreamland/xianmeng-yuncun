@@ -32,3 +32,13 @@ test('夜间个人主页区分图片文字与浅色面板文字', async ({ page 
   await expect(page.locator('.page-hero h1')).not.toHaveCSS('text-shadow', 'none');
   await expect(page.locator('.about-letter')).toHaveCSS('color', 'rgb(89, 101, 92)');
 });
+
+test('个人主页提供对外行动入口和代表项目', async ({ page }) => {
+  await page.goto('/about/');
+
+  await expect(page.getByRole('link', { name: 'GitHub ↗' })).toHaveAttribute('href', 'https://github.com/cloudydreamland');
+  await expect(page.getByRole('button', { name: '打印 / 保存简历' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '正在寻找值得长期投入的问题' })).toBeVisible();
+  await expect(page.locator('.about-projects article')).toHaveCount(3);
+  await expect(page.getByRole('link', { name: /通过 GitHub 联系/ })).toHaveAttribute('href', 'https://github.com/cloudydreamland');
+});

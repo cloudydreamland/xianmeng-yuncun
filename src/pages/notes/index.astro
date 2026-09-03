@@ -1,13 +1,3 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+return Astro.redirect('/world/wind-valley/', 301);
 ---
-
-<BaseLayout title="前往风谷" description="笔记入口已迁往风谷。">
-  <section class="redirect-page page-shell">
-    <p class="pixel-kicker">入口已迁移</p>
-    <h1>笔记已迁往风谷</h1>
-    <p>学习笔记、技术碎片、随笔与小实验现在由风谷承接。</p>
-    <a class="button button--primary" href="/world/wind-valley/">进入风谷</a>
-  </section>
-  <script is:inline>window.location.replace('/world/wind-valley/');</script>
-</BaseLayout>

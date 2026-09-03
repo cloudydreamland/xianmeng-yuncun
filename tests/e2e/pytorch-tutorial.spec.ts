@@ -93,7 +93,7 @@ test('禁用 JavaScript 后正文、目录和下载入口仍可阅读', async ({
 test('全站云镜可以按教程筛选正文', async ({ page }) => {
   await page.goto('/learn/pytorch/performance/');
   await page.getByRole('button', { name: '搜索云村内容' }).click();
-  await page.getByRole('button', { name: '教程', exact: true }).click();
+  await page.getByRole('button', { name: '学习', exact: true }).click();
   await page.getByRole('searchbox', { name: '搜索雲梦世界内容' }).fill('activation checkpoint');
   const dialog = page.getByRole('dialog', { name: '云镜检索' });
   await expect(dialog.locator('.search-result').filter({ hasText: '性能与显存' }).first()).toBeVisible();

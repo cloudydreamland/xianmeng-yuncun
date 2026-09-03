@@ -19,13 +19,13 @@ draft: false
 
 ### 本节目标
 
-用自己的话解释“Dataset 与 DataLoader 各管什么”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“Dataset 与 DataLoader 各管什么”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 `Dataset` 定义“如何取得一条样本”，`DataLoader` 负责批处理、采样、并行加载和预取。拆开两者后，同一数据集可以替换不同采样策略而无需改读取逻辑。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“Dataset 与 DataLoader 各管什么”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -49,7 +49,7 @@ print(next(iter(loader)))
 ### 常见错误
 
 - 在 `__getitem__` 每次加载整个大文件；把随机划分逻辑散落在多个 worker 中。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“Dataset 与 DataLoader 各管什么”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 
@@ -82,13 +82,13 @@ print(next(iter(loader)))
 
 ### 本节目标
 
-用自己的话解释“collate_fn 与变长序列 padding”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“collate_fn 与变长序列 padding”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 默认 collate 只能堆叠相同形状。变长文本需要在组 batch 时 padding，并同时返回有效位置 mask。按当前 batch 的最长序列补齐，比全局固定最大长度省计算。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“collate_fn 与变长序列 padding”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -112,7 +112,7 @@ print(collate([[2, 5, 8], [4, 9]]))
 ### 常见错误
 
 - pad id 同时是真实 token；只 padding 输入却不处理 labels；mask 的 dtype 或语义不符合模型接口。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“collate_fn 与变长序列 padding”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 
@@ -145,13 +145,13 @@ LLM 的 `input_ids`、`attention_mask` 和 labels 必须在 padding、截断和 
 
 ### 本节目标
 
-用自己的话解释“shuffle、Sampler 与数据顺序”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“shuffle、Sampler 与数据顺序”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 `shuffle=True` 适合普通训练；更复杂场景使用 Sampler 控制索引顺序。按长度分桶可减少 padding，但要保持足够随机性。验证集一般固定顺序，方便稳定对比。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“shuffle、Sampler 与数据顺序”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -172,7 +172,7 @@ loader = DataLoader(TensorDataset(x, y), batch_size=3, sampler=sampler)
 ### 常见错误
 
 - 同时设置 sampler 和 shuffle；过采样后仍按原分布解释指标。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“shuffle、Sampler 与数据顺序”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 
@@ -205,13 +205,13 @@ loader = DataLoader(TensorDataset(x, y), batch_size=3, sampler=sampler)
 
 ### 本节目标
 
-用自己的话解释“多进程加载、pin_memory 与 non_blocking”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“多进程加载、pin_memory 与 non_blocking”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 `num_workers` 让子进程并行准备数据，`pin_memory` 可帮助 CPU 到 CUDA 的异步拷贝，配合 `.to(..., non_blocking=True)` 使用。最佳 worker 数必须测量，不是越多越快。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“多进程加载、pin_memory 与 non_blocking”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -233,7 +233,7 @@ CPU 环境重点核对 batch 顺序与 shape；CUDA 环境再比较 `pin_memory=
 ### 常见错误
 
 - Windows 多进程脚本缺少 main guard；worker 太多造成内存和上下文切换压力。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“多进程加载、pin_memory 与 non_blocking”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 
@@ -245,7 +245,7 @@ CPU 环境重点核对 batch 顺序与 shape；CUDA 环境再比较 `pin_memory=
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“多进程加载、pin_memory 与 non_blocking”改变了哪一个数据流或训练状态。</p>
+  <p>验收：首个 batch 的索引、shape 和 mask 可复现，并能说明“多进程加载、pin_memory 与 non_blocking”如何影响数据顺序与吞吐。</p>
 </details>
 
 
@@ -266,13 +266,13 @@ CPU 环境重点核对 batch 顺序与 shape；CUDA 环境再比较 `pin_memory=
 
 ### 本节目标
 
-用自己的话解释“IterableDataset 与流式语料”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“IterableDataset 与流式语料”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 当数据巨大、来自网络流或不适合随机索引时，可用 `IterableDataset` 顺序产生样本。多 worker 时必须主动切分范围，否则每个 worker 会重复遍历全部数据。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“IterableDataset 与流式语料”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -294,7 +294,7 @@ class RangeStream(IterableDataset):
 ### 常见错误
 
 - 多 worker 重复样本；流式数据没有可恢复游标；验证数据无限流导致评估不结束。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“IterableDataset 与流式语料”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 
@@ -327,13 +327,13 @@ LLM 预训练常流式读取多个语料 shard；还要考虑 rank 与 worker �
 
 ### 本节目标
 
-用自己的话解释“数据划分、污染与可复现检查”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“数据划分、污染与可复现检查”展开。运行示例后记录样本索引、batch shape、padding mask 与数据划分，检查顺序和复现性。
 
 ### 清晰讲解
 
 训练、验证、测试的划分应在随机增强之前固定，并按任务实体选择合适粒度。文本任务只按行随机划分，可能让同一文档的近重复片段同时出现在训练和测试中。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“数据划分、污染与可复现检查”中的样本边界、batch 组成、mask、随机顺序和 train/validation 隔离。
 
 ### 代码示例
 
@@ -352,7 +352,7 @@ print(len(train_set), len(val_set))
 ### 常见错误
 
 - 先切 chunk 再随机划分导致文档泄漏；只保存 seed 不保存实际数据版本和划分清单。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“数据划分、污染与可复现检查”时只看 batch 能否产出，没有检查样本顺序、padding mask、重复与数据泄漏。
 
 ### 与大模型方向的连接
 

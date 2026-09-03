@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-type SearchType = 'all' | '笔记' | '面经' | '教程' | '项目' | '推进' | '世界' | '作品' | '关于';
+type SearchType = 'all' | '文章' | '学习' | '项目' | '其他';
 
 interface PagefindResultData {
   url: string;
@@ -25,15 +25,28 @@ interface Props {
 
 const FILTERS: Array<{ value: SearchType; label: string }> = [
   { value: 'all', label: '全部' },
-  { value: '笔记', label: '笔记' },
-  { value: '面经', label: '面经' },
-  { value: '教程', label: '教程' },
+  { value: '文章', label: '文章' },
+  { value: '学习', label: '学习' },
   { value: '项目', label: '项目' },
-  { value: '推进', label: '推进' },
-  { value: '世界', label: '世界' },
-  { value: '作品', label: '作品' },
-  { value: '关于', label: '关于' },
+  { value: '其他', label: '其他' },
 ];
+
+const GROUP_TYPES: Record<Exclude<SearchType, 'all'>, string[]> = {
+  文章: ['笔记', '作品'],
+  学习: ['教程', '面经'],
+  项目: ['项目', '推进'],
+  其他: ['世界', '关于'],
+};
+
+const HUB_PATHS = new Set(['/notes/', '/projects/', '/learn/', '/learn/llm/', '/learn/pytorch/', '/interview/', '/interview/llm/']);
+const normalizePath = (url: string) => new URL(url, 'https://example.invalid').pathname.replace(/\/index\.html$/, '/');
+const resultGroup = (url: string) => {
+  const path = normalizePath(url);
+  if (path.startsWith('/learn/llm/')) return '大模型学习路线';
+  if (path.startsWith('/learn/pytorch/')) return 'PyTorch 实践教程';
+  if (path.startsWith('/interview/llm/')) return '大模型面试训练';
+  return '其他结果';
+};
 
 let pagefindPromise: Promise<PagefindApi> | null = null;
 
@@ -66,7 +79,7 @@ export default function CloudSearch({
   const requestIdRef = useRef(0);
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState<SearchType>('all');
-  const [handles, setHandles] = useState<PagefindHandle[]>([]);
+  const [matches, setMatches] = useState<PagefindResultData[]>([]);
   const [results, setResults] = useState<PagefindResultData[]>([]);
   const [visibleCount, setVisibleCount] = useState(8);
   const [status, setStatus] = useState(description);
@@ -109,27 +122,34 @@ export default function CloudSearch({
     const currentRequest = ++requestIdRef.current;
     setVisibleCount(8);
     if (!term) {
-      setHandles([]);
+      setMatches([]);
       setResults([]);
       setStatus(description);
       return;
     }
 
     setStatus('正在云海中寻访……');
+    setMatches([]);
+    setResults([]);
     const timer = window.setTimeout(async () => {
       try {
         const api = await loadPagefind();
-        const options = activeType === 'all' ? undefined : { filters: { contentType: activeType } };
-        const search = await api.search(term, options);
+        const search = await api.search(term);
         if (currentRequest !== requestIdRef.current) return;
-        setHandles(search.results);
-        const first = await Promise.all(search.results.slice(0, 8).map((result) => result.data()));
+        const loaded = await Promise.all(search.results.map((result) => result.data()));
+        const acceptedTypes = activeType === 'all' ? null : GROUP_TYPES[activeType];
+        const filtered = loaded
+          .filter((result) => !acceptedTypes || acceptedTypes.includes(result.meta?.contentType || ''))
+          .map((result, index) => ({ result, index }))
+          .sort((left, right) => Number(HUB_PATHS.has(normalizePath(left.result.url))) - Number(HUB_PATHS.has(normalizePath(right.result.url))) || left.index - right.index)
+          .map(({ result }) => result);
         if (currentRequest !== requestIdRef.current) return;
-        setResults(first);
-        setStatus(first.length ? `找到 ${search.results.length} 处相关内容` : '这片云中暂时没有找到对应的文字。');
+        setMatches(filtered);
+        setResults(filtered.slice(0, 8));
+        setStatus(filtered.length ? `找到 ${filtered.length} 处相关内容，课程章节已归入同组` : '这片云中暂时没有找到对应的文字。');
       } catch {
         if (currentRequest !== requestIdRef.current) return;
-        setHandles([]);
+        setMatches([]);
         setResults([]);
         setStatus(import.meta.env.DEV
           ? '开发模式还没有生成搜索索引，请使用生产预览验证。'
@@ -139,14 +159,20 @@ export default function CloudSearch({
     return () => window.clearTimeout(timer);
   }, [activeType, description, query]);
 
-  const showMore = async () => {
+  const showMore = () => {
     const nextCount = visibleCount + 8;
-    const currentRequest = requestIdRef.current;
-    const nextResults = await Promise.all(handles.slice(0, nextCount).map((result) => result.data()));
-    if (currentRequest !== requestIdRef.current) return;
     setVisibleCount(nextCount);
-    setResults(nextResults);
+    setResults(matches.slice(0, nextCount));
   };
+
+  const groupedResults = useMemo(() => {
+    const groups = new Map<string, PagefindResultData[]>();
+    results.forEach((result) => {
+      const group = resultGroup(result.url);
+      groups.set(group, [...(groups.get(group) || []), result]);
+    });
+    return [...groups.entries()];
+  }, [results]);
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown') {
@@ -186,15 +212,20 @@ export default function CloudSearch({
       </div>
       <p className="search-status" aria-live="polite">{status}</p>
       <div ref={resultsRef} className="search-results" onKeyDown={handleResultsKeyDown}>
-        {results.map((result) => (
-          <a className="search-result" href={result.url} key={result.url}>
-            <span className="search-result__type">{result.meta?.contentType || '云笺'}</span>
-            <strong>{result.meta?.title || '未题名云笺'}</strong>
-            <p dangerouslySetInnerHTML={{ __html: result.excerpt || result.meta?.description || '' }} />
-          </a>
+        {groupedResults.map(([group, items]) => (
+          <section className="search-result-group" key={group} aria-label={group}>
+            {group !== '其他结果' && <h3><span>{group}</span><small>{items.length} 条</small></h3>}
+            {items.map((result) => (
+              <a className="search-result" href={result.url} key={result.url}>
+                <span className="search-result__type">{result.meta?.contentType || '云笺'}</span>
+                <strong>{result.meta?.title || '未题名云笺'}</strong>
+                <p dangerouslySetInnerHTML={{ __html: result.excerpt || result.meta?.description || '' }} />
+              </a>
+            ))}
+          </section>
         ))}
       </div>
-      {visibleCount < handles.length && <button className="search-load-more" type="button" onClick={showMore}>再展开八枚云笺</button>}
+      {visibleCount < matches.length && <button className="search-load-more" type="button" onClick={showMore}>再展开八枚云笺</button>}
     </div>
   );
 

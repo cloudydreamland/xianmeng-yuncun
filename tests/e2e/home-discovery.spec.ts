@@ -9,23 +9,20 @@ const enterHomeContent = async (page: Page) => {
   await expect(page.locator('html')).toHaveAttribute('data-home-scene', 'content');
 };
 
-test('云中书页以七星路线说明网站用途和核心功能', async ({ page }) => {
+test('云中书页用一份七境功能目录说明网站用途', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.utility-dock')).toBeHidden();
+  await expect(page.locator('.utility-dock')).toHaveCount(0);
   await enterHomeContent(page);
 
-  await expect(page.locator('.utility-dock')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1, name: '欢迎来到闲梦world' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '七星入门路线' })).toBeVisible();
-  await expect(page.locator('.home-constellation__node')).toHaveCount(7);
-  await expect(page.locator('.home-constellation__node').first()).toHaveAttribute('href', '/world/cloud-village/');
-  await expect(page.getByRole('heading', { name: '七星导航与功能说明' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '每颗星都能做什么' })).toBeVisible();
+  await expect(page.locator('.home-constellation')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '七境功能目录' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '从内容开始' })).toBeVisible();
   await expect(page.locator('.home-place-directory li')).toHaveCount(7);
-  await expect(page.getByText('课程顺序与学习进度')).toBeVisible();
-  await expect(page.getByText('原始文件、公开笔记和网站链接')).toBeVisible();
-  await expect(page.getByText('随手记下的灵感可在这里整理并转成任务')).toBeVisible();
-  await expect(page.getByText('习惯数据默认保存在当前浏览器')).toBeVisible();
+  await expect(page.getByText('系统课程、代码实践与面试训练')).toBeVisible();
+  await expect(page.getByText('公开笔记、原始资料与站外链接')).toBeVisible();
+  await expect(page.getByText('项目案例与明确公开的推进计划')).toBeVisible();
+  await expect(page.getByText('一处保留安静叙事的雪夜歇脚地')).toBeVisible();
   await expect(page.locator('.journey-guide')).toHaveCount(0);
   await expect(page.locator('.realm-overview')).toHaveCount(0);
   await expect(page.locator('.home-plan-summary')).toBeVisible();
@@ -44,56 +41,30 @@ test('除个人资料页外不展示站点主人的姓名', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1, name: '王选默' })).toBeVisible();
 });
 
-test('桌面导航收拢七境并保留七个境域入口', async ({ page }) => {
+test('顶部只保留公开任务导航且不出现私人入口', async ({ page }) => {
   await page.goto('/');
-  const menu = page.locator('.desktop-realm-menu');
-
-  await menu.locator('summary').click();
-
-  await expect(menu).toHaveAttribute('open', '');
-  await expect(menu.locator('.desktop-realm-menu__panel a')).toHaveCount(7);
+  await expect(page.locator('.desktop-realm-menu')).toHaveCount(0);
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: '笔记' })).toBeVisible();
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: '学习' })).toBeVisible();
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: '项目' })).toBeVisible();
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: '我的' })).toHaveCount(0);
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: '关于' })).toBeVisible();
 });
 
-test('七星路线保留七个功能入口并按新手顺序排列', async ({ page }) => {
+test('七境功能目录保留七个入口并同时显示功能名和世界名', async ({ page }) => {
   await page.goto('/');
   await enterHomeContent(page);
-  const guide = page.locator('.home-constellation__route');
+  const guide = page.locator('.home-place-directory');
   await expect(guide.locator('a')).toHaveCount(7);
   await expect(guide.locator('a').nth(0)).toContainText('总览与导航');
+  await expect(guide.locator('a').nth(0)).toContainText('云村');
   await expect(guide.locator('a').nth(1)).toContainText('课程与训练');
   await expect(guide.locator('a').nth(2)).toContainText('资料与笔记');
   await expect(guide.locator('a').nth(3)).toContainText('项目与计划');
   await expect(guide.locator('a').nth(4)).toContainText('作品与收藏');
-  await expect(guide.locator('a').nth(5)).toContainText('成长与专注');
-  await expect(guide.locator('a').nth(6)).toContainText('关系与来信');
-});
-
-test('缩略地图完整展示全境，并让七星使用真实地点坐标与链接', async ({ page }) => {
-  await page.goto('/');
-  await enterHomeContent(page);
-
-  const map = page.locator('.home-constellation__map');
-  const mapGeometry = await map.evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return {
-      ratio: bounds.width / bounds.height,
-      backgroundSize: style.backgroundSize,
-    };
-  });
-  expect(mapGeometry.ratio).toBeCloseTo(16 / 9, 2);
-  expect(mapGeometry.backgroundSize).toBe('contain');
-
-  const stars = page.locator('.home-constellation__route li');
-  await expect(stars.nth(0)).toHaveAttribute('style', /--star-x:51%;--star-y:46%/);
-  await expect(stars.nth(1)).toHaveAttribute('style', /--star-x:51%;--star-y:79%/);
-  await expect(stars.nth(2)).toHaveAttribute('style', /--star-x:18%;--star-y:59%/);
-  await expect(stars.nth(3)).toHaveAttribute('style', /--star-x:82%;--star-y:34%/);
-  await expect(stars.nth(4)).toHaveAttribute('style', /--star-x:82%;--star-y:69%/);
-  await expect(stars.nth(5)).toHaveAttribute('style', /--star-x:21%;--star-y:24%/);
-  await expect(stars.nth(6)).toHaveAttribute('style', /--star-x:55%;--star-y:17%/);
-
-  const hrefs = await page.locator('.home-constellation__node').evaluateAll((links) =>
+  await expect(guide.locator('a').nth(5)).toContainText('成长与实验');
+  await expect(guide.locator('a').nth(6)).toContainText('静心与休憩');
+  const hrefs = await guide.locator('a').evaluateAll((links) =>
     links.map((link) => link.getAttribute('href')),
   );
   expect(hrefs).toEqual([
@@ -107,11 +78,11 @@ test('缩略地图完整展示全境，并让七星使用真实地点坐标与�
   ]);
 });
 
-test('窄屏下七星路线切换为纵向星轨且不产生页面溢出', async ({ page }) => {
+test('窄屏下七境目录单列展示且不产生页面溢出', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await enterHomeContent(page);
-  await expect(page.locator('.home-constellation__lines')).toBeVisible();
+  await expect(page.locator('.home-place-directory ol')).toHaveCSS('grid-template-columns', /\d+(\.\d+)?px/);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });

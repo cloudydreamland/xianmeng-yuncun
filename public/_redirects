@@ -1,0 +1,8 @@
+/workspace https://xianmeng-yuncun-admin.pages.dev 302
+/workspace/* https://xianmeng-yuncun-admin.pages.dev/:splat 302
+/notes /world/wind-valley/ 301
+/notes/ /world/wind-valley/ 301
+/projects /world/moon-pool/ 301
+/projects/ /world/moon-pool/ 301
+/learn /world/rain-bridge/ 301
+/learn/ /world/rain-bridge/ 301

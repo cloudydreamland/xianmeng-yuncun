@@ -3,12 +3,10 @@ import assert from 'node:assert/strict';
 import { lifeModules } from '../../src/data/lifeModules.ts';
 import { LIFE_KEYS, localDateKey, readStored, writeStored } from '../../src/utils/lifeStore.ts';
 
-test('生活模块映射到承担日常工具的六境且入口唯一', () => {
-  assert.equal(lifeModules.length, 9);
-  assert.equal(new Set(lifeModules.map((item) => item.id)).size, 9);
-  assert.equal(new Set(lifeModules.map((item) => item.realm)).size, 6);
-  assert.ok(lifeModules.every((item) => item.realm !== 'rain-bridge'));
-  assert.ok(lifeModules.every((item) => item.href.startsWith(`/world/${item.realm}/#`)));
+test('私人生活模块只保留管理端真实存在的视图', () => {
+  assert.equal(lifeModules.length, 11);
+  assert.equal(new Set(lifeModules.map((item) => item.id)).size, 11);
+  assert.ok(!lifeModules.some((item) => ['insights', 'reading', 'calendar', 'planning'].includes(item.id)));
 });
 
 test('生活数据键彼此隔离并保留现有任务与阅读键', () => {
@@ -17,10 +15,9 @@ test('生活数据键彼此隔离并保留现有任务与阅读键', () => {
   assert.equal(new Set(Object.values(LIFE_KEYS)).size, Object.values(LIFE_KEYS).length);
 });
 
-test('随手收集归入月潭并保留统一收集箱', () => {
+test('随手收集使用管理端统一名称', () => {
   const inbox = lifeModules.find((item) => item.id === 'inbox');
-  assert.equal(inbox?.realm, 'moon-pool');
-  assert.equal(inbox?.href, '/world/moon-pool/#inbox');
+  assert.equal(inbox?.title, '随手收集');
 });
 
 test('生活存储工具能安全读写并处理损坏数据', () => {

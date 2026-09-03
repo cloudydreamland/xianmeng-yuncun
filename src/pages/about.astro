@@ -1,7 +1,13 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import IslandTag from '../components/IslandTag';
 import { cloudVillageBackground } from '../data/cloudVillageBackground';
+import { contactEmail } from '../data/snowCliff';
+import { sortProjects } from '../utils/contentCatalog';
+
+const featuredProjects = sortProjects(await getCollection('projects')).slice(0, 3);
+const githubUrl = 'https://github.com/cloudydreamland';
 ---
 
 <BaseLayout title="个人主页｜王选默" description="王选默，软件工程本科生，关注 Python、传统机器学习、自然语言处理与工程实践。" searchable searchType="关于" searchTitle="王选默">
@@ -12,7 +18,7 @@ import { cloudVillageBackground } from '../data/cloudVillageBackground';
       <img src={cloudVillageBackground.fallback} alt="" width="3840" height="1920" loading="eager" fetchpriority="high" decoding="async" />
     </picture>
     <div class="page-shell page-hero__inner">
-      <div><p class="pixel-kicker">个人主页</p><h1>王选默</h1><p>软件工程本科生，学习方向包括 Python、机器学习、自然语言处理与工程实践。</p></div>
+      <div><p class="pixel-kicker">个人主页</p><h1>王选默</h1><p>软件工程本科生，学习方向包括 Python、机器学习、自然语言处理与工程实践。</p><div class="about-hero-actions" data-pagefind-ignore><a href={githubUrl} target="_blank" rel="noreferrer">GitHub ↗</a><a href="#featured-projects">代表项目 ↓</a><button type="button" data-print-resume>打印 / 保存简历</button></div></div>
       <span class="page-hero__seal" aria-hidden="true">王</span>
     </div>
   </section>
@@ -43,6 +49,16 @@ import { cloudVillageBackground } from '../data/cloudVillageBackground';
       <div class="tag-row"><IslandTag label="Python" tone="green" /><IslandTag label="机器学习" tone="teal" /><IslandTag label="自然语言处理" tone="brown" /><IslandTag label="Linux" tone="green" /><IslandTag label="LaTeX" tone="teal" /></div>
     </aside>
   </div>
+  <section class="about-next page-shell" id="opportunities" aria-labelledby="about-next-title">
+    <div><p class="pixel-kicker">当前方向</p><h2 id="about-next-title">正在寻找值得长期投入的问题</h2><p>目前继续深入机器学习、自然语言处理与工程实践，也欢迎围绕开源协作、实验室实践和技术项目交流。这里不预设职位承诺，但会清楚说明我正在做什么、能做什么。</p></div>
+    <aside data-pagefind-ignore><strong>想进一步了解？</strong><a href={contactEmail ? `mailto:${contactEmail}` : githubUrl} target={contactEmail ? undefined : '_blank'} rel={contactEmail ? undefined : 'noreferrer'}>{contactEmail ? '发送邮件' : '通过 GitHub 联系'} →</a><a href="#featured-projects">查看代表项目 →</a></aside>
+  </section>
+  <section class="about-projects page-shell" id="featured-projects" aria-labelledby="featured-projects-title">
+    <header><p class="pixel-kicker">代表项目</p><h2 id="featured-projects-title">从介绍继续到作品</h2><p>选择三项持续维护或具有代表性的实践，直接查看背景、技术取舍与源码。</p></header>
+    <div>
+      {featuredProjects.map((project, index) => <article><span>{String(index + 1).padStart(2, '0')} · {project.data.status}</span><h3><a href={`/projects/${project.data.slug}/`}>{project.data.title}</a></h3><p>{project.data.description}</p><footer><a href={`/projects/${project.data.slug}/`}>阅读项目档案 →</a>{project.data.repoUrl && <a href={project.data.repoUrl} target="_blank" rel="noreferrer">查看源码 ↗</a>}</footer></article>)}
+    </div>
+  </section>
   <section class="timeline-section" id="honors">
     <div class="page-shell">
       <div class="section-heading"><p class="pixel-kicker">荣誉与奖项</p><h2>获奖经历</h2><p>以下为目前公开的奖项记录。</p></div>
@@ -55,3 +71,31 @@ import { cloudVillageBackground } from '../data/cloudVillageBackground';
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  document.querySelector<HTMLButtonElement>('[data-print-resume]')?.addEventListener('click', () => window.print());
+</script>
+
+<style>
+  .about-hero-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+  .about-hero-actions a,.about-hero-actions button { display:inline-flex; min-height:42px; align-items:center; padding:8px 12px; border:2px solid rgba(255,246,203,.8); color:#fff7d4; background:rgba(31,62,59,.72); box-shadow:3px 3px 0 rgba(18,35,34,.3); cursor:pointer; font:inherit; font-size:.68rem; font-weight:900; }
+  .about-hero-actions a:hover,.about-hero-actions button:hover { color:#334a44; background:#f0d476; }
+  .about-next { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(250px,.5fr); gap:28px; align-items:center; margin-bottom:80px; padding:32px; border:3px solid #61776d; color:#4e625b; background:rgba(239,246,226,.95); box-shadow:7px 7px 0 rgba(45,65,57,.17); }
+  .about-next h2,.about-projects h2 { margin:4px 0 12px; color:#3d574e; font-family:var(--serif); font-size:clamp(1.8rem,4vw,2.8rem); }
+  .about-next p:last-child,.about-projects header>p:last-child { max-width:760px; margin:0; color:#63736c; line-height:1.85; }
+  .about-next aside { display:grid; gap:7px; padding:17px; border:2px solid #87978d; background:#fff9e5; }
+  .about-next aside strong { margin-bottom:3px; color:#52665e; font-size:.72rem; }
+  .about-next aside a { min-height:40px; padding:9px 10px; color:#3d6a5e; background:#e0edd8; font-size:.68rem; font-weight:900; }
+  .about-projects { padding-bottom:96px; }
+  .about-projects>header { margin-bottom:22px; }
+  .about-projects>div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+  .about-projects article { display:flex; min-width:0; flex-direction:column; padding:22px; border:2px solid #75877d; color:#52645d; background:#fff9e8; box-shadow:4px 4px 0 rgba(55,72,63,.15); }
+  .about-projects article>span { color:#718078; font-size:.58rem; font-weight:900; letter-spacing:.08em; }
+  .about-projects h3 { margin:12px 0 9px; font-family:var(--serif); font-size:1.25rem; }
+  .about-projects h3 a { color:#3d5d53; }
+  .about-projects article>p { flex:1; color:#67756f; font-size:.75rem; line-height:1.75; }
+  .about-projects footer { display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; padding-top:12px; border-top:1px dashed #9b9e8d; }
+  .about-projects footer a { color:#3d7063; font-size:.64rem; font-weight:900; }
+  @media (max-width:820px) { .about-next { grid-template-columns:1fr; } .about-projects>div { grid-template-columns:1fr; } }
+  @media print { :global(.site-header),:global(.site-footer),.about-hero-actions,.about-next aside { display:none !important; } .about-next,.about-projects { break-inside:avoid; box-shadow:none; } }
+</style>

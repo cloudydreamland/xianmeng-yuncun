@@ -29,7 +29,7 @@ export const cloudJourneys: CloudJourney[] = [
       { path: '/about', label: '个人主页', realm: '云村', reason: '先认识建村的人，以及正在学习和关心的方向。' },
       { path: '/projects/yuncun-blog/', label: '闲梦 · 云村', realm: '月潭', reason: '看这座网站如何从想法变成可维护的工程。' },
       { path: '/projects/smart-cloud-brain/', label: '智慧云脑诊疗平台', realm: '月潭', reason: '查看较完整的前后端与微服务项目实践。' },
-      { path: '/world/snow-cliff/', label: '白狐酒舍', realm: '雪崖', reason: '以公开来路与访客席位结束这次短访。' },
+      { path: '/world/snow-cliff/', label: '雪夜休憩', realm: '雪崖', reason: '在安静的雪夜叙事中结束这次短访。' },
     ],
   },
   {

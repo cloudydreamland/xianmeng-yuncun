@@ -1,0 +1,82 @@
+---
+const adminOrigin = import.meta.env.PUBLIC_ADMIN_ORIGIN || 'https://xianmeng-yuncun-admin.pages.dev';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <title>迁移旧私人数据｜闲梦world</title>
+    <style>
+      :root{font-family:"Noto Serif SC","Songti SC",serif;color:#354f50;background:#102d3e}*{box-sizing:border-box}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:linear-gradient(rgba(9,37,53,.78),rgba(16,52,61,.86)),url('/images/backgrounds/workspace-starriver-v6-1536.webp') center/cover fixed}.card{width:min(680px,100%);padding:clamp(24px,5vw,44px);border:3px solid #4d858c;background:rgba(241,251,246,.96);box-shadow:8px 8px 0 rgba(3,19,31,.35)}.kicker{margin:0;color:#39777b;font-size:.7rem;font-weight:900;letter-spacing:.14em}.card h1{margin:8px 0 14px;font-size:clamp(2rem,7vw,3.7rem);line-height:1.08}.card>p{line-height:1.8}.legacy{display:grid;gap:10px;margin:24px 0;padding:18px;border:1px dashed #729296;background:#e4f0e9}.legacy summary{cursor:pointer;font-weight:900}.legacy label{display:grid;gap:5px;font-size:.76rem}.legacy input{min-height:42px;padding:8px 10px;border:2px solid #789395;background:#fffef5;font:inherit}.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button{min-height:44px;padding:10px 16px;border:2px solid #3f7177;background:#376f75;color:white;font:inherit;font-weight:900;cursor:pointer}.actions .quiet{color:#486466;background:#edf6ef}.status{min-height:1.7em;margin:16px 0 0;color:#496b6d;font-size:.8rem}small{display:block;margin-top:16px;color:#65797a;line-height:1.7}
+    </style>
+  </head>
+  <body>
+    <main class="card" data-migration-bridge data-admin-origin={adminOrigin}>
+      <p class="kicker">PRIVATE DATA HANDOFF · 旧卷迁移</p>
+      <h1>把旧记录交给私人工作台</h1>
+      <p>此页只读取当前浏览器中旧版工作台的私人记录。确认后，数据会直接交给已登录的管理端；页面不会显示具体内容，也不会把数据写入网址或日志。</p>
+      <details class="legacy">
+        <summary>旧加密云卷中还有更新的数据</summary>
+        <label>原访问密钥<input type="password" autocomplete="off" data-legacy-token /></label>
+        <label>原同步密码<input type="password" autocomplete="off" data-legacy-passphrase /></label>
+        <small>凭据只在本页内存中用于读取和解密旧快照，不会发送给新管理端。</small>
+      </details>
+      <div class="actions">
+        <button type="button" data-send>确认并预览迁移</button>
+        <button class="quiet" type="button" data-clear>清除当前浏览器旧数据</button>
+      </div>
+      <p class="status" role="status" aria-live="polite" data-status></p>
+      <small>迁移完成前不会自动删除旧记录。清除操作需要再次确认。</small>
+    </main>
+    <script>
+      import { collectLegacyPrivateSnapshot, LEGACY_PRIVATE_STORAGE_KEYS } from '../../../shared/privateRecords';
+      import { decryptSyncSnapshot, deriveSyncKey, readEnvelopeSalt, sha256 } from '../../utils/syncCrypto';
+      import { mergeSyncSnapshots, type SyncSnapshot } from '../../utils/syncData';
+
+      const root = document.querySelector<HTMLElement>('[data-migration-bridge]');
+      const status = root?.querySelector<HTMLElement>('[data-status]');
+      const targetOrigin = root?.dataset.adminOrigin || '';
+      const nonce = new URL(location.href).searchParams.get('nonce') || '';
+      const setStatus = (message: string) => { if (status) status.textContent = message; };
+      const privateOnly = (data: Record<string, unknown>) => Object.fromEntries(
+        LEGACY_PRIVATE_STORAGE_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(data, key)).map((key) => [key, data[key]]),
+      );
+
+      root?.querySelector<HTMLButtonElement>('[data-send]')?.addEventListener('click', async () => {
+        if (!window.opener || !nonce || !targetOrigin) { setStatus('迁移会话无效，请从已登录的管理端重新打开。'); return; }
+        const localData = collectLegacyPrivateSnapshot(localStorage);
+        let mergedData = localData;
+        const token = root.querySelector<HTMLInputElement>('[data-legacy-token]')?.value.trim() || '';
+        const passphrase = root.querySelector<HTMLInputElement>('[data-legacy-passphrase]')?.value || '';
+        if ((token && !passphrase) || (!token && passphrase)) { setStatus('读取旧云卷需要同时填写访问密钥和同步密码。'); return; }
+        if (token && passphrase) {
+          setStatus('正在读取旧加密云卷…');
+          try {
+            const response = await fetch('/api/sync', { headers: { authorization: `Bearer ${token}`, accept: 'application/json' }, cache: 'no-store' });
+            if (!response.ok) throw new Error('legacy_fetch_failed');
+            const body = await response.json() as { payload: string; checksum?: string };
+            if (body.checksum && await sha256(body.payload) !== body.checksum) throw new Error('legacy_checksum_failed');
+            const key = await deriveSyncKey(passphrase, readEnvelopeSalt(body.payload));
+            const remote = await decryptSyncSnapshot<SyncSnapshot>(body.payload, key);
+            const local: SyncSnapshot = { version: 1, exportedAt: new Date().toISOString(), data: localData };
+            mergedData = privateOnly(mergeSyncSnapshots(null, local, remote).data);
+          } catch {
+            setStatus('旧云卷读取失败，请检查原访问密钥和同步密码。');
+            return;
+          }
+        }
+        window.opener.postMessage({ type: 'yuncun-private-migration', nonce, data: privateOnly(mergedData) }, targetOrigin);
+        setStatus('旧记录已交给管理端，请返回管理端核对数量后再导入。');
+      });
+
+      root?.querySelector<HTMLButtonElement>('[data-clear]')?.addEventListener('click', () => {
+        if (!confirm('确认清除当前浏览器中的旧私人记录？请先完成云端导入并下载备份。')) return;
+        LEGACY_PRIVATE_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+        setStatus('当前浏览器中的旧私人记录已清除。');
+      });
+    </script>
+  </body>
+</html>

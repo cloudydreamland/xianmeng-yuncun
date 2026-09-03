@@ -1,0 +1,34 @@
+---
+interface Props {
+  id?: string;
+  realm: string;
+  title: string;
+  description: string;
+  href: string;
+}
+
+const { id, realm, title, description, href } = Astro.props;
+---
+
+<section class="private-tool-portal pixel-frame" id={id} aria-label={`${title}私人工具入口`} data-pagefind-ignore>
+  <div class="private-tool-portal__mark" aria-hidden="true">私</div>
+  <div>
+    <p class="pixel-kicker">{realm} · PRIVATE TOOL</p>
+    <h2>{title}</h2>
+    <p>{description}</p>
+  </div>
+  <a class="pixel-button pixel-button--primary" href={href}>前往我的工作台 <span aria-hidden="true">→</span></a>
+</section>
+
+<style>
+  .private-tool-portal { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:20px; align-items:center; padding:24px; color:var(--panel-text-primary); background:linear-gradient(135deg,rgba(244,241,214,.98),rgba(225,239,222,.96)); }
+  .private-tool-portal__mark { display:grid; width:52px; height:52px; place-items:center; border:3px solid #5c6d63; color:#fff9e8; background:#547566; box-shadow:4px 4px 0 rgba(55,70,62,.24); font-family:var(--serif); font-size:1.25rem; font-weight:900; }
+  .private-tool-portal .pixel-kicker { color:#447365; }
+  .private-tool-portal h2 { margin:4px 0 7px; color:#3f554c; font-family:var(--serif); font-size:clamp(1.35rem,2.4vw,1.9rem); }
+  .private-tool-portal p:last-child { margin:0; color:#64716a; font-size:.78rem; line-height:1.75; }
+  .private-tool-portal a { white-space:nowrap; }
+  @media (max-width:720px) {
+    .private-tool-portal { grid-template-columns:auto minmax(0,1fr); padding:20px; }
+    .private-tool-portal a { grid-column:1/-1; width:100%; }
+  }
+</style>

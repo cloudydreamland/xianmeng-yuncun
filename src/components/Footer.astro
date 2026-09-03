@@ -1,3 +1,6 @@
+---
+const adminOrigin = import.meta.env.PUBLIC_ADMIN_ORIGIN || 'https://xianmeng-yuncun-admin.pages.dev';
+---
 <footer class="site-footer">
   <div>
   <p class="pixel-kicker">闲梦world</p>
@@ -6,10 +9,11 @@
   <div class="footer-links">
     <a href="/journeys/">云游路线</a>
     <a href="/rss.xml" aria-label="RSS 订阅源，适合复制到订阅阅读器">RSS 订阅源</a>
-    <a href="/world/rain-bridge/">雨桥</a>
-    <a href="/world/wind-valley/">风谷</a>
-    <a href="/world/moon-pool/">月潭</a>
+    <a href="/world/rain-bridge/">学习 · 雨桥</a>
+    <a href="/world/wind-valley/">笔记 · 风谷</a>
+    <a href="/world/moon-pool/">项目与计划 · 月潭</a>
     <a href="/about">个人主页</a>
+    <a class="footer-admin" href={adminOrigin} rel="nofollow">管理员登录</a>
   </div>
   <p class="copyright">© {new Date().getFullYear()} 闲梦world</p>
 </footer>

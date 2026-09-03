@@ -5,9 +5,21 @@ interface Props {
   title: string;
   tabs: RegionDirectoryItem[];
   defaultHref: `#${string}`;
+  kicker?: string;
+  heading?: string;
+  description?: string;
+  hint?: string;
 }
 
-const { title, tabs, defaultHref } = Astro.props;
+const {
+  title,
+  tabs,
+  defaultHref,
+  kicker = '境内功能',
+  heading = '当前区域功能',
+  description = '每次显示一项功能，可通过右侧选项切换。',
+  hint = '可在右侧切换当前区域的功能。',
+} = Astro.props;
 const keyFromHref = (href: `#${string}`) => href.slice(1);
 ---
 
@@ -23,9 +35,9 @@ const keyFromHref = (href: `#${string}`) => href.slice(1);
 
   <aside class="region-feature-tabs__aside" data-pagefind-ignore>
     <header>
-      <p class="pixel-kicker">境内功能</p>
-      <h2>当前区域功能</h2>
-      <p>每次显示一项功能，可通过右侧选项切换。</p>
+      <p class="pixel-kicker">{kicker}</p>
+      <h2>{heading}</h2>
+      <p>{description}</p>
     </header>
     <nav class="region-feature-tabs__list" role="tablist" aria-label={`${title}功能选项卡`}>
       {tabs.map((item, index) => {
@@ -47,7 +59,7 @@ const keyFromHref = (href: `#${string}`) => href.slice(1);
         );
       })}
     </nav>
-    <p class="region-feature-tabs__hint"><span aria-hidden="true">↕</span> 可在右侧切换当前区域的功能。</p>
+    <p class="region-feature-tabs__hint"><span aria-hidden="true">↕</span> {hint}</p>
   </aside>
 </section>
 

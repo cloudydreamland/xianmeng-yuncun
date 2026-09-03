@@ -93,8 +93,12 @@ test('移动端地图锁定整屏、可横向浏览并保留七境入口', async
   await page.goto('/');
 
   await expect(page.locator('.world-marker__title')).toHaveCount(7);
-  await expect(page.locator('.world-ledger a')).toHaveCount(7);
-  await expect(page.locator('.world-ledger')).toBeHidden();
+  const directory = page.locator('.world-mobile-directory');
+  await expect(directory).toBeVisible();
+  await expect(directory.locator('nav a')).toHaveCount(7);
+  await directory.locator('summary').click();
+  await expect(directory.locator('nav a').last()).toBeVisible();
+  await expect(page.getByText('左右滑动浏览地图 · 七境目录可查看全部')).toBeVisible();
   await expect(page.locator('.world-map__viewport')).toHaveCSS('overflow-x', 'auto');
   const dimensions = await page.evaluate(() => ({
     mapHeight: document.querySelector('.world-map')!.getBoundingClientRect().height,

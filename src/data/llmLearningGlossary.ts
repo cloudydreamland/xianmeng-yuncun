@@ -97,4 +97,12 @@ export const llmLearningGlossary: Record<string, LearningTerm[]> = {
     { term: 'Visual Grounding', definition: '把语言描述与图像中的具体位置对应。' },
     { term: 'Dynamic Resolution', definition: '按输入尺寸动态切图并分配视觉 Token 的方案。' },
   ],
+  'capstone-system': [
+    { term: '任务契约', definition: '对输入、输出、失败条件、指标与资源约束的可验收定义。' },
+    { term: '基线', definition: '用于判断新增复杂度是否真正有效的稳定参照方案。' },
+    { term: '数据版本', definition: '能唯一确定语料、处理配置与评测集合状态的不可变标识。' },
+    { term: '可观测性', definition: '借助指标、日志和追踪理解系统内部状态与故障原因的能力。' },
+    { term: '降级', definition: '依赖故障或预算不足时主动切换到能力较弱但可用的路径。' },
+    { term: '单变量实验', definition: '一次只改变一个主要因素，以便把结果变化归因到具体假设。' },
+  ],
 };

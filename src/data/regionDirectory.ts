@@ -19,12 +19,8 @@ const commonItems: RegionDirectoryItem[] = [
 
 export const regionDirectories: Record<RegionId, RegionDirectory> = {
   'cloud-village': {
-    primary: { href: '#today', label: '今日云笺', description: '查看今日重点与临期事项。' },
-    items: [
-      ...commonItems,
-      { href: '#today', label: '今日云笺', description: '今日重点与临期事项' },
-      { href: '#insights', label: '生活趋势', description: '七日与月度回望' },
-    ],
+    primary: { href: '#region-story', label: '地志小传', description: '从云村了解七境世界的来路。' },
+    items: commonItems,
   },
   'rain-bridge': {
     primary: { href: '#learning-paths', label: '学习渡口', description: '进入大模型笔记、PyTorch 实践与面试题库。' },
@@ -32,7 +28,6 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
       ...commonItems,
       { href: '#learning-paths', label: '三路问学', description: '概念、代码与表达' },
       { href: '#learning-route', label: '推荐顺序', description: '从理解到实践再到表达' },
-      { href: '#world-directory', label: '七境名册', description: '按境域浏览全站' },
     ],
   },
   'star-abyss': {
@@ -41,7 +36,6 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
     items: [
       ...commonItems,
       { href: '#constellation', label: '问道星图', description: '学习脉络与下一程' },
-      { href: '#focus', label: '星渊定时', description: '开始一段专注' },
       { href: '#attention-lab', label: '术法试验', description: '动手理解 Attention' },
     ],
   },
@@ -62,25 +56,17 @@ export const regionDirectories: Record<RegionId, RegionDirectory> = {
       ...commonItems,
       { href: '#moon-projects', label: '项目旧录', description: '代表项目与案例复盘' },
       { href: '#plan-dashboard', label: '公开推进', description: '仍在水上的计划' },
-      { href: '#inbox', label: '随手收集', description: '想法与待整理记录' },
-      { href: '#calendar', label: '生活日历', description: '月周视图与日程' },
-      { href: '#local-planner', label: '本地计划', description: '只留在本机的安排' },
-      { href: '#life-planning', label: '生活账册', description: '清单、期限与物品' },
     ],
   },
   'snow-cliff': {
-    primary: { href: '#habits', label: '朝夕印记', description: '查看习惯与最近七日状态。' },
-    items: [
-      ...commonItems,
-      { href: '#habits', label: '朝夕印记', description: '习惯与七日状态' },
-    ],
+    primary: { href: '#region-story', label: '雪夜小传', description: '在白狐酒社读一段安静的雪夜故事。' },
+    items: commonItems,
   },
   'lantern-lane': {
     primary: { href: '#gallery', label: '浮光廊', description: '查看公开作品与收藏。' },
     items: [
       ...commonItems,
       { href: '#gallery', label: '浮光廊', description: '作品与收藏' },
-      { href: '#journal', label: '浮光手记', description: '只留在本机的一句话' },
     ],
   },
 };

@@ -1,33 +1,28 @@
-import type { RegionId } from './worldMap';
-
-export type LifeModuleId = 'today' | 'insights' | 'inbox' | 'focus' | 'reading' | 'calendar' | 'planning' | 'habits' | 'journal';
+export type LifeModuleId = 'today' | 'plan' | 'inbox' | 'habit' | 'focus-session' | 'checklist' | 'expiry' | 'expense' | 'inventory' | 'journal' | 'data';
 
 export interface LifeModule {
   id: LifeModuleId;
   label: string;
   title: string;
   description: string;
-  realm: RegionId;
-  realmLabel: string;
-  href: string;
   mark: string;
 }
 
 /**
- * The single navigation contract between everyday tools and the seven realms.
- * Keep headers, quick capture and region pages pointed at this list instead of
- * duplicating route strings in multiple components.
+ * 独立管理端可用视图的规范清单。公开站不导入、也不渲染这些入口。
  */
 export const lifeModules: LifeModule[] = [
-  { id: 'today', label: '今日', title: '今日云笺', description: '今日重点、临期事项与生活概览', realm: 'cloud-village', realmLabel: '云村', href: '/world/cloud-village/#today', mark: '今' },
-  { id: 'insights', label: '趋势', title: '生活趋势', description: '任务、专注、习惯与开销的温和回望', realm: 'cloud-village', realmLabel: '云村', href: '/world/cloud-village/#insights', mark: '势' },
-  { id: 'inbox', label: '收集', title: '临时记录', description: '任务、链接与未分类想法的统一入口', realm: 'moon-pool', realmLabel: '月潭', href: '/world/moon-pool/#inbox', mark: '收' },
-  { id: 'focus', label: '专注', title: '星渊定时', description: '专注计时与当日专注记录', realm: 'star-abyss', realmLabel: '星渊', href: '/world/star-abyss/#focus', mark: '定' },
-  { id: 'reading', label: '阅读', title: '阅读清单', description: '站内文章与外部链接的阅读队列', realm: 'wind-valley', realmLabel: '风谷', href: '/world/wind-valley/#wind-notes-title', mark: '阅' },
-  { id: 'calendar', label: '日历', title: '生活日历', description: '月周视图、定时日程与生活期限', realm: 'moon-pool', realmLabel: '月潭', href: '/world/moon-pool/#calendar', mark: '历' },
-  { id: 'planning', label: '安排', title: '生活安排', description: '任务、清单、期限、账目与物品', realm: 'moon-pool', realmLabel: '月潭', href: '/world/moon-pool/#life-planning', mark: '策' },
-  { id: 'habits', label: '习惯', title: '朝夕印记', description: '轻量习惯与七日状态', realm: 'snow-cliff', realmLabel: '雪崖', href: '/world/snow-cliff/#habits', mark: '养' },
-  { id: 'journal', label: '手记', title: '浮光手记', description: '一句日记、心情与生活回忆', realm: 'lantern-lane', realmLabel: '浮屿·灯巷', href: '/world/lantern-lane/#journal', mark: '记' },
+  { id: 'today', label: '今日', title: '今日概览', description: '私人计划、习惯与本月开销概览', mark: '今' },
+  { id: 'plan', label: '计划', title: '私人计划', description: '日期、优先级与完成状态', mark: '策' },
+  { id: 'inbox', label: '收集', title: '随手收集', description: '暂存想法和待整理事项', mark: '收' },
+  { id: 'habit', label: '习惯', title: '习惯与打卡', description: '习惯和每日完成记录', mark: '养' },
+  { id: 'focus-session', label: '专注', title: '专注记录', description: '已完成的专注时段', mark: '定' },
+  { id: 'checklist', label: '清单', title: '私人清单', description: '成组的待办项目', mark: '单' },
+  { id: 'expiry', label: '期限', title: '期限提醒', description: '证件、订阅与生活事项到期日', mark: '期' },
+  { id: 'expense', label: '账目', title: '私人账目', description: '个人开销记录', mark: '账' },
+  { id: 'inventory', label: '物品', title: '物品位置', description: '物品位置与购买信息', mark: '物' },
+  { id: 'journal', label: '手记', title: '私人手记', description: '日记、心情与回忆', mark: '记' },
+  { id: 'data', label: '数据', title: '数据与备份', description: '迁移、导出与回收站', mark: '云' },
 ];
 
 export const lifeModuleById = Object.fromEntries(lifeModules.map((item) => [item.id, item])) as Record<LifeModuleId, LifeModule>;

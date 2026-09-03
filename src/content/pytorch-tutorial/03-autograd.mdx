@@ -19,13 +19,13 @@ draft: false
 
 ### 本节目标
 
-用自己的话解释“动态计算图如何记录运算”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“动态计算图如何记录运算”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 当输入需要梯度时，PyTorch 会在前向过程中记录产生结果的算子，形成运行时计算图。调用 `backward` 后，它按链式法则从标量损失反向传播。图是动态构建的，所以普通 Python 分支和循环依然可用。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“动态计算图如何记录运算”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -44,7 +44,7 @@ print(x.grad)  # 3*x^2 + 2 = 14
 ### 常见错误
 
 - 误以为 PyTorch 先编译一张永久静态图；在前向中把 Tensor 转为 Python 数值后还期待梯度回传。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“动态计算图如何记录运算”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -56,7 +56,7 @@ Transformer 是大量可微算子的组合；你不必手写每层梯度，但�
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“动态计算图如何记录运算”改变了哪一个数据流或训练状态。</p>
+  <p>验收：梯度值与手算或有限差分一致，并能说明“动态计算图如何记录运算”中计算图何时建立、累积和释放。</p>
 </details>
 
 
@@ -77,13 +77,13 @@ Transformer 是大量可微算子的组合；你不必手写每层梯度，但�
 
 ### 本节目标
 
-用自己的话解释“叶子 Tensor、grad_fn 与 retain_grad”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“叶子 Tensor、grad_fn 与 retain_grad”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 用户创建且需要梯度的参数通常是叶子 Tensor，梯度默认累积在它的 `.grad`。中间结果是非叶子节点，虽然有 `grad_fn`，但默认不保留 `.grad`；调试时可调用 `retain_grad`。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“叶子 Tensor、grad_fn 与 retain_grad”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -105,7 +105,7 @@ x 是叶子、y 是非叶子；调用 `retain_grad` 后两者都能观察到梯�
 ### 常见错误
 
 - 把非叶子节点的空 `.grad` 误判为梯度消失；滥用 `retain_grad` 导致额外内存。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“叶子 Tensor、grad_fn 与 retain_grad”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -138,13 +138,13 @@ x 是叶子、y 是非叶子；调用 `retain_grad` 后两者都能观察到梯�
 
 ### 本节目标
 
-用自己的话解释“为什么每步都要清空梯度”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“为什么每步都要清空梯度”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 PyTorch 默认把新梯度加到现有 `.grad` 上，这便于梯度累积，但普通训练若不清空就会混入历史批次。推荐在反向前使用 `optimizer.zero_grad(set_to_none=True)`。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“为什么每步都要清空梯度”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -166,7 +166,7 @@ print(w.grad)  # 3
 ### 常见错误
 
 - 每个 micro-batch 都 `step` 却称为梯度累积；累积时忘记缩放 loss。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“为什么每步都要清空梯度”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -199,13 +199,13 @@ print(w.grad)  # 3
 
 ### 本节目标
 
-用自己的话解释“停止梯度：no_grad、inference_mode 与 detach”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“停止梯度：no_grad、inference_mode 与 detach”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 `no_grad` 暂停记录梯度，适合验证；`inference_mode` 进一步关闭部分 autograd 开销，适合纯推理；`detach` 返回与原 Tensor 共享存储但脱离当前图的视图。三者目的相近，作用范围不同。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“停止梯度：no_grad、inference_mode 与 detach”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -227,7 +227,7 @@ print(a.requires_grad, b.requires_grad, c.requires_grad)
 ### 常见错误
 
 - 用 `detach` 后原地修改共享数据；验证时忘记关闭梯度导致显存逐步上涨。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“停止梯度：no_grad、inference_mode 与 detach”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -260,13 +260,13 @@ print(a.requires_grad, b.requires_grad, c.requires_grad)
 
 ### 本节目标
 
-用自己的话解释“梯度钩子与调试梯度流”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“梯度钩子与调试梯度流”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 hook 能在梯度经过 Tensor 或模块时观察、记录甚至修改它。它适合诊断梯度爆炸、某层无梯度等问题，但生产代码要及时移除，避免额外开销和隐蔽副作用。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“梯度钩子与调试梯度流”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -286,7 +286,7 @@ handle.remove()
 ### 常见错误
 
 - 在 hook 中返回错误形状；注册后从不 remove；日志同步 GPU 造成训练变慢。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“梯度钩子与调试梯度流”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -319,13 +319,13 @@ handle.remove()
 
 ### 本节目标
 
-用自己的话解释“自定义 autograd Function 何时需要”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“自定义 autograd Function 何时需要”展开。运行示例后查看 requires_grad、grad_fn 与 .grad，记录计算图和梯度在各步的变化。
 
 ### 清晰讲解
 
 大多数模型应组合已有算子，让 autograd 自动求导。只有接入自定义 CUDA 算子、特殊数值近似或需要手写反向时，才实现 `torch.autograd.Function`，并用 `gradcheck` 校验。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“自定义 autograd Function 何时需要”中的叶子节点、计算图连接、梯度累积和图释放时机。
 
 ### 代码示例
 
@@ -354,7 +354,7 @@ print(x.grad)
 ### 常见错误
 
 - 在 forward 保存所有中间值造成显存浪费；反向漏乘上游梯度 `grad_out`。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“自定义 autograd Function 何时需要”时只看 loss，没有检查 requires_grad、grad_fn、.grad 或梯度是否意外累积。
 
 ### 与大模型方向的连接
 
@@ -366,7 +366,7 @@ print(x.grad)
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“自定义 autograd Function 何时需要”改变了哪一个数据流或训练状态。</p>
+  <p>验收：梯度值与手算或有限差分一致，并能说明“自定义 autograd Function 何时需要”中计算图何时建立、累积和释放。</p>
 </details>
 
 

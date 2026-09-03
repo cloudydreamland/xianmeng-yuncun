@@ -1,12 +1,23 @@
 ---
 import 'katex/dist/katex.min.css';
+import type { CollectionEntry } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
+import type { LlmCurriculumModule } from '../data/llmCurriculum';
 import type { LlmLearningChapter } from '../utils/llmLearning';
 import { llmLearningGlossary } from '../data/llmLearningGlossary';
 
 interface Heading { depth: number; slug: string; text: string; }
-interface Props { chapter: LlmLearningChapter; chapters: LlmLearningChapter[]; notes: Heading[]; prev?: LlmLearningChapter; next?: LlmLearningChapter; }
-const { chapter, chapters, notes, prev, next } = Astro.props;
+interface Props {
+  chapter: LlmLearningChapter;
+  chapters: LlmLearningChapter[];
+  notes: Heading[];
+  prev?: LlmLearningChapter;
+  next?: LlmLearningChapter;
+  curriculumModule?: LlmCurriculumModule;
+  deepDives: Array<{ entry: CollectionEntry<'llmInterview'>; count: number }>;
+  practices: Array<{ entry: CollectionEntry<'pytorchTutorial'>; count: number }>;
+}
+const { chapter, chapters, notes, prev, next, curriculumModule, deepDives, practices } = Astro.props;
 const glossary = llmLearningGlossary[chapter.data.slug] ?? [];
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 ---
@@ -14,8 +25,8 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
 <BaseLayout title={`${chapter.data.title}｜大模型从零学习笔记`} description={chapter.data.description} searchable searchType="教程" searchTitle={chapter.data.title} searchCategory="大模型系统笔记" searchTags={chapter.data.topics} searchDate={chapter.data.updatedAt}>
   <div class="study-reading-progress" aria-hidden="true"><span data-study-reading-progress></span></div>
   <main class="study-page page-shell">
-    <nav class="study-breadcrumb" aria-label="面包屑"><a href="/learn/">学习中心</a><span>/</span><a href="/learn/llm/">大模型系统笔记</a><span>/</span><span aria-current="page">{chapter.data.title}</span></nav>
-    <div class="study-mode-switch" data-pagefind-ignore><span>系统笔记</span><a href={chapter.data.interviewHref}>对应面试题 →</a></div>
+    <nav class="study-breadcrumb" aria-label="面包屑"><a href="/world/rain-bridge/">雨桥</a><span>/</span><a href="/learn/llm/">大模型系统笔记</a><span>/</span><span aria-current="page">{chapter.data.title}</span></nav>
+    <div class="study-mode-switch" data-pagefind-ignore><span>完整课程 · {curriculumModule?.phase ?? chapter.data.stage}</span><a href="#chapter-deep-learning">本章深入路线 ↓</a></div>
 
     <details class="study-mobile-directory" data-pagefind-ignore>
       <summary>展开全套章节与本章目录 <span aria-hidden="true">⌄</span></summary>
@@ -38,9 +49,19 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
 
         <div class="study-prose"><slot /></div>
 
+        {curriculumModule && <section class="study-deep-learning" id="chapter-deep-learning" aria-labelledby="study-deep-learning-title">
+          <header><p class="pixel-kicker">本章进阶内容</p><h2 id="study-deep-learning-title">原理专题与代码实践</h2><p>完成主教材后，按顺序阅读原理专题、完成代码实践，并用掌握标准复查本章内容。</p></header>
+          <ol class="study-deep-learning__steps">{curriculumModule.studyOrder.map((step, index) => <li><span>{String(index + 1).padStart(2, '0')}</span><p>{step}</p></li>)}</ol>
+          <div class="study-deep-learning__resources">
+            <div><p>原理深挖</p>{deepDives.map(({ entry, count }) => <a href={`/interview/llm/${entry.data.slug}/`}><small>{count} 个专题 · 含推导、追问与误区</small><strong>{entry.data.title}</strong><span>{entry.data.description}</span><em>进入专题教材 →</em></a>)}</div>
+            <div><p>代码实践</p>{practices.length ? practices.map(({ entry, count }) => <a href={`/learn/pytorch/${entry.data.slug}/`}><small>{entry.data.level} · {count} 个实验单元</small><strong>{entry.data.title}</strong><span>{entry.data.description}</span><em>进入实践教材 →</em></a>) : <article><small>本章内完成</small><strong>系统设计练习</strong><span>{curriculumModule.studyOrder[2]}</span><em>写下输入、输出、指标与失败样例</em></article>}</div>
+          </div>
+          <aside><strong>掌握标准</strong><p>{curriculumModule.mastery}</p></aside>
+        </section>}
+
         {glossary.length > 0 && <section class="study-glossary" aria-labelledby="study-glossary-title"><p class="pixel-kicker">本章术语</p><h2 id="study-glossary-title">六个关键词</h2><dl>{glossary.map((item) => <div><dt>{item.term}</dt><dd>{item.definition}</dd></div>)}</dl></section>}
 
-        <section class="study-finish" data-pagefind-ignore><p class="pixel-kicker">章节记录</p><h2>本章完成情况</h2><div><label><input type="checkbox" data-study-chapter-check /> 已读完并能概括本章主线</label><a href={chapter.data.interviewHref}><strong>对应面试题</strong><span>查看同主题的问题与答案 →</span></a></div></section>
+        <section class="study-finish" data-pagefind-ignore><p class="pixel-kicker">章节记录</p><h2>本章完成情况</h2><div><label><input type="checkbox" data-study-chapter-check /> 已完成主教材、原理专题与实践任务</label><a href={chapter.data.interviewHref}><strong>本章问题集</strong><span>用同主题问题检查掌握情况 →</span></a></div></section>
         <nav class="study-chapter-nav" aria-label="相邻章节" data-pagefind-ignore>{prev ? <a href={`/learn/llm/${prev.data.slug}/`}><small>← 上一章</small><strong>{prev.data.title}</strong></a> : <span></span>}{next ? <a href={`/learn/llm/${next.data.slug}/`}><small>下一章 →</small><strong>{next.data.title}</strong></a> : <a href="/learn/llm/"><small>完成路线</small><strong>返回章节地图</strong></a>}</nav>
       </article>
     </div>
@@ -82,5 +103,10 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-CN', { year: 'num
   .study-glossary dt{color:#3e6559;font-weight:900}
   .study-glossary dd{margin:5px 0 0;color:#6b7c77;font-size:.72rem;line-height:1.65}
   .study-prose :global(.katex-display){max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+  .study-deep-learning{scroll-margin-top:24px;margin-top:26px;padding:clamp(24px,5vw,40px);border:1px solid #8d9fba;border-radius:28px;background:linear-gradient(145deg,#eef3fa,#f9f5e9)}
+  .study-deep-learning header h2{margin:7px 0 10px;color:#3e5878;font-family:var(--serif);font-size:clamp(1.55rem,4vw,2.2rem)}.study-deep-learning header>p:last-child{max-width:690px;color:#697981;font-size:.78rem;line-height:1.8}
+  .study-deep-learning__steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:22px 0;padding:0;list-style:none}.study-deep-learning__steps li{display:grid;grid-template-columns:30px 1fr;gap:8px;padding:12px;border-left:3px solid #6383a4;background:rgba(255,255,255,.62)}.study-deep-learning__steps span{color:#6c8298;font-weight:900}.study-deep-learning__steps p{margin:0;color:#546975;font-size:.72rem;line-height:1.6}
+  .study-deep-learning__resources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.study-deep-learning__resources>div{display:grid;align-content:start;gap:8px}.study-deep-learning__resources>div>p{margin:0;color:#745d43;font-size:.68rem;font-weight:900;letter-spacing:.1em}.study-deep-learning__resources a,.study-deep-learning__resources article{display:grid;gap:6px;min-height:168px;padding:17px;border:1px solid rgba(79,102,130,.25);border-radius:16px;color:#506572;background:#fffdf6}.study-deep-learning__resources small{color:#71869a}.study-deep-learning__resources strong{color:#3f5f7c;font-family:var(--serif);font-size:1.02rem}.study-deep-learning__resources span{color:#6d7b81;font-size:.72rem;line-height:1.65}.study-deep-learning__resources em{align-self:end;color:#397083;font-size:.7rem;font-style:normal;font-weight:900}.study-deep-learning>aside{margin-top:14px;padding:16px 18px;border-left:4px solid #568d7d;border-radius:0 13px 13px 0;background:#edf5ed}.study-deep-learning>aside strong{color:#3d6d61}.study-deep-learning>aside p{margin:5px 0 0;color:#5f746e;font-size:.76rem;line-height:1.7}
   @media(max-width:600px){.study-glossary{padding:22px 18px}.study-glossary dl{grid-template-columns:1fr}}
+  @media(max-width:600px){.study-deep-learning{padding:22px 18px}.study-deep-learning__steps,.study-deep-learning__resources{grid-template-columns:1fr}}
 </style>

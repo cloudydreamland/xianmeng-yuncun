@@ -5,9 +5,6 @@ import Footer from '../components/Footer.astro';
 import SearchPanel from '../components/SearchPanel.astro';
 import ReadingList from '../components/ReadingList.astro';
 import TrailTracker from '../components/TrailTracker.astro';
-import QuickCapture from '../components/QuickCapture.astro';
-import SyncAgent from '../components/SyncAgent.astro';
-import ReminderCenter from '../components/ReminderCenter.astro';
 import { worldBackgrounds } from '../data/worldMap';
 import { villageBackgrounds } from '../data/villageBackgrounds';
 
@@ -126,26 +123,12 @@ const villageBackgroundStyle = (['dawn', 'day', 'dusk', 'night'] as const)
     <SearchPanel />
     <ReadingList />
     <TrailTracker />
-    <SyncAgent />
-    <details class="utility-dock" data-utility-dock>
-      <summary aria-label="打开快捷工具"><span aria-hidden="true">＋</span><strong>快捷</strong></summary>
-      <div class="utility-dock__panel" aria-label="快捷工具">
-        <QuickCapture />
-        <ReminderCenter />
-      </div>
-    </details>
     <main id="main-content" tabindex="-1" data-pagefind-body={searchable ? true : undefined}><slot /></main>
     <Footer />
     <script>
       if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
       }
-      document.querySelectorAll<HTMLDetailsElement>('[data-utility-dock]').forEach((dock) => {
-        dock.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('close', () => { dock.open = false; }));
-        document.addEventListener('pointerdown', (event) => {
-          if (dock.open && event.target instanceof Node && !dock.contains(event.target) && !dock.querySelector('dialog[open]')) dock.open = false;
-        });
-      });
     </script>
   </body>
 </html>

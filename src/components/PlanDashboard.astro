@@ -53,7 +53,6 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
       <h2 id="plan-dashboard-title">计划与下一步</h2>
       <p>汇总公开计划、里程碑进度、临期行动和关联项目。</p>
     </div>
-    <a class="plan-dashboard__new" href="/world/moon-pool/#plan-guide">添加计划说明 →</a>
   </header>
 
   <div class="plan-metrics" aria-label="计划概览">
@@ -125,12 +124,6 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
   </div>
   <div class="plan-empty" data-plan-empty hidden><strong>没有符合当前筛选的计划。</strong><button type="button" data-filter-reset>清除筛选</button></div>
 
-  <aside id="plan-guide" class="plan-guide">
-    <p class="pixel-kicker">计划维护</p>
-    <h3>从仓库添加公开计划</h3>
-    <code>pnpm plan:new -- plan-slug "计划标题"</code>
-    <p>命令会在 <code>src/content/plans/</code> 生成计划模板。公开内容会随站点构建发布。</p>
-  </aside>
 </section>
 
 <script>
@@ -312,9 +305,6 @@ const overdueCount = openActions.filter(({ dueState }) => dueState === 'overdue'
   .plan-card footer a { color: #416855; font-size: .74rem; font-weight: 900; }
   .plan-empty { padding: 38px; border: 2px dashed #77837a; text-align: center; }
   .plan-empty strong, .plan-empty button { display: block; margin: 0 auto 12px; }
-  .plan-guide { margin-top: 32px; padding: 25px 28px; border-left: 6px solid #70957a; color: #58645c; background: rgba(240,239,216,.82); }
-  .plan-guide h3 { margin: 0 0 12px; color: #514838; font-family: var(--serif); }
-  .plan-guide code { padding: 3px 7px; color: #354e40; background: #dce5d5; }
   @media (max-width: 900px) { .plan-metrics, .plan-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 600px) {
     .plan-dashboard__heading { align-items: start; flex-direction: column; }

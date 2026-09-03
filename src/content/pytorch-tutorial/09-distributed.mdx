@@ -19,13 +19,13 @@ draft: false
 
 ### 本节目标
 
-用自己的话解释“先建立 rank、world size 与进程组概念”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“先建立 rank、world size 与进程组概念”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 分布式训练通常一张 GPU 对应一个进程。rank 是进程全局编号，world size 是总进程数，进程组定义哪些进程参与通信。`torchrun` 负责注入环境变量并拉起进程。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“先建立 rank、world size 与进程组概念”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -46,7 +46,7 @@ dist.destroy_process_group()
 ### 常见错误
 
 - 多个进程绑定同一 GPU；每个 rank 都写同一文件；某个 rank 提前退出导致其余挂起。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“先建立 rank、world size 与进程组概念”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 
@@ -79,13 +79,13 @@ dist.destroy_process_group()
 
 ### 本节目标
 
-用自己的话解释“集合通信：all-reduce 与 reduce-scatter”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“集合通信：all-reduce 与 reduce-scatter”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 all-reduce 先聚合再把结果发回每个 rank，DDP 用它同步梯度。reduce-scatter 则聚合后让每个 rank 只保留一片，FSDP 会结合 all-gather 实现分片参数训练。所有 rank 必须以相同顺序参与集合通信。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“集合通信：all-reduce 与 reduce-scatter”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -103,7 +103,7 @@ print(dist.get_rank(), x.item())  # 两 rank 时均为 3
 ### 常见错误
 
 - 某些 rank 跳过 collective；通信 Tensor 的 shape/dtype 不一致；在通信前频繁同步 CPU。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“集合通信：all-reduce 与 reduce-scatter”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 
@@ -115,7 +115,7 @@ print(dist.get_rank(), x.item())  # 两 rank 时均为 3
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“集合通信：all-reduce 与 reduce-scatter”改变了哪一个数据流或训练状态。</p>
+  <p>验收：各 rank 步数与 collective 一致，分片无重复遗漏，并能说明“集合通信：all-reduce 与 reduce-scatter”的通信和显存代价。</p>
 </details>
 
 
@@ -136,13 +136,13 @@ print(dist.get_rank(), x.item())  # 两 rank 时均为 3
 
 ### 本节目标
 
-用自己的话解释“DistributedDataParallel 的正确骨架”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“DistributedDataParallel 的正确骨架”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 DDP 每个进程持有完整模型副本，处理不同数据，反向时同步梯度。适合模型能放进单卡、目标是提高数据吞吐的情况。要配合 `DistributedSampler`，每轮调用 `set_epoch` 改变洗牌。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“DistributedDataParallel 的正确骨架”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -168,7 +168,7 @@ for epoch in range(epochs):
 ### 常见错误
 
 - 使用 DDP 又设置 shuffle；忘记 set_epoch；只在 rank 0 反向。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“DistributedDataParallel 的正确骨架”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 
@@ -180,7 +180,7 @@ DDP 不减少单卡模型状态显存；当模型本身放不下时，应考虑 
 
 <details className="lesson-answer">
   <summary>查看参考答案与验收点</summary>
-  <p>参考答案的关键不是抄固定输出，而是按本节“运行结果与观察”逐项断言。完成后用一句话解释“DistributedDataParallel 的正确骨架”改变了哪一个数据流或训练状态。</p>
+  <p>验收：各 rank 步数与 collective 一致，分片无重复遗漏，并能说明“DistributedDataParallel 的正确骨架”的通信和显存代价。</p>
 </details>
 
 
@@ -201,13 +201,13 @@ DDP 不减少单卡模型状态显存；当模型本身放不下时，应考虑 
 
 ### 本节目标
 
-用自己的话解释“FSDP2 为什么能训练更大模型”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“FSDP2 为什么能训练更大模型”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 FSDP2 将参数、梯度和优化器状态跨 rank 分片。计算某个模块前 all-gather 所需参数，计算后释放，再以 reduce-scatter 聚合梯度。它节省模型状态显存，但增加通信并要求合理切分模块。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“FSDP2 为什么能训练更大模型”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -231,7 +231,7 @@ optimizer.step()
 ### 常见错误
 
 - 把 FSDP1 旧 API 与 FSDP2 混用；只包最外层造成重组峰值过大；每个 rank 保存完整 checkpoint。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“FSDP2 为什么能训练更大模型”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 
@@ -264,13 +264,13 @@ optimizer.step()
 
 ### 本节目标
 
-用自己的话解释“Tensor Parallel 与二维并行”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“Tensor Parallel 与二维并行”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 张量并行把单个矩阵乘的权重按行或列切到多卡，每层都可能通信。它适合单个层太大或需要进一步扩展；实践中常与 FSDP 组成二维 mesh：一维做分片数据并行，一维做模型内张量并行。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“Tensor Parallel 与二维并行”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -291,7 +291,7 @@ parallelize_module(attention, mesh['tp'], plan)
 ### 常见错误
 
 - 模型能单卡放下却过早上 TP；行列切分计划不匹配前后层布局；忽视互联拓扑。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“Tensor Parallel 与二维并行”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 
@@ -324,13 +324,13 @@ parallelize_module(attention, mesh['tp'], plan)
 
 ### 本节目标
 
-用自己的话解释“分布式挂起与排错清单”，并能独立运行、修改本节代码。先关注数据的形状与流向，再记接口名称。
+本节围绕“分布式挂起与排错清单”展开。运行示例时记录 rank、world size、数据分片与 collective 顺序，确认各进程步数一致。
 
 ### 清晰讲解
 
 挂起通常意味着不同 rank 走了不同控制流、collective 顺序不一致、某个进程 OOM/异常或网络配置错误。先保存每个 rank 独立日志，打开分布式调试信息，再缩小到最少节点与批次。
 
-> 阅读代码时坚持三问：输入的 shape 是什么？输出的 shape 是什么？哪些值会在反向传播中被更新？
+核对“分布式挂起与排错清单”中的 rank 映射、分片范围、collective 次序、通信量和同步边界。
 
 ### 代码示例
 
@@ -352,7 +352,7 @@ finally:
 ### 常见错误
 
 - 只看 rank 0 日志；所有 rank 写一个日志文件互相覆盖；挂起后反复延长 timeout。
-- 只确认“代码没有报错”，却不检查 shape、dtype、device 和数值是否符合任务语义。
+- 排查“分布式挂起与排错清单”时只查看单个 rank，没有对齐各进程的 step、collective、数据分片和错误日志。
 
 ### 与大模型方向的连接
 

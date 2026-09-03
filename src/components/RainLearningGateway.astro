@@ -16,11 +16,11 @@ const interviewQuestions = (await Promise.all(interviewChapters.map(async (item)
   <header class="section-heading">
     <p class="pixel-kicker">雨桥问学 · 三路并行</p>
     <h2 id="rain-learning-title">从这里开始学习</h2>
-    <p>雨桥连接概念、代码与表达三条路径。选择当前最需要的一路，也可以沿推荐顺序完成一次完整学习闭环。</p>
+    <p>系统笔记是主线，PyTorch 实践和问道录按主题补充代码与问题训练。</p>
   </header>
 
   <div class="rain-learning__resume" data-learning-resume data-llm-total={llmSections} data-pytorch-total={pytorchLessons}>
-    <header><div><p class="pixel-kicker">学习工作台</p><h3>继续上次学习</h3></div><p>这里只记录课程进度；引用的文件与网站资料仍由风谷统一保管。</p></header>
+    <header><div><p class="pixel-kicker">学习工作台</p><h3>继续上次学习</h3></div><p>课程进度保存在本机，引用资料收在风谷。</p></header>
     <div>
       <a href="/learn/llm/" data-resume-track="llm"><small>系统笔记</small><strong data-resume-title>从第一章开始</strong><span data-resume-progress>尚无学习记录</span></a>
       <a href="/learn/pytorch/" data-resume-track="pytorch"><small>PyTorch 实践</small><strong data-resume-title>从基础课程开始</strong><span data-resume-progress>尚无学习记录</span></a>
@@ -55,7 +55,7 @@ const interviewQuestions = (await Promise.all(interviewChapters.map(async (item)
   </div>
 
   <div class="rain-learning__route" id="learning-route">
-    <div><p class="pixel-kicker">推荐顺序</p><h3>先理解，再动手，最后表达</h3></div>
+    <div><p class="pixel-kicker">推荐顺序</p><h3>系统笔记 → 实践 → 问题训练</h3></div>
     <ol>
       <li><span>01</span><p><strong>系统笔记</strong><small>建立概念与机制地图</small></p></li>
       <li><span>02</span><p><strong>PyTorch 实践</strong><small>把机制写成可运行代码</small></p></li>

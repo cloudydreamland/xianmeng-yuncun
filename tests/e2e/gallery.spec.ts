@@ -15,7 +15,9 @@ test('灯巷按公开作品状态展示画廊或酝酿说明', async ({ page }) 
     await expect(page.getByText('境中有景 · 门扉待启').first()).toBeVisible();
   } else {
     await expect(cards).toHaveCount(2);
-    await expect(page.getByText('此境门扉已启').first()).toBeVisible();
+    await expect(page.getByText('此境门扉已启')).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: '作品与收藏' })).toBeVisible();
+    await expect(page.locator('.region-hero__purpose')).toContainText('浮屿·灯巷');
   }
 });
 
@@ -46,7 +48,7 @@ test('作品搜索在有公开作品时返回真实详情', async ({ page }) => 
   const title = (await firstCard.locator('h3').innerText()).trim();
 
   await page.getByRole('button', { name: /搜索|云镜/ }).first().click();
-  await page.getByRole('button', { name: '作品', exact: true }).click();
+  await page.getByRole('button', { name: '文章', exact: true }).click();
   await page.getByRole('searchbox').fill(title);
   await expect(page.locator('.search-result').filter({ hasText: title })).toBeVisible();
 });

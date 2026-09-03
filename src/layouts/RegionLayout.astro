@@ -9,6 +9,7 @@ const {
   summary,
   quote,
   functionTitle,
+  functionLabel = functionTitle,
   functionDescription,
   status,
   theme,
@@ -20,7 +21,7 @@ const {
 ---
 
 <BaseLayout
-  title={`${title}｜雲梦地志`}
+  title={`${title} · ${functionLabel}｜雲梦地志`}
   description={summary}
   image={illustration.fallback}
   searchable
@@ -33,11 +34,10 @@ const {
       <a class="back-link" href="/">← 归览雲梦全境</a>
       <div class="region-hero__copy">
         <p class="pixel-kicker">雲梦地志 · {realm}</p>
-        <h1>{title}</h1>
+        <h1>{functionLabel}</h1>
+        <p class="region-hero__purpose"><strong>{title}</strong><i aria-hidden="true">·</i><span>{functionTitle}</span></p>
         <p>{summary}</p>
-        <span class:list={['region-status', { 'region-status--active': status === 'active' }]}>
-          {status === 'active' ? '此境门扉已启' : '境中有景 · 门扉待启'}
-        </span>
+        {status !== 'active' && <span class="region-status">境中有景 · 门扉待启</span>}
       </div>
       <figure class="region-visual">
         <picture>
@@ -57,7 +57,7 @@ const {
         <p class="pixel-kicker">此境所司</p>
         <h2>{functionTitle}</h2>
         <p>{functionDescription}</p>
-        <strong>{status === 'active' ? '门扉已启' : '此门尚隐于云中'}</strong>
+        {status !== 'active' && <strong>此门尚隐于云中</strong>}
       </aside>
     </div>
 

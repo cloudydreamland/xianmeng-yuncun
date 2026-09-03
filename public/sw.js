@@ -1,8 +1,8 @@
 const CACHE_PREFIX = 'yuncun-';
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const SHELL_CACHE = `${CACHE_PREFIX}shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-${CACHE_VERSION}`;
-const APP_SHELL = ['/', '/workspace/', '/world/cloud-village/', '/world/rain-bridge/', '/world/star-abyss/', '/world/moon-pool/', '/world/snow-cliff/', '/world/lantern-lane/', '/offline.html', '/manifest.webmanifest'];
+const APP_SHELL = ['/', '/world/cloud-village/', '/world/rain-bridge/', '/world/star-abyss/', '/world/moon-pool/', '/world/snow-cliff/', '/world/lantern-lane/', '/offline.html', '/manifest.webmanifest'];
 const MAX_RUNTIME_ENTRIES = 80;
 
 async function trimCache(cacheName, maxEntries) {
@@ -35,6 +35,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || request.headers.has('range')) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/workspace/') || url.pathname.startsWith('/private-migration/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {

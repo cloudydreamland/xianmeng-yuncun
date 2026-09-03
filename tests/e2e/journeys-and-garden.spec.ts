@@ -11,7 +11,7 @@ test('云游路线记录本地足迹并提供继续入口', async ({ page }) => 
   await page.evaluate(() => window.localStorage.removeItem('yuncun:trail:v1'));
   await page.reload();
   await page.getByRole('link', { name: '从全境地图进入云中书页' }).click();
-  await page.getByRole('link', { name: '查看云游路线 →' }).click();
+  await page.getByRole('link', { name: '云游路线' }).click();
   const guide = page.locator('[data-journey-guide]');
   await expect(guide.locator('[data-journey-card]')).toHaveCount(3);
   await expect(guide.getByText('尚未启程 · 0/4').first()).toBeVisible();
