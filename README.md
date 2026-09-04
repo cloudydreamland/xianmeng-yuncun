@@ -4,7 +4,7 @@
 
 站点同时提供三条「云游路线」和仅保存在浏览器本地的足迹记录、结构化项目案例、星渊 Attention 互动实验、笔记显式引路／回望关系。公开内容无需登录，访客不能修改站点或写入云端。
 
-私人计划、习惯、专注、账目、物品与手记位于独立的管理员应用中，由 Cloudflare Access 限制唯一邮箱，并以 D1 作为云端主数据。公开站只保留主题、阅读收藏、学习进度和地图足迹等设备偏好。
+私人计划、习惯、专注、账目、物品与手记位于独立的管理员应用中，由通行密钥与服务端会话限制唯一管理员，并以 D1 作为云端主数据。公开站只保留主题、阅读收藏、学习进度和地图足迹等设备偏好。
 
 如果要把项目交给另一位开发者或 AI，请先阅读 [HANDOFF.md](./HANDOFF.md)，其中记录了当前分支、已完成范围与未上线内容。
 
@@ -180,12 +180,16 @@ Cloudflare 会为主分支创建生产部署，并为 Pull Request 创建预览�
 管理端位于 `admin/`，需要建立第二个 Cloudflare Pages 项目：
 
 1. 项目根目录设为 `admin`，构建命令为 `pnpm build`，输出目录为 `dist`。
-2. 为项目启用 Cloudflare Access，策略仅允许一个精确邮箱，并使用 One-time PIN；不要使用“所有有效邮箱”。
+2. 不需要开通 Cloudflare Zero Trust 或付款套餐。管理端由 Pages Functions 进行通行密钥验证，使用独立 D1 会话；不开放注册。
 3. 创建 D1 数据库并以 `DB` 绑定，按顺序执行 `admin/migrations/` 中的 SQL。
-4. 配置 `ADMIN_EMAIL`、`CF_ACCESS_AUD`、`CF_ACCESS_ISSUER`、`PUBLIC_SITE_ORIGIN` 和 `PUBLIC_ADMIN_ORIGIN`。真实邮箱与 Access 配置不得提交仓库。
+4. `admin/wrangler.jsonc` 管理 D1 绑定和固定 Origin；生产项目另配置可选显示邮箱 `ADMIN_EMAIL`。首次绑定前运行 `node admin/scripts/create-setup-token.mjs`，按本机生成的说明，将哈希作为 `ADMIN_SETUP_TOKEN_HASH` Secret 配置到管理项目，重新部署后在 `/login/` 输入原始一次性凭据。不要把凭据、恢复码或真实邮箱提交仓库或发到聊天里。
 5. 公开项目配置 `PUBLIC_ADMIN_ORIGIN`，使页脚登录入口和迁移桥指向同一管理端；若以后更换管理端域名，同时更新 `public/_redirects` 中的 `/workspace` 目标。
 
-管理端 API 会再次验证 Access JWT 的签名、签发方、Audience 和精确邮箱。D1 是私人记录的唯一数据源；浏览器只保留当前表单状态，不作为长期数据副本。
+管理端页面及 API 均验证 D1 中的随机令牌会话。通行密钥验证使用 SimpleWebAuthn，强制用户确认、固定 RP ID/Origin、单次且五分钟过期的挑战。会话使用 Secure/HttpOnly/SameSite=Strict Cookie，最长 12 小时、一小时无活动失效；所有写请求校验同源 Origin。预览域名与生产 Origin 不符时默认拒绝，不得为方便预览增加通配 Origin。
+
+首次绑定成功后，即使初始化 Secret 尚未删除也无法再次初始化。仍应删除 `ADMIN_SETUP_TOKEN_HASH` Secret 并重新部署。请离线保存八个一次性恢复码，并绑定至少一把备用密钥；恢复码只授予五分钟的替代密钥绑定权，不能读取私人记录。完成恢复会撤销旧密钥、旧会话和旧恢复码。旧 Access Audience/Issuer 不再使用。D1 是私人记录的唯一数据源；浏览器只保留当前表单状态，不作为长期数据副本。
+
+`pnpm test:e2e:auth` 使用本地隔离 D1 和浏览器虚拟验证器，不读写生产数据。更多安全边界和故障恢复步骤见 [管理端安全说明](docs/ADMIN_SECURITY.md)。
 
 ## 首期范围
 

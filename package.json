@@ -13,6 +13,7 @@
     "check:admin": "corepack pnpm --dir admin check",
     "test:e2e": "playwright test",
     "test:e2e:admin": "playwright test --config admin/playwright.config.ts",
+    "test:e2e:auth": "playwright test --config admin/playwright.auth.config.ts",
     "test:unit": "node --experimental-strip-types --test --test-isolation=none tests/unit/*.test.ts",
     "gallery:prepare": "node scripts/prepare-gallery-image.mjs",
     "media:prepare": "node scripts/prepare-background-images.mjs",

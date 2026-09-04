@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import { legacySnapshotToRecords, type PrivateRecord, type PrivateRecordData, type PrivateRecordInput } from '../../../shared/privateRecords';
+import { authApi, PasskeySecurity } from './PasskeyAuth';
 
 type EditableKind = 'plan' | 'inbox' | 'habit' | 'focus-session' | 'checklist' | 'expiry' | 'expense' | 'inventory' | 'journal';
 type ViewId = 'today' | EditableKind | 'data';
@@ -213,9 +214,15 @@ export default function AdminWorkspace({ publicOrigin }: { publicOrigin: string 
   };
 
   if (busy && !sessionEmail) return <div className="loading">正在开启私人工作台…</div>;
+  if (!sessionEmail) return <div className="admin-shell"><section className="surface panel"><h1>尚未连接私人工作台</h1><p role="status">{status}</p><a className="button" href="/login/">前往管理员登录</a></section></div>;
+  const logout = async () => {
+    setBusy(true);
+    try { await authApi('logout', {}); setRecords([]); setTrash([]); setEditing(null); setPreview(null); setSessionEmail(''); window.location.replace('/login/'); }
+    catch { setStatus('退出失败，请检查网络后重试。'); setError(true); setBusy(false); }
+  };
   const activeDefinition = active !== 'today' && active !== 'data' ? definitions[active] : null;
   return <div className="admin-shell">
-    <header className="admin-header"><div><p className="kicker">PRIVATE CLOUD DESK · 私人云案</p><h1>我的工作台</h1><p>只有唯一管理员能够查看和修改，记录直接保存到私人云端。</p></div><div className="account"><span>{sessionEmail || '已通过 Cloudflare Access 验证'}</span><a href="/cdn-cgi/access/logout">退出登录</a></div></header>
+    <header className="admin-header"><div><p className="kicker">PRIVATE CLOUD DESK · 私人云案</p><h1>我的工作台</h1><p>只有唯一管理员能够查看和修改，记录直接保存到私人云端。</p></div><div className="account"><span>{sessionEmail} · 通行密钥已验证</span><button className="text-button" disabled={busy} onClick={() => void logout()}>退出登录</button></div></header>
     <div className={`status-strip ${error ? 'is-error' : ''}`} role="status" aria-live="polite"><i aria-hidden="true"></i><span>{status}</span></div>
     <nav className="admin-nav" aria-label="私人工作台目录">
       <button aria-pressed={active === 'today'} onClick={() => setView('today')}>今日</button>
@@ -224,6 +231,7 @@ export default function AdminWorkspace({ publicOrigin }: { publicOrigin: string 
     </nav>
     <div className="workspace-grid">
       <section className="surface panel">
+        {active === 'data' && <PasskeySecurity />}
         {active === 'today' && <><header className="panel-heading"><div><p className="kicker">TODAY · 今日云笺</p><h2>今日概览</h2></div><p>{todayKey}</p></header><div className="metrics"><article className="metric"><span>未完成计划</span><strong>{metrics.openPlans}</strong><small>全部私人计划</small></article><article className="metric"><span>今天</span><strong>{metrics.todayPlans}</strong><small>项待办</small></article><article className="metric"><span>习惯</span><strong>{metrics.habits}</strong><small>项进行中</small></article><article className="metric"><span>本月开销</span><strong>¥{metrics.monthExpense.toFixed(0)}</strong><small>私人账目</small></article></div><ol className="today-list">{records.filter((record) => record.kind === 'plan' && !record.data.completed).slice(0, 8).map((record) => <li key={record.id}><strong>{displayTitle(record)}</strong> · {String(record.data.date || '未定日期')}</li>)}</ol></>}
         {activeDefinition && <><header className="panel-heading"><div><p className="kicker">PRIVATE RECORDS · {activeDefinition.mark}</p><h2>{activeDefinition.label}</h2></div><p>{activeDefinition.description}</p></header><div className="record-list">{visibleRecords.length ? visibleRecords.map((record) => { const habitDone = record.kind === 'habit' && records.some((item) => item.kind === 'habit-log' && item.data.habitId === record.id && item.data.date === todayKey); return <article className="record-card" key={record.id}><div><h3>{displayTitle(record)}</h3><p>{displaySummary(record)}</p><small>云端版本 {record.version} · {new Date(record.updatedAt).toLocaleString('zh-CN')}</small></div><div className="record-actions">{record.kind === 'habit' && <button className="button secondary" onClick={() => void toggleHabit(record)} disabled={busy}>{habitDone ? '取消今日' : '今日完成'}</button>}<button className="button secondary" onClick={() => { setEditing(record); setConflict(null); }}>编辑</button><button className="button danger" onClick={() => void remove(record)} disabled={busy}>删除</button></div></article>; }) : <div className="empty">这里还没有记录，可以从右侧新增第一条。</div>}</div></>}
         {active === 'data' && <><header className="panel-heading"><div><p className="kicker">DATA & BACKUP · 云卷</p><h2>迁移、备份与回收站</h2></div><p>数据不会进入公开站。</p></header><div className="data-tools"><article className="data-card"><h3>从旧工作台迁移</h3><p>读取公开站当前浏览器里的旧私人记录，先预览数量，再写入云端。</p><button className="button" onClick={openMigration}>打开安全迁移页</button></article><article className="data-card"><h3>完整备份</h3><p>导出内容包含有效记录和回收站，可用于离线留档或恢复。</p><a className="button" href="/api/export" download>导出 JSON 备份</a><label><span className="sr-only">选择 JSON 备份</span><input type="file" accept="application/json,.json" onChange={(event) => void uploadBackup(event.target.files?.[0])} /></label></article>{preview && <article className="data-card preview"><h3>待导入预览</h3><p>共 {preview.records.length} 条记录：</p><ul>{Object.entries(preview.records.reduce<Record<string, number>>((counts, record) => ({ ...counts, [record.kind]: (counts[record.kind] || 0) + 1 }), {})).map(([kind, count]) => <li key={kind}>{kind}：{count}</li>)}</ul><div className="form-actions"><button className="button" onClick={() => void importPreview()} disabled={busy}>确认写入云端</button><button className="button secondary" onClick={() => setPreview(null)}>取消</button></div></article>}<article className="data-card"><h3>回收站 · 30 天</h3>{trash.length ? <div className="record-list">{trash.map((record) => <article className="record-card trash-card" key={record.id}><div><h3>{displayTitle(record)}</h3><p>{record.deletedAt ? `删除于 ${new Date(record.deletedAt).toLocaleString('zh-CN')}` : ''}</p></div><button className="button secondary" onClick={() => void restore(record)}>恢复</button></article>)}</div> : <p>回收站为空。</p>}</article></div></>}

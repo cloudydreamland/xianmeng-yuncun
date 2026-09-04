@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
-import { verifyAdminAccess } from '../../admin/functions/_lib/access.ts';
+import { verifyAdminSession, digest, randomToken, nowSeconds } from '../../admin/functions/_lib/auth.ts';
 import { onRequestGet as getRecords, onRequestPost as createRecord } from '../../admin/functions/api/records/index.ts';
 import { onRequestDelete as deleteRecord, onRequestPatch as patchRecord } from '../../admin/functions/api/records/[id].ts';
 import { onRequestPost as restoreRecord } from '../../admin/functions/api/records/[id]/restore.ts';
@@ -21,48 +21,33 @@ class MemoryStatement implements D1PreparedStatement {
   async run<T>(): Promise<D1Result<T>> { const result = this.database.prepare(this.sql).run(...this.#values); return { success: true, meta: { changes: Number(result.changes) } }; }
 }
 
-class MemoryD1 implements D1Database {
+export class MemoryD1 implements D1Database {
   readonly database = new DatabaseSync(':memory:');
-  constructor() { this.database.exec(readFileSync(new URL('../../admin/migrations/0001_private_records.sql', import.meta.url), 'utf8')); }
+  constructor() { for (const file of ['0001_private_records.sql', '0002_passkey_auth.sql']) this.database.exec(readFileSync(new URL(`../../admin/migrations/${file}`, import.meta.url), 'utf8')); }
   prepare(query: string): D1PreparedStatement { return new MemoryStatement(this.database, query); }
-  async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> { return Promise.all(statements.map((statement) => statement.run())); }
+  async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
+    this.database.exec('BEGIN');
+    try { const results = []; for (const statement of statements) results.push(await statement.run()); this.database.exec('COMMIT'); return results; }
+    catch (error) { this.database.exec('ROLLBACK'); throw error; }
+  }
 }
 
-function base64Url(value: string | Uint8Array): string {
-  return Buffer.from(value).toString('base64url');
+async function authFixture() {
+  const DB = new MemoryD1(); const token = randomToken(); const now = nowSeconds();
+  DB.database.prepare('INSERT INTO auth_admin VALUES (?, ?, ?)').run('primary', randomToken(), now);
+  DB.database.prepare('INSERT INTO auth_credentials (id, public_key, name, created_at) VALUES (?, ?, ?, ?)').run('test-key', 'test-public-key', 'Test', now);
+  DB.database.prepare('INSERT INTO auth_sessions VALUES (?, ?, ?, ?, ?, ?)').run(await digest(token), 'test-key', 'admin', now, now + 3600, now);
+  return { token: `__Host-yuncun-session=${token}`, fetcher: globalThis.fetch, env: { DB, ADMIN_EMAIL: 'owner@example.com', PUBLIC_ADMIN_ORIGIN: 'https://admin.example' } satisfies AdminEnv };
 }
 
-async function authFixture(overrides: Record<string, unknown> = {}) {
-  const issuer = `https://unit-${crypto.randomUUID()}.cloudflareaccess.com`;
-  const audience = 'admin-audience';
-  const email = 'owner@example.com';
-  const keys = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
-  const publicKey = await crypto.subtle.exportKey('jwk', keys.publicKey) as JsonWebKey & { kid: string };
-  publicKey.kid = 'unit-key'; publicKey.alg = 'RS256'; publicKey.use = 'sig';
-  const header = base64Url(JSON.stringify({ alg: 'RS256', kid: publicKey.kid, typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ iss: issuer, aud: audience, email, sub: 'owner-id', exp: Math.floor(Date.now() / 1000) + 300, ...overrides }));
-  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', keys.privateKey, new TextEncoder().encode(`${header}.${payload}`));
-  const token = `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
-  const fetcher = async () => Response.json({ keys: [publicKey] });
-  return { token, fetcher: fetcher as typeof fetch, env: { ADMIN_EMAIL: email, CF_ACCESS_AUD: audience, CF_ACCESS_ISSUER: issuer } satisfies AdminEnv };
-}
-
-test('Access JWT 必须通过签名、签发方、Audience、有效期和唯一邮箱校验', async () => {
-  const valid = await authFixture();
-  const request = new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': valid.token } });
-  assert.equal((await verifyAdminAccess(request, valid.env, valid.fetcher)).email, 'owner@example.com');
-  const wrongEmail = await authFixture({ email: 'visitor@example.com' });
-  await assert.rejects(() => verifyAdminAccess(new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': wrongEmail.token } }), wrongEmail.env, wrongEmail.fetcher), /admin_email_forbidden/);
-  const expired = await authFixture({ exp: Math.floor(Date.now() / 1000) - 1 });
-  await assert.rejects(() => verifyAdminAccess(new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': expired.token } }), expired.env, expired.fetcher), /admin_token_expired/);
-  const wrongAudience = await authFixture({ aud: 'another-audience' });
-  await assert.rejects(() => verifyAdminAccess(new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': wrongAudience.token } }), wrongAudience.env, wrongAudience.fetcher), /admin_token_claims_invalid/);
-  const wrongIssuer = await authFixture({ iss: 'https://other-team.cloudflareaccess.com' });
-  await assert.rejects(() => verifyAdminAccess(new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': wrongIssuer.token } }), wrongIssuer.env, wrongIssuer.fetcher), /admin_token_claims_invalid/);
-  const tampered = await authFixture();
-  const tokenParts = tampered.token.split('.');
-  tokenParts[2] = `${tokenParts[2][0] === 'A' ? 'B' : 'A'}${tokenParts[2].slice(1)}`;
-  await assert.rejects(() => verifyAdminAccess(new Request('https://admin.example/api/session', { headers: { 'cf-access-jwt-assertion': tokenParts.join('.') } }), tampered.env, tampered.fetcher), /admin_token_signature_invalid/);
+test('仅有效服务器会话可以访问私人数据；伪造 Access 头不再有效', async () => {
+  const auth = await authFixture();
+  const request = new Request('https://admin.example/api/session', { headers: { cookie: auth.token } });
+  assert.equal((await verifyAdminSession(request, auth.env)).email, 'owner@example.com');
+  await assert.rejects(() => verifyAdminSession(new Request(request.url, { headers: { 'cf-access-jwt-assertion': auth.token } }), auth.env), /admin_auth_required/);
+  await assert.rejects(() => verifyAdminSession(new Request('https://preview.admin.example/api/session', { headers: { cookie: auth.token } }), auth.env), /admin_origin_forbidden/);
+  auth.env.DB.database.exec('DELETE FROM auth_sessions');
+  await assert.rejects(() => verifyAdminSession(request, auth.env), /admin_auth_required/);
 });
 
 test('私人记录 API 支持创建、版本冲突、软删除、恢复和幂等导入', async () => {
@@ -70,8 +55,8 @@ test('私人记录 API 支持创建、版本冲突、软删除、恢复和幂等
   const originalFetch = globalThis.fetch;
   globalThis.fetch = auth.fetcher;
   try {
-    const env: AdminEnv = { ...auth.env, DB: new MemoryD1() };
-    const headers = { 'cf-access-jwt-assertion': auth.token, origin: 'https://admin.example', 'content-type': 'application/json' };
+    const env: AdminEnv = { ...auth.env };
+    const headers = { cookie: auth.token, origin: 'https://admin.example', 'content-type': 'application/json' };
     const context = (request: Request, id = '') => ({ request, env, params: { id }, waitUntil: () => undefined });
     const created = await createRecord(context(new Request('https://admin.example/api/records', { method: 'POST', headers, body: JSON.stringify({ kind: 'plan', data: { title: '整理云卷', date: '2026-09-03' } }) })));
     assert.equal(created.status, 201);
@@ -93,17 +78,17 @@ test('私人记录 API 支持创建、版本冲突、软删除、恢复和幂等
     const duplicate = await importRecords(context(new Request('https://admin.example/api/import', { method: 'POST', headers, body: JSON.stringify(importBody) })));
     assert.equal((await duplicate.json() as { duplicate: boolean }).duplicate, true);
 
-    const listed = await getRecords(context(new Request('https://admin.example/api/records', { headers: { 'cf-access-jwt-assertion': auth.token } })));
+    const listed = await getRecords(context(new Request('https://admin.example/api/records', { headers: { cookie: auth.token } })));
     assert.equal((await listed.json() as { records: unknown[] }).records.length, 2);
 
-    const backup = await exportRecords(context(new Request('https://admin.example/api/export', { headers: { 'cf-access-jwt-assertion': auth.token } })));
+    const backup = await exportRecords(context(new Request('https://admin.example/api/export', { headers: { cookie: auth.token } })));
     const backupBody = await backup.json() as { records: Array<{ id: string; deletedAt: string | null }> };
     assert.equal(backup.headers.get('cache-control'), 'private, no-store');
     assert.equal(backupBody.records.length, 2);
 
     const database = (env.DB as MemoryD1).database;
     database.prepare('UPDATE private_records SET deleted_at = ? WHERE id = ?').run('2026-01-01T00:00:00.000Z', record.id);
-    await getRecords(context(new Request('https://admin.example/api/records?trash=true', { headers: { 'cf-access-jwt-assertion': auth.token } })));
+    await getRecords(context(new Request('https://admin.example/api/records?trash=true', { headers: { cookie: auth.token } })));
     assert.equal(database.prepare('SELECT id FROM private_records WHERE id = ?').get(record.id), undefined);
   } finally { globalThis.fetch = originalFetch; }
 });
@@ -112,8 +97,8 @@ test('私人写接口拒绝缺少同源 Origin 的请求', async () => {
   const auth = await authFixture();
   const originalFetch = globalThis.fetch; globalThis.fetch = auth.fetcher;
   try {
-    const env: AdminEnv = { ...auth.env, DB: new MemoryD1() };
-    const response = await createRecord({ request: new Request('https://admin.example/api/records', { method: 'POST', headers: { 'cf-access-jwt-assertion': auth.token, 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plan', data: { title: '不可写入' } }) }), env, params: {}, waitUntil: () => undefined });
+    const env: AdminEnv = { ...auth.env };
+    const response = await createRecord({ request: new Request('https://admin.example/api/records', { method: 'POST', headers: { cookie: auth.token, 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plan', data: { title: '不可写入' } }) }), env, params: {}, waitUntil: () => undefined });
     assert.equal(response.status, 403);
   } finally { globalThis.fetch = originalFetch; }
 });
@@ -122,9 +107,9 @@ test('导入接口拒绝没有 Content-Length 的超大请求体', async () => {
   const auth = await authFixture();
   const originalFetch = globalThis.fetch; globalThis.fetch = auth.fetcher;
   try {
-    const env: AdminEnv = { ...auth.env, DB: new MemoryD1() };
+    const env: AdminEnv = { ...auth.env };
     const oversized = JSON.stringify({ source: 'json-backup', records: [], padding: 'x'.repeat(1_500_000) });
-    const request = new Request('https://admin.example/api/import', { method: 'POST', headers: { 'cf-access-jwt-assertion': auth.token, origin: 'https://admin.example', 'content-type': 'application/json' }, body: oversized });
+    const request = new Request('https://admin.example/api/import', { method: 'POST', headers: { cookie: auth.token, origin: 'https://admin.example', 'content-type': 'application/json' }, body: oversized });
     request.headers.delete('content-length');
     const response = await importRecords({ request, env, params: {}, waitUntil: () => undefined });
     assert.equal(response.status, 413);

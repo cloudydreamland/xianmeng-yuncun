@@ -19,8 +19,8 @@ export interface D1Database {
 export interface AdminEnv {
   DB?: D1Database;
   ADMIN_EMAIL?: string;
-  CF_ACCESS_AUD?: string;
-  CF_ACCESS_ISSUER?: string;
+  PUBLIC_ADMIN_ORIGIN?: string;
+  ADMIN_SETUP_TOKEN_HASH?: string;
 }
 
 export interface PagesContext<Env> {
@@ -28,6 +28,7 @@ export interface PagesContext<Env> {
   env: Env;
   params: Record<string, string>;
   waitUntil(promise: Promise<unknown>): void;
+  next?: () => Promise<Response>;
 }
 
 export type PagesHandler<Env> = (context: PagesContext<Env>) => Response | Promise<Response>;

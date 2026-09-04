@@ -1,0 +1,17 @@
+{
+  "name": "xianmeng-yuncun-admin",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-08-04",
+  "vars": {
+    "PUBLIC_ADMIN_ORIGIN": "https://xianmeng-yuncun-admin.pages.dev",
+    "PUBLIC_SITE_ORIGIN": "https://xianmeng-yuncun.pages.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "xianmeng-yuncun-private",
+      "database_id": "71780873-b8e8-47a7-bb41-fbeb7fcf0346",
+      "migrations_dir": "./migrations"
+    }
+  ]
+}

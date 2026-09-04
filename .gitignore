@@ -14,6 +14,7 @@ tmp/
 __pycache__/
 *.pyc
 .corepack-cache/
+.wrangler/
 .codex-tmp/
 
 # Local-only Yunling desktop companion work
