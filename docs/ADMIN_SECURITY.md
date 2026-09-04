@@ -3,7 +3,8 @@
 ## 边界
 
 - 日常登录为 Secret `ADMIN_EMAIL` 指定的数字 QQ 邮箱加网站专用密码；邮箱不开放注册或自助修改。不是 QQ 邮箱密码，也不调用 QQ 验证服务。
-- 密码仅经 HTTPS 同源 POST 传给本站后端。服务端使用原生异步 `node:crypto.pbkdf2`、HMAC-SHA256、600,000 次迭代、随机 32 字节盐；固定参数不能由客户端改变，散列用 `timingSafeEqual` 比较。实现参数参考 [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)。
+- 密码仅经 HTTPS 同源 POST 传给本站后端。服务端使用原生 `node:crypto.scrypt`、N=16384、r=8、p=5、16 MiB 内存成本、随机 32 字节盐；固定参数不能由客户端改变，散列用 `timingSafeEqual` 比较。实现参数参考 [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#scrypt)。数据库 `algorithm` 明确标识参数组；旧 `iterations` 列只用于 PBKDF2 格式兼容，不表示 scrypt 的成本。
+- 生产平台会限制原生 KDF 的计算成本，本地 workerd 不完全复现。600,000 次 PBKDF2 在线上被拒绝后，部署检查验证了上述 scrypt 参数可执行。不得降低成本或自动切换算法来吞掉错误；服务不可用时返回 503，不签发会话或伪装保存成功。
 - 密码要求 15–128 Unicode 字符，NFC 规范化、不去除空格、不过度截断；拒绝常见弱口令模式、邮箱号码及大量重复字符。网站不保存、打印、回显原始密码，前端不写入持久存储。
 - 密码尝试额外限制为每 IP 每 15 分钟 5 次、全局 20 次（成功也计数）。这是单管理员的保守防猜测策略；攻击可能导致暂时无法密码登录，可以等待窗口结束或用备用密钥。不承诺抗所有拒绝服务攻击。
 - 只有近期认证会话或一次性恢复会话可以设密。已启用密码且使用密码会话改密时仍校验旧密码。改密事务校验会话与密码版本，撤销其他会话；慢请求不能越过并发改密。密码会话每次读取均检查当前密码版本。
@@ -22,7 +23,7 @@
 
 ## 上线核对
 
-1. 构建与测试通过后，按顺序迁移到 `0003_password_auth.sql`，不删除 `private_records` 或旧快照数据库。第三次迁移仅新增密码表和会话版本列；执行完成前不得发布依赖该表的新版。
+1. 构建与测试通过后，按顺序迁移到 `0004_password_algorithm.sql`，不删除 `private_records` 或旧快照数据库。第三次迁移新增密码表和会话版本列，第四次追加算法字段；执行完成前不得发布依赖新字段的版本。
 2. 管理项目使用 `admin/wrangler.jsonc`，生产固定 Origin；预览项目不得绑定另一套宽松 Origin 访问生产 D1。
    在 Cloudflare 管理项目的 Production 与 Preview 设置中，将 Runtime → Fail open/closed 设置为 **Fail closed**。这是平台级额度超限策略，中间件无法替代它；不得让配额耗尽时绕过函数返回静态页面。
 3. 已有管理员从工作台“数据与备份”设置专用密码，首次设置由已有通行密钥确认。新项目先按初始化说明绑定设备，再设置密码。密码、设备确认和恢复码保管由本人完成。

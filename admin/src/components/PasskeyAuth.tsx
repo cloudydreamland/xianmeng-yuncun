@@ -17,6 +17,7 @@ export function authMessage(error: unknown): string {
   if (message === 'email_or_password_incorrect') return '邮箱或网站密码不正确。';
   if (message === 'password_rate_limited') return '密码尝试次数过多，请 15 分钟后重试；也可使用已绑定的备用通行密钥。';
   if (message === 'password_too_weak') return '密码需为 15–128 个字符，请避开邮箱号码、重复字符、常见口令和连续数字。';
+  if (message === 'password_crypto_unavailable') return '密码服务暂时不可用，未完成登录或保存。请稍后重试或使用备用通行密钥。';
   if (message === 'admin_unavailable') return '登录服务尚未配置完成或暂时不可用，请稍后重试。';
   if (message === 'cannot_remove_current_key') return '不能移除本次登录使用的密钥，请先用另一把密钥登录。';
   if (message === 'credential_limit') return '最多保留 8 把密钥，请先移除不再使用的密钥。';

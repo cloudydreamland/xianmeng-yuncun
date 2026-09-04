@@ -33,7 +33,7 @@ test('密码只存带随机盐的慢散列，登录精确邮箱且会话跨请�
   assert.equal((await f.call('password-set', { email, password })).status, 200);
   assert.equal(await getSession(oldRequest, f.env), null, 'setting password revokes old sessions');
   const stored = f.DB.database.prepare('SELECT * FROM auth_password').get()!;
-  assert.equal(stored.iterations, 600000); assert.notEqual(stored.hash, password);
+  assert.equal(stored.algorithm, 'scrypt-n16384-r8-p5'); assert.notEqual(stored.hash, password);
   assert.equal(stored.hash, await derivePassword(password, stored.salt as string));
   assert.equal((await verifyAdminSession(f.request(), f.env)).subject, 'password:primary');
   const status = await (await f.call('status')).json() as any; assert.equal(status.passwordEnabled, true);
@@ -104,4 +104,13 @@ test('验证期间撤销会话会使整个密码写入事务回滚', async () =>
   f.DB.batch = async (statements) => { if (++batches === 2) f.DB.database.exec('DELETE FROM auth_sessions'); return originalBatch(statements); };
   assert.equal((await f.call('password-set', { email, password })).status, 401);
   assert.equal(f.DB.database.prepare('SELECT count(*) AS n FROM auth_password').get()!.n, 0);
+});
+
+test('不识别的散列格式返回不可用，不尝试降低参数或签发会话', async () => {
+  const f = await fixture(); await f.call('password-set', { email, password }); f.anonymous();
+  f.DB.database.exec("UPDATE auth_password SET algorithm = 'unknown-or-weaker-profile'");
+  const response = await f.call('password-login', { email, password });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json() as any).error, 'password_crypto_unavailable');
+  assert.equal(response.headers.get('set-cookie'), null);
 });

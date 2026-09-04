@@ -5,7 +5,8 @@ import { cleanupAuth, cookie, digest, getSession, isRecent, nowSeconds, randomTo
 import { json } from './response.ts';
 
 export const PASSWORD_ITERATIONS = 600000;
-interface PasswordRow { salt: string; hash: string; iterations: number; version: number }
+export const PASSWORD_ALGORITHM = 'scrypt-n16384-r8-p5';
+interface PasswordRow { salt: string; hash: string; iterations: number; version: number; algorithm: string }
 export const normalizeEmail = (value: unknown) => typeof value === 'string' ? value.trim().toLowerCase() : '';
 export function passwordValue(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 256) return null;
@@ -18,18 +19,14 @@ export function acceptablePassword(password: string, email: string): boolean {
     !['password', '123456', 'qwerty', '管理员', 'xianmeng', 'yuncun'].some((word) => lower.includes(word)) &&
     !lower.includes(email.split('@')[0]);
 }
-export async function derivePassword(password: string, salt: string): Promise<string> {
-  // Native asynchronous crypto, not WebCrypto's limited PBKDF2 implementation.
-  // Keep this cost fixed server-side; clients cannot downgrade or inflate it.
-  try { return await new Promise<string>((resolve, reject) => pbkdf2(password, Buffer.from(salt, 'base64url'), PASSWORD_ITERATIONS, 32, 'sha256', (error, key) => {
-    if (error) reject(error); else resolve(key.toString('base64url'));
-  })); } catch {
-    // Bounded deployment diagnostic. Never changes the stored hash algorithm or
-    // accepts a login: test an OWASP-listed scrypt profile, then fail closed.
-    try { await new Promise((resolve, reject) => scrypt('fixed-public-runtime-fixture', Buffer.alloc(32), 32, { N: 16384, r: 8, p: 5, maxmem: 33554432 }, (error, key) => error ? reject(error) : resolve(key))); }
-    catch { throw new Error('password_runtime_unavailable'); }
-    throw new Error('password_runtime_scrypt_available');
-  }
+export async function derivePassword(password: string, salt: string, algorithm = PASSWORD_ALGORITHM): Promise<string> {
+  // Fixed OWASP-listed memory/CPU profile, verified on hosted Workers. Never
+  // silently reduce cost or switch algorithms if the runtime rejects a KDF.
+  try {
+    if (algorithm === PASSWORD_ALGORITHM) return await new Promise<string>((resolve, reject) => scrypt(password, Buffer.from(salt, 'base64url'), 32, { N: 16384, r: 8, p: 5, maxmem: 33554432 }, (error, key) => error ? reject(error) : resolve(key.toString('base64url'))));
+    if (algorithm === 'pbkdf2-sha256') return await new Promise<string>((resolve, reject) => pbkdf2(password, Buffer.from(salt, 'base64url'), PASSWORD_ITERATIONS, 32, 'sha256', (error, key) => error ? reject(error) : resolve(key.toString('base64url'))));
+    throw new Error('unsupported_password_algorithm');
+  } catch { throw new Error('password_crypto_unavailable'); }
 }
 export async function passwordRateLimit(request: Request, db: D1Database): Promise<boolean> {
   const now = nowSeconds(); const window = Math.floor(now / 900);
@@ -45,10 +42,10 @@ const failed = () => json({ error: 'email_or_password_incorrect' }, 401);
 async function verify(password: string, row: PasswordRow | null): Promise<boolean> {
   // Unknown email / missing password uses the same expensive computation and error.
   const salt = row?.salt || 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-  const derived = await derivePassword(password, salt);
+  const derived = await derivePassword(password, salt, row?.algorithm || PASSWORD_ALGORITHM);
   const expected = row?.hash || 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
   const match = timingSafeEqual(Buffer.from(derived), Buffer.from(expected));
-  return !!row && row.iterations === PASSWORD_ITERATIONS && match;
+  return !!row && (row.algorithm === PASSWORD_ALGORITHM || row.algorithm === 'pbkdf2-sha256' && row.iterations === PASSWORD_ITERATIONS) && match;
 }
 export async function passwordAction(request: Request, env: AdminEnv, db: D1Database, action: string, body: Record<string, unknown>): Promise<Response> {
   if (!['password-login', 'password-set'].includes(action)) return json({ error: 'not_found' }, 404);
@@ -59,7 +56,7 @@ export async function passwordAction(request: Request, env: AdminEnv, db: D1Data
   const password = passwordValue(body.password);
   if (password === null) return failed();
   const email = normalizeEmail(body.email);
-  const row = await db.prepare('SELECT salt, hash, iterations, version FROM auth_password WHERE id = ?').bind('primary').first<PasswordRow>();
+  const row = await db.prepare('SELECT salt, hash, iterations, version, algorithm FROM auth_password WHERE id = ?').bind('primary').first<PasswordRow>();
   if (action === 'password-login') {
     const matches = await verify(password, row);
     if (!matches || email !== allowedEmail || !row) return failed();
@@ -84,7 +81,7 @@ export async function passwordAction(request: Request, env: AdminEnv, db: D1Data
   const version = (row?.version || 0) + 1; const now = nowSeconds(); const token = randomToken();
   const statements = [sessionWriteGuard(db, session),
     db.prepare("INSERT INTO auth_write_guard (id, allowed) VALUES (1, (SELECT COALESCE((SELECT version FROM auth_password WHERE id = 'primary'), 0) = ?)) ON CONFLICT(id) DO UPDATE SET allowed = excluded.allowed").bind(row?.version || 0),
-    db.prepare("INSERT INTO auth_password (id, salt, hash, iterations, version, updated_at) VALUES ('primary', ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET salt = excluded.salt, hash = excluded.hash, iterations = excluded.iterations, version = excluded.version, updated_at = excluded.updated_at").bind(salt, hash, PASSWORD_ITERATIONS, version, now),
+    db.prepare("INSERT INTO auth_password (id, salt, hash, iterations, version, updated_at, algorithm) VALUES ('primary', ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET salt = excluded.salt, hash = excluded.hash, iterations = excluded.iterations, version = excluded.version, updated_at = excluded.updated_at, algorithm = excluded.algorithm").bind(salt, hash, PASSWORD_ITERATIONS, version, now, PASSWORD_ALGORITHM),
     db.prepare('DELETE FROM auth_sessions'), db.prepare('DELETE FROM auth_challenges')];
   const codes: string[] = [];
   if (session.scope === 'recovery') {

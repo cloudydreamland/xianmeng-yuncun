@@ -23,7 +23,7 @@ class MemoryStatement implements D1PreparedStatement {
 
 export class MemoryD1 implements D1Database {
   readonly database = new DatabaseSync(':memory:');
-  constructor() { for (const file of ['0001_private_records.sql', '0002_passkey_auth.sql', '0003_password_auth.sql']) this.database.exec(readFileSync(new URL(`../../admin/migrations/${file}`, import.meta.url), 'utf8')); }
+  constructor() { for (const file of ['0001_private_records.sql', '0002_passkey_auth.sql', '0003_password_auth.sql', '0004_password_algorithm.sql']) this.database.exec(readFileSync(new URL(`../../admin/migrations/${file}`, import.meta.url), 'utf8')); }
   prepare(query: string): D1PreparedStatement { return new MemoryStatement(this.database, query); }
   async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
     this.database.exec('BEGIN');
