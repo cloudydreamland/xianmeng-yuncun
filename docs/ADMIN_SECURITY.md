@@ -18,6 +18,7 @@
 
 1. 构建与测试通过后，先迁移 `0002_passkey_auth.sql`，不删除 `private_records` 或旧快照数据库。
 2. 管理项目使用 `admin/wrangler.jsonc`，生产固定 Origin；预览项目不得绑定另一套宽松 Origin 访问生产 D1。
+   在 Cloudflare 管理项目的 Production 与 Preview 设置中，将 Runtime → Fail open/closed 设置为 **Fail closed**。这是平台级额度超限策略，中间件无法替代它；不得让配额耗尽时绕过函数返回静态页面。
 3. 管理员本人按本地初始化说明配置 Secret 和绑定设备，离线保存恢复码，最好另绑独立备用设备。
 4. 完成后删除初始化 Secret 并重新部署，确认匿名页面跳登录、所有私人 API 拒绝匿名、真实设备可以退出与再登录。
 5. 线上实际写入/刷新测试需要管理员登录后进行。浏览器内置预览可能不支持通行密钥，优先使用正常系统浏览器。
