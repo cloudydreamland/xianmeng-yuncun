@@ -3,6 +3,7 @@ import type { AdminEnv, PagesHandler } from '../../_types.ts';
 import { CHALLENGE_COOKIE, SESSION_COOKIE, cleanupAuth, config, consumeChallenge, cookie, decode, digest, encode, getSession, isRecent, issueChallenge, newSession, nowSeconds, randomToken, rateLimit, readCookie, sessionWriteGuard, type Credential } from '../../_lib/auth.ts';
 import { json, requireSameOriginWrite } from '../../_lib/response.ts';
 import { requireDatabase } from '../../_lib/records.ts';
+import { passwordAction } from '../../_lib/password.ts';
 
 async function readBody(request: Request): Promise<Record<string, unknown>> {
   const reader = request.body?.getReader();
@@ -37,19 +38,22 @@ export const onRequest: PagesHandler<AdminEnv> = async ({ request, env, params }
     const db = requireDatabase(env); const action = params.action;
     if (request.method === 'GET' && action === 'status') {
       const admin = await db.prepare('SELECT id FROM auth_admin WHERE id = ?').bind('primary').first();
-      return json({ initialized: !!admin, setupAvailable: !admin && /^[A-Za-z0-9_-]{43}$/.test(env.ADMIN_SETUP_TOKEN_HASH || '') });
+      const password = await db.prepare("SELECT id FROM auth_password WHERE id = 'primary'").first();
+      return json({ initialized: !!admin, passwordEnabled: !!password, setupAvailable: !admin && /^[A-Za-z0-9_-]{43}$/.test(env.ADMIN_SETUP_TOKEN_HASH || '') });
     }
     if (request.method === 'GET' && action === 'security') {
       const session = await getSession(request, env);
       if (!session || session.scope !== 'admin') return failed();
       const keys = await db.prepare('SELECT id, name, created_at, last_used_at FROM auth_credentials ORDER BY created_at').all();
       const recovery = await db.prepare('SELECT count(*) AS count FROM auth_recovery_codes').first<{ count: number }>();
-      return json({ credentials: keys.results || [], recoveryCount: recovery?.count || 0, currentCredential: session.credential_id });
+      const password = await db.prepare("SELECT id FROM auth_password WHERE id = 'primary'").first();
+      return json({ credentials: keys.results || [], passwordEnabled: !!password, recoveryCount: recovery?.count || 0, currentCredential: session.credential_id });
     }
     if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, { Allow: 'POST' });
     const rejected = requireSameOriginWrite(request); if (rejected) return rejected;
     if (!await rateLimit(request, db)) return json({ error: 'too_many_attempts' }, 429, { 'Retry-After': '300' });
     const body = await readBody(request);
+    if (typeof action === 'string' && action.startsWith('password-')) return await passwordAction(request, env, db, action, body);
     if (action === 'logout') {
       const token = readCookie(request, SESSION_COOKIE);
       if (token) await db.prepare('DELETE FROM auth_sessions WHERE token_hash = ?').bind(await digest(token)).run();
@@ -124,6 +128,7 @@ export const onRequest: PagesHandler<AdminEnv> = async ({ request, env, params }
       if (challenge.purpose === 'setup') statements.push(db.prepare('INSERT INTO auth_admin (id, user_handle, created_at) VALUES (?, ?, ?)').bind('primary', challenge.user_handle, now));
       else statements.push(sessionWriteGuard(db, session!));
       if (challenge.purpose === 'recover') {
+        statements.push(db.prepare('DELETE FROM auth_password'));
         statements.push(db.prepare('DELETE FROM auth_sessions'), db.prepare('DELETE FROM auth_challenges'), db.prepare('DELETE FROM auth_credentials'));
       }
       statements.push(db.prepare('INSERT INTO auth_credentials (id, public_key, counter, transports, name, created_at) VALUES (?, ?, ?, ?, ?, ?)')

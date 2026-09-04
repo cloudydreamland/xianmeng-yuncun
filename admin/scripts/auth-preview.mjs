@@ -15,6 +15,6 @@ if (migrate.status !== 0) process.exit(1);
 const token = 'A'.repeat(43);
 const hash = createHash('sha256').update(token).digest('base64url');
 const child = spawn(process.execPath, [wrangler, 'pages', 'dev', 'dist', '--ip', '127.0.0.1', '--port', '4323', '--local-protocol', 'https', '--persist-to', persist,
-  '--binding', 'PUBLIC_ADMIN_ORIGIN=https://localhost:4323', '--binding', `ADMIN_SETUP_TOKEN_HASH=${hash}`], { cwd, env, stdio: 'inherit' });
+  '--binding', 'PUBLIC_ADMIN_ORIGIN=https://localhost:4323', '--binding', 'ADMIN_EMAIL=123456789@qq.com', '--binding', `ADMIN_SETUP_TOKEN_HASH=${hash}`], { cwd, env, stdio: 'inherit' });
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => { child.kill(signal); });
 child.on('exit', (code) => process.exit(code || 0));

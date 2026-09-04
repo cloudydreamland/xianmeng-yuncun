@@ -45,10 +45,12 @@ test('重定向页和迁移桥不会进入 Sitemap', () => {
   assert.match(config, /sitemap\(\{\s*filter:/);
 });
 
-test('管理端认证说明统一为通行密钥，整站必须经过中间件', () => {
+test('管理端认证说明统一为邮箱密码与备用通行密钥，整站必须经过中间件', () => {
   const surfaces = [read('../../admin/.env.example'), read('../../admin/src/components/AdminWorkspace.tsx'), read('../../src/content/projects/yuncun-blog.mdx')].join('\n');
   assert.doesNotMatch(surfaces, /Cloudflare Access|CF_ACCESS_|cdn-cgi\/access/);
   assert.match(surfaces, /通行密钥/);
+  assert.match(read('../../admin/src/components/PasswordAuth.tsx'), /邮箱密码登录/);
+  assert.match(read('../../docs/private-sync.md'), /历史方案，仅用于旧数据迁移参考/);
   assert.deepEqual(JSON.parse(read('../../admin/public/_routes.json')).include, ['/*']);
   assert.match(read('../../admin/functions/_middleware.ts'), /requireAdmin/);
 });

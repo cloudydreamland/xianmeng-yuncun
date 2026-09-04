@@ -8,7 +8,7 @@ export const IDLE_SECONDS = 3600;
 export const RECENT_SECONDS = 300;
 const encoder = new TextEncoder();
 export interface AdminIdentity { owner: 'primary'; email: string; subject: string }
-export interface Session { token_hash: string; credential_id: string | null; scope: 'admin' | 'recovery'; created_at: number; expires_at: number; last_seen_at: number }
+export interface Session { token_hash: string; credential_id: string | null; scope: 'admin' | 'recovery'; created_at: number; expires_at: number; last_seen_at: number; password_version?: number | null }
 export interface Challenge { purpose: 'login' | 'setup' | 'register' | 'recover'; challenge: string; user_handle: string; session_hash: string | null; expires_at: number }
 export interface Credential { id: string; public_key: string; counter: number; transports: string; name: string; created_at: number; last_used_at: number | null }
 export const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -38,13 +38,17 @@ export async function getSession(request: Request, env: AdminEnv): Promise<Sessi
   const session = await db.prepare('SELECT * FROM auth_sessions WHERE token_hash = ?').bind(await digest(token)).first<Session>();
   const now = nowSeconds();
   if (!session || session.expires_at <= now || session.last_seen_at <= now - IDLE_SECONDS) return null;
+  if (session.scope === 'admin' && !session.credential_id) {
+    const password = await db.prepare("SELECT version FROM auth_password WHERE id = 'primary'").first<{ version: number }>();
+    if (!password || password.version !== session.password_version) return null;
+  }
   if (session.last_seen_at < now - 60) await db.prepare('UPDATE auth_sessions SET last_seen_at = ? WHERE token_hash = ?').bind(now, session.token_hash).run();
   return session;
 }
 export async function verifyAdminSession(request: Request, env: AdminEnv): Promise<AdminIdentity> {
   const session = await getSession(request, env);
-  if (!session || session.scope !== 'admin' || !session.credential_id) throw new Error('admin_auth_required');
-  return { owner: 'primary', email: env.ADMIN_EMAIL || '管理员', subject: session.credential_id };
+  if (!session || session.scope !== 'admin') throw new Error('admin_auth_required');
+  return { owner: 'primary', email: env.ADMIN_EMAIL || '管理员', subject: session.credential_id || 'password:primary' };
 }
 export function isRecent(session: Session | null): session is Session { return !!session && session.created_at > nowSeconds() - RECENT_SECONDS; }
 export async function newSession(db: D1Database, credentialId: string | null, scope: Session['scope'] = 'admin') {

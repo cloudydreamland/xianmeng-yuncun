@@ -23,7 +23,7 @@ class MemoryStatement implements D1PreparedStatement {
 
 export class MemoryD1 implements D1Database {
   readonly database = new DatabaseSync(':memory:');
-  constructor() { for (const file of ['0001_private_records.sql', '0002_passkey_auth.sql']) this.database.exec(readFileSync(new URL(`../../admin/migrations/${file}`, import.meta.url), 'utf8')); }
+  constructor() { for (const file of ['0001_private_records.sql', '0002_passkey_auth.sql', '0003_password_auth.sql']) this.database.exec(readFileSync(new URL(`../../admin/migrations/${file}`, import.meta.url), 'utf8')); }
   prepare(query: string): D1PreparedStatement { return new MemoryStatement(this.database, query); }
   async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
     this.database.exec('BEGIN');
@@ -36,7 +36,7 @@ async function authFixture() {
   const DB = new MemoryD1(); const token = randomToken(); const now = nowSeconds();
   DB.database.prepare('INSERT INTO auth_admin VALUES (?, ?, ?)').run('primary', randomToken(), now);
   DB.database.prepare('INSERT INTO auth_credentials (id, public_key, name, created_at) VALUES (?, ?, ?, ?)').run('test-key', 'test-public-key', 'Test', now);
-  DB.database.prepare('INSERT INTO auth_sessions VALUES (?, ?, ?, ?, ?, ?)').run(await digest(token), 'test-key', 'admin', now, now + 3600, now);
+  DB.database.prepare('INSERT INTO auth_sessions (token_hash, credential_id, scope, created_at, expires_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)').run(await digest(token), 'test-key', 'admin', now, now + 3600, now);
   return { token: `__Host-yuncun-session=${token}`, fetcher: globalThis.fetch, env: { DB, ADMIN_EMAIL: 'owner@example.com', PUBLIC_ADMIN_ORIGIN: 'https://admin.example' } satisfies AdminEnv };
 }
 
