@@ -166,6 +166,7 @@ export const onRequest: PagesHandler<AdminEnv> = async ({ request, env, params }
   } catch (error) {
     // Never expose crypto, database, credential or challenge details in errors.
     const message = error instanceof Error ? error.message : '';
+    if (message === 'password_runtime_unavailable' || message === 'password_runtime_scrypt_available') return json({ error: message }, 503);
     if (message === 'body_too_large') return json({ error: message }, 413);
     if (message === 'admin_auth_not_configured' || message === 'private_database_not_configured') return json({ error: 'admin_unavailable' }, 503);
     return failed();

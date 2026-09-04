@@ -1,4 +1,4 @@
-import { pbkdf2, timingSafeEqual } from 'node:crypto';
+import { pbkdf2, scrypt, timingSafeEqual } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import type { AdminEnv, D1Database } from '../_types.ts';
 import { cleanupAuth, cookie, digest, getSession, isRecent, nowSeconds, randomToken, SESSION_COOKIE, SESSION_SECONDS, sessionWriteGuard } from './auth.ts';
@@ -18,12 +18,18 @@ export function acceptablePassword(password: string, email: string): boolean {
     !['password', '123456', 'qwerty', '管理员', 'xianmeng', 'yuncun'].some((word) => lower.includes(word)) &&
     !lower.includes(email.split('@')[0]);
 }
-export function derivePassword(password: string, salt: string): Promise<string> {
+export async function derivePassword(password: string, salt: string): Promise<string> {
   // Native asynchronous crypto, not WebCrypto's limited PBKDF2 implementation.
   // Keep this cost fixed server-side; clients cannot downgrade or inflate it.
-  return new Promise((resolve, reject) => pbkdf2(password, Buffer.from(salt, 'base64url'), PASSWORD_ITERATIONS, 32, 'sha256', (error, key) => {
+  try { return await new Promise<string>((resolve, reject) => pbkdf2(password, Buffer.from(salt, 'base64url'), PASSWORD_ITERATIONS, 32, 'sha256', (error, key) => {
     if (error) reject(error); else resolve(key.toString('base64url'));
-  }));
+  })); } catch {
+    // Bounded deployment diagnostic. Never changes the stored hash algorithm or
+    // accepts a login: test an OWASP-listed scrypt profile, then fail closed.
+    try { await new Promise((resolve, reject) => scrypt('fixed-public-runtime-fixture', Buffer.alloc(32), 32, { N: 16384, r: 8, p: 5, maxmem: 33554432 }, (error, key) => error ? reject(error) : resolve(key))); }
+    catch { throw new Error('password_runtime_unavailable'); }
+    throw new Error('password_runtime_scrypt_available');
+  }
 }
 export async function passwordRateLimit(request: Request, db: D1Database): Promise<boolean> {
   const now = nowSeconds(); const window = Math.floor(now / 900);
